@@ -1,12 +1,13 @@
 import { useEffect, useState } from 'react';
 import { sendRequest } from '@/lib/messaging';
 import type { KeyInfo } from '@/lib/openrouter/types';
-import { model as modelSetting } from '@/lib/settings';
+import { enabled as enabledSetting, model as modelSetting, soul as soulSetting } from '@/lib/settings';
+import { useSetting } from '@/lib/use-setting';
 
 /**
- * Toolbar popup: status at a glance, and a way into the settings.
+ * Toolbar popup: status at a glance, one switch, and a way into the settings.
  *
- * Deliberately thin. Anything that needs room — soul profiles, the model
+ * Deliberately thin. Anything that needs room — the soul profile, the model
  * picker, generation options — lives on the options page, which opens in a full
  * tab rather than this 320px box.
  */
@@ -14,6 +15,8 @@ export function App() {
   const [connected, setConnected] = useState<boolean | null>(null);
   const [usage, setUsage] = useState<KeyInfo | null>(null);
   const [model, setModel] = useState('');
+  const [hasSoul, setHasSoul] = useState<boolean | null>(null);
+  const [on, setOn] = useSetting(enabledSetting);
 
   useEffect(() => {
     void (async () => {
@@ -22,6 +25,7 @@ export function App() {
       setConnected(isConnected);
 
       setModel(await modelSetting.getValue());
+      setHasSoul((await soulSetting.getValue()).trim().length > 0);
 
       if (isConnected) {
         const info = await sendRequest<KeyInfo>({ type: 'usage:get' });
@@ -30,8 +34,9 @@ export function App() {
     })();
   }, []);
 
-  const openSettings = () => {
-    void browser.runtime.openOptionsPage();
+  const openSettings = (section: string) => {
+    // `openOptionsPage` cannot target a section, so the URL is built by hand.
+    void browser.tabs.create({ url: browser.runtime.getURL(`/options.html#${section}`) });
     window.close();
   };
 
@@ -48,6 +53,17 @@ export function App() {
         )}
       </header>
 
+      <label className="flex cursor-pointer items-center justify-between gap-2 text-sm">
+        <span className="font-medium">Show the button on YouTube</span>
+        <input
+          type="checkbox"
+          className="toggle toggle-sm"
+          checked={on ?? true}
+          disabled={on === null}
+          onChange={(event) => setOn(event.target.checked)}
+        />
+      </label>
+
       {connected === false && (
         <p className="text-sm text-base-content/70">
           Connect an OpenRouter account to start generating replies.
@@ -59,6 +75,12 @@ export function App() {
           <div className="flex items-baseline justify-between gap-2">
             <dt className="text-base-content/60">Model</dt>
             <dd className="truncate text-right font-medium">{model}</dd>
+          </div>
+          <div className="flex items-baseline justify-between gap-2">
+            <dt className="text-base-content/60">Soul profile</dt>
+            <dd className="font-medium">
+              {hasSoul === null ? '…' : hasSoul ? 'Set' : 'Not set'}
+            </dd>
           </div>
           {usage && (
             <>
@@ -82,9 +104,19 @@ export function App() {
         </dl>
       )}
 
-      <button type="button" className="btn btn-primary btn-sm" onClick={openSettings}>
+      <button
+        type="button"
+        className="btn btn-primary btn-sm"
+        onClick={() => openSettings('/account')}
+      >
         {connected ? 'Settings' : 'Connect OpenRouter'}
       </button>
+
+      {connected && hasSoul === false && (
+        <button type="button" className="btn btn-ghost btn-sm" onClick={() => openSettings('/soul')}>
+          Write your soul profile
+        </button>
+      )}
 
       <p className="text-xs text-base-content/50">
         Open a YouTube video and press <span className="font-medium">AI reply</span> under any

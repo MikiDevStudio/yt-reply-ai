@@ -51,6 +51,17 @@ export const model = storage.defineItem<string>('local:openrouter.model', {
   fallback: MODEL_PRESETS.balanced,
 });
 
+/**
+ * Master switch for the injected UI.
+ *
+ * Off removes the button from YouTube entirely rather than making it fail
+ * quietly — someone who turns the extension off wants their comment section
+ * back, not a button that does nothing.
+ */
+export const enabled = storage.defineItem<boolean>('local:enabled', {
+  fallback: true,
+});
+
 /** How much context to send. See README for what each level costs. */
 export type ContextLevel = 0 | 1 | 2;
 

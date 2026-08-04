@@ -2,8 +2,8 @@ import './style.css';
 import ReactDOM from 'react-dom/client';
 import type { ContentScriptContext } from '#imports';
 import type { GenerationContext } from '@/lib/messaging';
-import { autoGenerate, contextLevel } from '@/lib/settings';
-import { openPopover } from './popover';
+import { autoGenerate, contextLevel, enabled } from '@/lib/settings';
+import { closePopover, openPopover } from './popover';
 import { ReplyButton } from './ReplyButton';
 import { syncTheme } from './theme';
 import {
@@ -25,7 +25,12 @@ export default defineContentScript({
   cssInjectionMode: 'ui',
 
   main(ctx) {
-    scan(ctx);
+    // Starts off: injection waits for the stored value rather than assuming the
+    // default, so someone who switched the extension off never sees a button
+    // flash into existence and disappear again.
+    void enabled.getValue().then((value) => setInjecting(ctx, value));
+    ctx.onInvalidated(enabled.watch((value) => setInjecting(ctx, value)));
+
     watchComments(ctx);
 
     // YouTube is an SPA — a normal page load only happens once. Registering a
@@ -34,6 +39,35 @@ export default defineContentScript({
     ctx.addEventListener(window, 'wxt:locationchange', () => scan(ctx));
   },
 });
+
+/** Buttons on the page right now, so they can be pulled when switched off. */
+const mounted = new Map<HTMLElement, { remove: () => void }>();
+
+/** Whether new comments get a button. Resolved from storage on startup. */
+let injecting = false;
+
+/**
+ * Turn the injected UI on or off in place.
+ *
+ * Switching off removes the buttons that are already there instead of leaving
+ * them to fail quietly, and clears the marker attribute so switching back on
+ * re-injects into the same toolbars.
+ */
+function setInjecting(ctx: ContentScriptContext, value: boolean) {
+  injecting = value;
+
+  if (value) {
+    scan(ctx);
+    return;
+  }
+
+  for (const [toolbar, ui] of mounted) {
+    ui.remove();
+    toolbar.removeAttribute(INJECTED_ATTR);
+  }
+  mounted.clear();
+  closePopover();
+}
 
 /**
  * Watch the comment section for newly rendered comments.
@@ -76,6 +110,8 @@ function watchComments(ctx: ContentScriptContext) {
 
 /** Mount our button into every comment toolbar that does not have one yet. */
 function scan(ctx: ContentScriptContext) {
+  if (!injecting) return;
+
   for (const toolbar of findUninjectedToolbars()) {
     // Mark before mounting: `createIntegratedUi` is async-friendly and a second
     // mutation could otherwise re-enter here for the same toolbar.
@@ -105,7 +141,14 @@ async function mountButton(ctx: ContentScriptContext, toolbar: HTMLElement) {
     onRemove: (root) => root?.unmount(),
   });
 
+  // Mounting is async, and the user may have switched us off while it ran.
+  if (!injecting) {
+    toolbar.removeAttribute(INJECTED_ATTR);
+    return;
+  }
+
   ui.mount();
+  mounted.set(toolbar, ui);
 }
 
 async function handleOpen(ctx: ContentScriptContext, toolbar: HTMLElement, anchor: HTMLElement) {
