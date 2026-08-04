@@ -26,6 +26,10 @@ export type GenerationState =
  * open also keeps the service worker from being torn down mid-answer.
  * Disconnecting cancels the request upstream, which is why every exit path here
  * disconnects rather than merely ignoring further messages.
+ *
+ * Shared by the injected popover and the soul preview on the options page, so
+ * what the preview shows is produced by the same path as a real reply — a
+ * preview built on a second, simpler code path would drift and start lying.
  */
 export function useGeneration() {
   const [state, setState] = useState<GenerationState>({ status: 'idle' });

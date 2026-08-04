@@ -1,4 +1,5 @@
 import { storage } from '#imports';
+import type { SoulProfile } from './soul';
 
 /**
  * Persisted settings.
@@ -86,7 +87,24 @@ export const autoGenerate = storage.defineItem<boolean>('local:generation.auto',
   fallback: true,
 });
 
-/** The user's voice profile, as markdown. Empty until they create one. */
+/**
+ * The user's voice profile, as markdown. Empty until they create one.
+ *
+ * This is what the prompt uses, whether it came from the constructor or was
+ * typed by hand.
+ */
 export const soul = storage.defineItem<string>('local:soul.active', {
   fallback: '',
+});
+
+/**
+ * The constructor's answers behind that markdown.
+ *
+ * Kept separately so reopening the constructor shows the choices instead of a
+ * blank form. `null` means the profile was written by hand and has no answers
+ * to restore — the constructor then starts from defaults and says so before it
+ * overwrites anything.
+ */
+export const soulProfile = storage.defineItem<SoulProfile | null>('local:soul.profile', {
+  fallback: null,
 });

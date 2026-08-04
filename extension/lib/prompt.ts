@@ -32,7 +32,9 @@ interface BuildOptions {
 export function buildReplyPrompt({ context, soul, style, level }: BuildOptions): ChatMessage[] {
   const system = [
     'You write replies to YouTube comments on behalf of the channel owner.',
-    'Reply in the same language as the comment.',
+    // Qualified because a soul profile may pin a language instead. Without the
+    // clause the two instructions contradict each other outright.
+    'Reply in the same language as the comment, unless the rules below say otherwise.',
     'Write only the reply text. No greetings block, no signature, no quotes around it.',
     'Keep it to one to three sentences unless the comment clearly needs more.',
   ];

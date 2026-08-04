@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
 import type { GenerationContext } from '@/lib/messaging';
 import { STYLES } from '@/lib/prompt';
-import { useGeneration } from './useGeneration';
+import { useGeneration } from '@/lib/use-generation';
 
 /** Order shown in the picker. `auto` first because it is the default. */
 const STYLE_ORDER = ['auto', 'friendly', 'humorous', 'engaging', 'brief'] as const;

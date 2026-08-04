@@ -18,26 +18,30 @@ interface SettingItem<T> {
  *
  * Reads once on mount and then follows storage, so a change made in the popup
  * shows up on an open options page without a reload. Writes are optimistic —
- * the UI updates immediately and storage catches up — because a radio button
- * that lags behind the click feels broken.
+ * the UI updates immediately and storage catches up — because a control that
+ * lags behind the click feels broken.
  *
- * The value is `null` until the first read resolves. Callers render a skeleton
- * or a disabled control for that frame rather than guessing a default that may
- * differ from what is stored.
+ * Returns `[value, setValue, loaded]`. The third element is not redundant with
+ * `value === null`: a setting can legitimately *store* null, and "not read yet"
+ * has to stay distinguishable from "read, and it is empty".
  */
-export function useSetting<T>(item: SettingItem<T>): [T | null, (value: T) => void] {
-  const [value, setValue] = useState<T | null>(null);
+export function useSetting<T>(item: SettingItem<T>): [T | null, (value: T) => void, boolean] {
+  const [state, setState] = useState<{ value: T | null; loaded: boolean }>({
+    value: null,
+    loaded: false,
+  });
 
   useEffect(() => {
-    void item.getValue().then(setValue);
-    return item.watch(setValue);
+    void item.getValue().then((value) => setState({ value, loaded: true }));
+    return item.watch((value) => setState({ value, loaded: true }));
   }, [item]);
 
   return [
-    value,
+    state.value,
     (next: T) => {
-      setValue(next);
+      setState({ value: next, loaded: true });
       void item.setValue(next);
     },
+    state.loaded,
   ];
 }
