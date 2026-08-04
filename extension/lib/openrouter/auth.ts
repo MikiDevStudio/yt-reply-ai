@@ -19,6 +19,16 @@ const AUTH_URL = 'https://openrouter.ai/auth';
  * pinned in the manifest: the redirect URL embeds it.
  */
 export async function connectWithOAuth(): Promise<string> {
+  // A build without the `identity` permission has no `browser.identity` at all.
+  // Saying so beats the TypeError, which reads like a code bug rather than the
+  // stale-build problem it usually is.
+  if (!browser.identity?.launchWebAuthFlow) {
+    throw new OpenRouterError(
+      'invalid_request',
+      'This build cannot sign in: the extension has no identity permission. Reload it from a current build, or paste a key instead.',
+    );
+  }
+
   const verifier = createVerifier();
   const challenge = await deriveChallenge(verifier);
   const redirectUri = browser.identity.getRedirectURL();
@@ -34,13 +44,18 @@ export async function connectWithOAuth(): Promise<string> {
       url: url.toString(),
       interactive: true,
     });
-  } catch {
-    // Closing the window rejects here. That is a choice, not a failure, so it
-    // gets its own kind and the UI stays quiet.
-    throw new OpenRouterError('aborted', 'Authorization was cancelled');
+  } catch (error) {
+    // Chrome rejects this promise for reasons that have nothing to do with each
+    // other: the user closing the window, the page failing to load, a policy
+    // blocking the flow. Reporting all of them as "cancelled" sent people
+    // looking for a decision they never made — so the reason is kept, and the
+    // worker console gets the raw error for anything we cannot classify.
+    console.warn('[reply-ai] launchWebAuthFlow failed', error);
+    throw asAuthFailure(error);
   }
 
   if (!responseUrl) {
+    // No error and no URL is Chrome's way of saying the window was closed.
     throw new OpenRouterError('aborted', 'Authorization was cancelled');
   }
 
@@ -53,6 +68,30 @@ export async function connectWithOAuth(): Promise<string> {
   }
 
   return exchangeCode(code, verifier);
+}
+
+/**
+ * Classify what Chrome threw out of `launchWebAuthFlow`.
+ *
+ * Only a genuine cancellation is silent. Everything else keeps Chrome's own
+ * wording, because that string is the only clue to what actually went wrong on
+ * a machine we cannot inspect.
+ */
+function asAuthFailure(error: unknown): OpenRouterError {
+  const message = error instanceof Error ? error.message : String(error);
+
+  if (/did not approve|cancell?ed|closed by the user/i.test(message)) {
+    return new OpenRouterError('aborted', 'Authorization was cancelled');
+  }
+
+  if (/could not be loaded|network|offline/i.test(message)) {
+    return new OpenRouterError(
+      'network',
+      `Chrome could not open OpenRouter's authorization page: ${message}`,
+    );
+  }
+
+  return new OpenRouterError('upstream', `Chrome could not finish the sign-in: ${message}`);
 }
 
 /** Trade the one-time code for the actual key. */

@@ -158,6 +158,11 @@ function handleMessage(
   respond(request)
     .then(sendResponse)
     .catch((error) => {
+      // Logged as well as returned: the message that reaches the UI is written
+      // for a user, and this console is the only place a stack survives when
+      // something fails on a machine we cannot open a devtools window on.
+      console.warn('[reply-ai]', request.type, 'failed', error);
+
       const failure = asOpenRouterError(error);
       sendResponse({ ok: false, kind: failure.kind, message: failure.message });
     });

@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { sendRequest } from '@/lib/messaging';
+import { type Response, sendRequest } from '@/lib/messaging';
 import type { KeyInfo } from '@/lib/openrouter/types';
 import { Section } from '../Section';
 
@@ -34,11 +34,16 @@ export function Account() {
     }
   }
 
-  async function run(action: () => Promise<{ ok: boolean; message?: string }>) {
+  async function run(action: () => Promise<Response<unknown>>) {
     setBusy(true);
     setError(null);
+
     const result = await action();
-    if (!result.ok) setError(result.message ?? 'Something went wrong');
+    // Closing the consent window is a decision, not a failure worth an alert.
+    if (!result.ok && result.kind !== 'aborted') {
+      setError(result.message ?? 'Something went wrong');
+    }
+
     await refresh();
     setBusy(false);
   }
