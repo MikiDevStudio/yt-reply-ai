@@ -1,17 +1,21 @@
 import './style.css';
 import ReactDOM from 'react-dom/client';
 import type { ContentScriptContext } from '#imports';
+import type { GenerationContext } from '@/lib/messaging';
+import { contextLevel } from '@/lib/settings';
 import { openPopover } from './popover';
 import { ReplyButton } from './ReplyButton';
 import { syncTheme } from './theme';
 import {
   COMMENTS_CONTAINER,
+  type CommentData,
   INJECTED_ATTR,
   findUninjectedToolbars,
   insertReplyText,
   openReplyBox,
   readComment,
   readVideoContext,
+  readVideoDescription,
 } from './youtube-dom';
 
 export default defineContentScript({
@@ -95,7 +99,7 @@ async function mountButton(ctx: ContentScriptContext, toolbar: HTMLElement) {
       ctx.onInvalidated(syncTheme(container));
 
       const root = ReactDOM.createRoot(container);
-      root.render(<ReplyButton onOpen={(button) => handleOpen(ctx, toolbar, button)} />);
+      root.render(<ReplyButton onOpen={(button) => void handleOpen(ctx, toolbar, button)} />);
       return root;
     },
     onRemove: (root) => root?.unmount(),
@@ -104,23 +108,64 @@ async function mountButton(ctx: ContentScriptContext, toolbar: HTMLElement) {
   ui.mount();
 }
 
-function handleOpen(ctx: ContentScriptContext, toolbar: HTMLElement, anchor: HTMLElement) {
+async function handleOpen(ctx: ContentScriptContext, toolbar: HTMLElement, anchor: HTMLElement) {
   const comment = readComment(toolbar);
   if (!comment) return;
-
-  const video = readVideoContext();
 
   void openPopover({
     ctx,
     anchor,
-    context: {
-      commentText: comment.text,
-      commentAuthor: comment.author,
-      isReply: comment.isReply,
-      ...(video ? { video } : {}),
-    },
+    context: await buildContext(comment),
     onInsert: (text) => void insertGeneratedReply(toolbar, text),
   });
+}
+
+/**
+ * Descriptions already scraped in this tab, keyed by video id.
+ *
+ * The background holds the authoritative cache; this one only avoids walking
+ * the DOM again for every comment on the same video. It is deliberately not
+ * cleared on navigation — the key is the video id, so a stale entry is
+ * impossible and coming back to a video reuses what we already read.
+ */
+const scrapedDescriptions = new Map<string, string>();
+
+/**
+ * Gather exactly as much context as the chosen level pays for.
+ *
+ * The level is read here rather than in the background because it decides what
+ * to *scrape*, and only the content script can scrape. The background reads it
+ * too, and its copy wins when building the prompt — this is about not gathering
+ * a description nobody asked for.
+ */
+async function buildContext(comment: CommentData): Promise<GenerationContext> {
+  const level = await contextLevel.getValue();
+  const video = level >= 1 ? readVideoContext() : null;
+
+  if (video && level >= 2 && !scrapedDescriptions.has(video.videoId)) {
+    const description = readVideoDescription(video.videoId);
+    if (description) scrapedDescriptions.set(video.videoId, description);
+  }
+
+  return {
+    commentText: comment.text,
+    commentAuthor: comment.author,
+    isReply: comment.isReply,
+    ...(level >= 1 && comment.parent ? { parent: comment.parent } : {}),
+    ...(video
+      ? {
+          video: {
+            ...video,
+            // Sent every time; the background keeps the first copy it saw and
+            // prefers that, so the prefix stays identical between comments even
+            // if a later scrape falls back to the truncated snippet.
+            ...(level >= 2 && scrapedDescriptions.has(video.videoId)
+              ? { description: scrapedDescriptions.get(video.videoId) }
+              : {}),
+          },
+        }
+      : {}),
+  };
 }
 
 /**

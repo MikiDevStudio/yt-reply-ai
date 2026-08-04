@@ -15,16 +15,30 @@ import type { ContextLevel } from './settings';
 
 export const GENERATE_PORT = 'reply-ai:generate';
 
-/** Context about the comment being answered, gathered by the content script. */
+/**
+ * Context about the comment being answered, gathered by the content script.
+ *
+ * What is filled in depends on the context level the user chose: L0 sends the
+ * comment alone, L1 adds the video headline and the thread it sits in, L2 adds
+ * the description. The content script only scrapes what the level asks for, so
+ * an unused field is never gathered rather than gathered and dropped.
+ */
 export interface GenerationContext {
   commentText: string;
   commentAuthor: string;
   isReply: boolean;
+  /** The comment that started the thread. L1+, and only inside a thread. */
+  parent?: {
+    text: string;
+    author: string;
+  };
   /** Present when the user is on a watch page. */
   video?: {
     videoId: string;
     title: string;
     channel: string;
+    /** L2 only. Absent when the background already has it cached. */
+    description?: string;
   };
 }
 

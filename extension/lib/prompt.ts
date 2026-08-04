@@ -53,6 +53,13 @@ export function buildReplyPrompt({ context, soul, style, level }: BuildOptions):
       `Title: ${context.video.title}`,
       `Channel: ${context.video.channel}`,
     );
+
+    // L2 adds the description. Same reasoning, one tier down in cost: it is the
+    // largest constant part of the prompt and the only one big enough to bring
+    // a prefix near the 1024-token minimum providers need for caching.
+    if (level >= 2 && context.video.description) {
+      system.push('', 'Video description:', context.video.description);
+    }
   }
 
   const user = [
@@ -60,9 +67,25 @@ export function buildReplyPrompt({ context, soul, style, level }: BuildOptions):
       ? 'Reply to this comment in an existing thread:'
       : 'Reply to this top-level comment:',
     '',
+  ];
+
+  // The thread's opening comment, at L1 and up. It changes from thread to
+  // thread, so it goes in the user turn rather than the cacheable prefix.
+  if (level >= 1 && context.parent) {
+    user.push(
+      context.parent.author
+        ? `The thread started with ${context.parent.author} writing:`
+        : 'The thread started with:',
+      context.parent.text,
+      '',
+      'Answering this reply to it:',
+    );
+  }
+
+  user.push(
     context.commentAuthor ? `${context.commentAuthor} wrote:` : 'The commenter wrote:',
     context.commentText,
-  ];
+  );
 
   return [
     { role: 'system', content: system.join('\n') },

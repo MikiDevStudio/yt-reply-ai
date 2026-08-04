@@ -21,6 +21,15 @@ export const TOOLBAR = '#toolbar';
 /** A single comment or reply. Top-level comments are wrapped in a thread renderer. */
 export const COMMENT_HOST = 'ytd-comment-view-model, ytd-comment-thread-renderer';
 
+/** Wrapper around the replies of one thread. Its presence marks a reply. */
+const REPLIES_RENDERER = 'ytd-comment-replies-renderer';
+
+/** One comment plus its replies. Replies are wrapped in one of these too. */
+const COMMENT_THREAD = 'ytd-comment-thread-renderer';
+
+/** The thread's own comment, as opposed to any of its replies. */
+const THREAD_COMMENT = ':scope > #comment-container > ytd-comment-view-model';
+
 /** Selectors relative to a comment host. */
 const COMMENT_TEXT = '#content-text';
 const COMMENT_AUTHOR = '#author-text';
@@ -36,6 +45,8 @@ export interface CommentData {
   author: string;
   /** True when this is a reply inside a thread rather than a top-level comment. */
   isReply: boolean;
+  /** The comment that started the thread. Only present when `isReply`. */
+  parent?: { text: string; author: string };
 }
 
 /**
@@ -72,9 +83,29 @@ export function readComment(toolbar: HTMLElement): CommentData | null {
   const author = host.querySelector(COMMENT_AUTHOR)?.textContent?.trim() ?? '';
 
   // Replies live inside `ytd-comment-replies-renderer`; top-level comments do not.
-  const isReply = Boolean(host.closest('ytd-comment-replies-renderer'));
+  const isReply = Boolean(host.closest(REPLIES_RENDERER));
+  const parent = isReply ? readThreadComment(host) : null;
 
-  return { text, author, isReply };
+  return { text, author, isReply, ...(parent ? { parent } : {}) };
+}
+
+/**
+ * Read the comment that started the thread `host` sits in.
+ *
+ * Walking up with `closest(COMMENT_THREAD)` is not enough: YouTube wraps each
+ * reply in a thread renderer of its own, nested inside the outer thread's
+ * replies renderer. Going out through the replies renderer first skips past
+ * that inner wrapper and lands on the real thread.
+ */
+function readThreadComment(host: HTMLElement): { text: string; author: string } | null {
+  const thread = host.closest(REPLIES_RENDERER)?.closest(COMMENT_THREAD);
+  const comment = thread?.querySelector(THREAD_COMMENT);
+  if (!comment || comment === host) return null;
+
+  const text = comment.querySelector(COMMENT_TEXT)?.textContent?.trim() ?? '';
+  if (!text) return null;
+
+  return { text, author: comment.querySelector(COMMENT_AUTHOR)?.textContent?.trim() ?? '' };
 }
 
 /** YouTube's own Reply button, which opens the reply box. */
@@ -205,4 +236,70 @@ export function readVideoContext(): VideoContext | null {
     document.querySelector('#owner #channel-name a')?.textContent?.trim() ?? '';
 
   return { videoId, title, channel };
+}
+
+/**
+ * How much description we are willing to send. Roughly 300 tokens — enough for
+ * what the video is about, far short of a full sponsor-link dump.
+ */
+const MAX_DESCRIPTION_CHARS = 1200;
+
+/**
+ * Read the video description, the L2 half of the context tiers.
+ *
+ * Two sources, because neither covers every case:
+ *
+ * - `ytInitialPlayerResponse`, the JSON YouTube inlines in the served HTML,
+ *   holds the full description. It is only correct on a real page load: after
+ *   an in-page navigation the script still describes the *first* video the tab
+ *   opened, hence the `videoId` check.
+ * - The rendered description, which is always current but is the collapsed
+ *   snippet — a few hundred characters, cut mid-sentence. We do not click
+ *   "more" to get the rest: that is the user's page, not ours.
+ *
+ * Returns `null` on a page where neither is readable.
+ */
+export function readVideoDescription(videoId: string): string | null {
+  const description = readDescriptionFromInitialData(videoId) ?? readRenderedDescription();
+  if (!description) return null;
+
+  return description.length > MAX_DESCRIPTION_CHARS
+    ? `${description.slice(0, MAX_DESCRIPTION_CHARS).trimEnd()}…`
+    : description;
+}
+
+function readDescriptionFromInitialData(videoId: string): string | null {
+  for (const script of document.querySelectorAll('script')) {
+    const source = script.textContent ?? '';
+    const start = source.indexOf('"videoDetails"');
+    if (start === -1) continue;
+
+    // Scoped to videoDetails: `videoId` appears all over the response, and
+    // matching the wrong one would defeat the staleness check entirely.
+    const details = source.slice(start, start + 8000);
+    if (details.match(/"videoId":"([\w-]{11})"/)?.[1] !== videoId) continue;
+
+    const raw = details.match(/"shortDescription":"((?:[^"\\]|\\.)*)"/)?.[1];
+    if (!raw) continue;
+
+    try {
+      // The value is a JSON string literal: `\n` and `é` are still escaped.
+      return (JSON.parse(`"${raw}"`) as string).trim() || null;
+    } catch {
+      return null;
+    }
+  }
+
+  return null;
+}
+
+function readRenderedDescription(): string | null {
+  const expander = document.querySelector('#description-inline-expander');
+  // `#expanded` is filled in only once the user opens the description; before
+  // that the snippet is all there is.
+  const text =
+    expander?.querySelector('#expanded')?.textContent?.trim() ||
+    expander?.querySelector('#snippet-text')?.textContent?.trim();
+
+  return text || null;
 }

@@ -3,6 +3,7 @@ import {
   GENERATE_PORT,
   type GenerateClientMessage,
   type GenerateServerMessage,
+  type GenerationContext,
   type Request,
   type Response,
 } from '@/lib/messaging';
@@ -11,6 +12,7 @@ import { fetchKeyInfo, fetchModels, streamCompletion } from '@/lib/openrouter/cl
 import { OpenRouterError } from '@/lib/openrouter/errors';
 import { buildReplyPrompt } from '@/lib/prompt';
 import * as settings from '@/lib/settings';
+import { recallDescription, rememberDescription } from '@/lib/video-cache';
 
 /**
  * The background service worker owns everything that touches the network.
@@ -73,11 +75,13 @@ async function generate(
     return;
   }
 
+  const level = request.contextLevel ?? savedLevel;
+
   const messages = buildReplyPrompt({
-    context: request.context,
+    context: level >= 2 ? await withCachedDescription(request.context) : request.context,
     soul,
     style: request.style ?? savedStyle,
-    level: request.contextLevel ?? savedLevel,
+    level,
   });
 
   try {
@@ -103,6 +107,31 @@ async function generate(
       retryAfterSeconds: failure.retryAfterSeconds,
     });
   }
+}
+
+/**
+ * Settle on one description per video and keep using it.
+ *
+ * The first scrape wins, because a later one can be worse: after an in-page
+ * navigation the content script only sees the truncated snippet. Holding the
+ * first copy also keeps the prompt prefix byte-identical between comments,
+ * which is the precondition for provider-side caching (#8).
+ */
+async function withCachedDescription(context: GenerationContext): Promise<GenerationContext> {
+  if (!context.video) return context;
+
+  const { videoId, description } = context.video;
+  const cached = await recallDescription(videoId);
+
+  if (cached) {
+    return { ...context, video: { ...context.video, description: cached } };
+  }
+
+  if (description) {
+    await rememberDescription(videoId, description);
+  }
+
+  return context;
 }
 
 /** Posting to a closed port throws; the disconnect is not worth reporting. */

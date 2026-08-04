@@ -1,7 +1,24 @@
 import { useEffect, useState } from 'react';
 import { sendRequest } from '@/lib/messaging';
 import type { KeyInfo } from '@/lib/openrouter/types';
-import { MODEL_PRESETS, model as modelSetting } from '@/lib/settings';
+import {
+  type ContextLevel,
+  MODEL_PRESETS,
+  contextLevel as contextLevelSetting,
+  model as modelSetting,
+} from '@/lib/settings';
+
+/**
+ * What each context level sends, in the user's terms.
+ *
+ * Spelled out rather than hidden behind "smart context": the levels trade money
+ * for reply quality, and that is the user's call to make.
+ */
+const CONTEXT_LEVELS: ReadonlyArray<{ level: ContextLevel; label: string; hint: string }> = [
+  { level: 0, label: 'Comment only', hint: '~300 tokens' },
+  { level: 1, label: '+ video title, channel, thread', hint: '~500 tokens' },
+  { level: 2, label: '+ video description', hint: '~800 tokens, read once per video' },
+];
 
 /**
  * Minimal settings page: connect an account and choose a model.
@@ -13,6 +30,7 @@ export function App() {
   const [connected, setConnected] = useState<boolean | null>(null);
   const [usage, setUsage] = useState<KeyInfo | null>(null);
   const [model, setModel] = useState<string>(MODEL_PRESETS.balanced);
+  const [level, setLevel] = useState<ContextLevel>(0);
   const [manualKey, setManualKey] = useState('');
   const [showManual, setShowManual] = useState(false);
   const [busy, setBusy] = useState(false);
@@ -21,6 +39,7 @@ export function App() {
   useEffect(() => {
     void refresh();
     void modelSetting.getValue().then(setModel);
+    void contextLevelSetting.getValue().then(setLevel);
   }, []);
 
   async function refresh() {
@@ -166,6 +185,35 @@ export function App() {
                 />
                 <span className="font-medium">{label}</span>
                 <span className="text-base-content/50">{id}</span>
+                <span className="ml-auto text-xs text-base-content/50">{hint}</span>
+              </label>
+            ))}
+          </div>
+        </div>
+      </section>
+
+      <section className="card card-border bg-base-100">
+        <div className="card-body gap-4">
+          <h2 className="card-title text-base">Context sent with each comment</h2>
+          <p className="text-sm text-base-content/70">
+            More context means better replies and a bigger bill. The description is read once
+            per video and reused for every comment on it.
+          </p>
+
+          <div className="flex flex-col gap-2">
+            {CONTEXT_LEVELS.map(({ level: value, label, hint }) => (
+              <label key={value} className="flex cursor-pointer items-center gap-3 text-sm">
+                <input
+                  type="radio"
+                  name="context-level"
+                  className="radio radio-sm"
+                  checked={level === value}
+                  onChange={() => {
+                    setLevel(value);
+                    void contextLevelSetting.setValue(value);
+                  }}
+                />
+                <span className="font-medium">{label}</span>
                 <span className="ml-auto text-xs text-base-content/50">{hint}</span>
               </label>
             ))}
