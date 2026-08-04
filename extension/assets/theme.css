@@ -1,4 +1,12 @@
-@import 'tailwindcss';
+/*
+ * daisyUI and the theme — shared by every entrypoint.
+ *
+ * Tailwind itself is imported by each entrypoint's own stylesheet instead of
+ * here, because that import is where source detection is configured: every
+ * entrypoint scans only its own directory, so the options page's utilities
+ * never land in the content script's stylesheet and vice versa. See the
+ * `style.css` next to each entrypoint.
+ */
 
 /*
  * Themes are emitted against two selectors: `:root` and `[data-theme="name"]`.

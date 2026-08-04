@@ -1,0 +1,5 @@
+/* Popup stylesheet. Scoped source detection: see content/style.css. */
+@import 'tailwindcss' source(none);
+@import '../../assets/theme.css';
+
+@source '.';

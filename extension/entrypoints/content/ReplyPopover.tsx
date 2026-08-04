@@ -46,7 +46,7 @@ export function ReplyPopover({ context, onInsert, onClose }: ReplyPopoverProps) 
   const busy = state.status === 'streaming';
 
   return (
-    // Width in px, not rem: see the note in assets/tailwind.css.
+    // Width in px, not rem: see the note in assets/theme.css.
     <div className="card card-sm w-[420px] max-w-[90vw] border border-base-300 bg-base-100 text-base-content shadow-xl">
       <div className="card-body gap-3">
         <div className="flex items-center justify-between gap-2">

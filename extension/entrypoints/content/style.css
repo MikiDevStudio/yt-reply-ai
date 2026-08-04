@@ -1,1 +1,12 @@
-@import '../../assets/tailwind.css';
+/*
+ * Stylesheet for the injected UI.
+ *
+ * `source(none)` turns off Tailwind's automatic source detection, which scans
+ * the whole project — the options page's utilities would otherwise be emitted
+ * into a stylesheet that YouTube parses on every page load and that never uses
+ * them. `@source` then limits scanning to this entrypoint.
+ */
+@import 'tailwindcss' source(none);
+@import '../../assets/theme.css';
+
+@source '.';
