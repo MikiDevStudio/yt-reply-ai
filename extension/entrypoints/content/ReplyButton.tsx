@@ -22,7 +22,7 @@ export function ReplyButton({ onOpen }: ReplyButtonProps) {
       ref={ref}
       type="button"
       onClick={() => ref.current && onOpen(ref.current)}
-      className="btn btn-sm gap-1.5 border-0 bg-[var(--yt-spec-badge-chip-background,rgba(255,255,255,0.1))] text-[var(--yt-spec-text-primary,#f1f1f1)] shadow-none"
+      className="btn btn-sm gap-1.5 border-0 bg-[var(--yt-spec-badge-chip-background,rgba(255,255,255,0.1))] text-sm font-medium text-[var(--yt-spec-text-primary,#f1f1f1)] shadow-none"
     >
       <SparkIcon />
       AI reply

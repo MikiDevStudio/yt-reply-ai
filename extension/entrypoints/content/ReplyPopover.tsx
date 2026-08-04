@@ -59,10 +59,10 @@ export function ReplyPopover({ context, autoStart, onInsert, onClose }: ReplyPop
     <div className="card card-sm w-[420px] max-w-[90vw] border border-base-300 bg-base-100 text-base-content shadow-xl">
       <div className="card-body gap-3">
         <div className="flex items-center justify-between gap-2">
-          <h3 className="card-title text-sm">AI reply</h3>
+          <h3 className="card-title text-base">AI reply</h3>
           <button
             type="button"
-            className="btn btn-ghost btn-xs btn-circle"
+            className="btn btn-sm text-sm btn-ghost btn-circle"
             onClick={onClose}
             aria-label="Close"
           >
@@ -70,17 +70,22 @@ export function ReplyPopover({ context, autoStart, onInsert, onClose }: ReplyPop
           </button>
         </div>
 
-        <p className="line-clamp-2 rounded-box bg-base-200 px-3 py-2 text-xs text-base-content/60">
+        <p className="line-clamp-2 rounded-box bg-base-200 px-3 py-2 text-sm text-base-content/60">
           {context.commentAuthor && <span className="font-medium">{context.commentAuthor}: </span>}
           {context.commentText || 'This comment has no text.'}
         </p>
 
+        {/*
+          `text-sm` rides on top of every size class in this popover: daisyUI
+          ties font size to button height, and the resulting 11–12px is smaller
+          than anything YouTube puts on the page — their comment UI sits at 14px.
+        */}
         <div className="flex flex-wrap gap-1">
           {STYLE_ORDER.map((name) => (
             <button
               key={name}
               type="button"
-              className={`btn btn-xs ${style === name ? 'btn-primary' : 'btn-ghost'}`}
+              className={`btn btn-sm text-sm ${style === name ? 'btn-primary' : 'btn-ghost'}`}
               title={STYLES[name]}
               disabled={busy}
               onClick={() => setStyle(name)}
@@ -117,7 +122,7 @@ export function ReplyPopover({ context, autoStart, onInsert, onClose }: ReplyPop
         )}
 
         <div className="card-actions items-center justify-between">
-          <span className="text-xs text-base-content/50">
+          <span className="text-sm text-base-content/50">
             {state.status === 'done' && state.usage
               ? `${state.usage.totalTokens} tokens`
               : ' '}
@@ -125,13 +130,13 @@ export function ReplyPopover({ context, autoStart, onInsert, onClose }: ReplyPop
 
           <div className="flex gap-1">
             {busy ? (
-              <button type="button" className="btn btn-ghost btn-sm" onClick={cancel}>
+              <button type="button" className="btn btn-sm text-sm btn-ghost" onClick={cancel}>
                 Stop
               </button>
             ) : (
               <button
                 type="button"
-                className={`btn btn-sm ${state.status === 'idle' ? 'btn-primary' : 'btn-ghost'}`}
+                className={`btn btn-sm text-sm ${state.status === 'idle' ? 'btn-primary' : 'btn-ghost'}`}
                 onClick={start}
               >
                 {state.status === 'idle' ? 'Generate' : 'Regenerate'}
@@ -140,7 +145,7 @@ export function ReplyPopover({ context, autoStart, onInsert, onClose }: ReplyPop
 
             <button
               type="button"
-              className="btn btn-ghost btn-sm"
+              className="btn btn-sm text-sm btn-ghost"
               disabled={!text}
               onClick={() => {
                 void navigator.clipboard.writeText(text);
@@ -153,7 +158,7 @@ export function ReplyPopover({ context, autoStart, onInsert, onClose }: ReplyPop
 
             <button
               type="button"
-              className="btn btn-primary btn-sm"
+              className="btn btn-sm text-sm btn-primary"
               disabled={!text || busy}
               onClick={() => onInsert(text)}
             >
@@ -185,19 +190,19 @@ function ErrorNotice({ kind, message, retryAfterSeconds, onRetry }: ErrorNoticeP
       <span>{message}</span>
 
       {kind === 'unauthorized' && (
-        <button type="button" className="btn btn-xs" onClick={openSettings}>
+        <button type="button" className="btn btn-sm text-sm" onClick={openSettings}>
           Connect OpenRouter
         </button>
       )}
 
       {kind === 'no_credits' && (
-        <button type="button" className="btn btn-xs" onClick={openSettings}>
+        <button type="button" className="btn btn-sm text-sm" onClick={openSettings}>
           Switch to a free model
         </button>
       )}
 
       {kind === 'rate_limited' && (
-        <span className="text-xs opacity-70">
+        <span className="text-sm opacity-70">
           {retryAfterSeconds
             ? `Try again in ${retryAfterSeconds}s.`
             : 'Free models allow 20 requests per minute and 50 per day.'}
@@ -205,7 +210,7 @@ function ErrorNotice({ kind, message, retryAfterSeconds, onRetry }: ErrorNoticeP
       )}
 
       {(kind === 'upstream' || kind === 'network' || kind === 'empty') && (
-        <button type="button" className="btn btn-xs" onClick={onRetry}>
+        <button type="button" className="btn btn-sm text-sm" onClick={onRetry}>
           Try again
         </button>
       )}
