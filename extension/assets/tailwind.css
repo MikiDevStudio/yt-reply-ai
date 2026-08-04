@@ -105,3 +105,17 @@
 @theme {
   --font-sans: 'Roboto', 'Arial', system-ui, sans-serif;
 }
+
+/*
+ * Sizing note: the default `rem` scale is left alone here on purpose.
+ *
+ * `rem` is broken inside a content script — it resolves against the host
+ * document's root, and YouTube sets `html { font-size: 62.5% }`. That is fixed
+ * by converting the generated content-script stylesheet to px at build time
+ * (build/rem-to-px.ts), which also catches the `rem` values daisyUI hardcodes
+ * inside its own component rules and that no theme override can reach.
+ *
+ * The one thing the build step cannot fix is a rem length written into an
+ * arbitrary value in markup, e.g. `w-[26rem]` — Tailwind emits that verbatim
+ * and it would be converted too, but it is clearer to just write px there.
+ */

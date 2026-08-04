@@ -103,7 +103,7 @@ async function ensureHost(ctx: ContentScriptContext): Promise<PopoverHost> {
  */
 function position(container: HTMLElement, anchor: HTMLElement): void {
   const rect = anchor.getBoundingClientRect();
-  const width = container.firstElementChild?.getBoundingClientRect().width ?? 416;
+  const width = container.firstElementChild?.getBoundingClientRect().width ?? 420;
   const height = container.firstElementChild?.getBoundingClientRect().height ?? 320;
   const margin = 8;
 

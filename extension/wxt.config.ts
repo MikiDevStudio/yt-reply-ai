@@ -1,12 +1,13 @@
 import { defineConfig } from 'wxt';
 import tailwindcss from '@tailwindcss/vite';
+import { remToPx } from './build/rem-to-px';
 
 // See https://wxt.dev/api/config.html
 export default defineConfig({
   modules: ['@wxt-dev/module-react'],
 
   vite: (env) => ({
-    plugins: [tailwindcss()],
+    plugins: [tailwindcss(), remToPx()],
 
     oxc: {
       jsx: {

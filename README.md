@@ -57,6 +57,14 @@ shadcn/ui — renders overlays into a portal appended to `document.body`. From a
 content script that portal escapes the shadow root, lands in YouTube's DOM and
 loses every style we set. daisyUI is CSS classes only, so this cannot happen.
 
+**Injected CSS is converted from `rem` to `px` at build time.** `rem` resolves
+against the host document's root, which a shadow root cannot shield us from, and
+YouTube sets `html { font-size: 62.5% }` — so anything sized in `rem` renders at
+62.5% scale. Theme overrides only reach our own utilities; daisyUI hardcodes
+`rem` inside its component rules. `build/rem-to-px.ts` rewrites the generated
+content-script stylesheet and leaves extension pages alone, since `rem` behaves
+correctly there and lets those pages respect the user's font size.
+
 **Themes are attached to an element inside the shadow root, not the host.**
 daisyUI emits `:root` and `[data-theme="…"]`; a stylesheet inside a shadow root
 can match neither the document root nor its own host. The plugin's `root` option
