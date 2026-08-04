@@ -5,8 +5,20 @@ import tailwindcss from '@tailwindcss/vite';
 export default defineConfig({
   modules: ['@wxt-dev/module-react'],
 
-  vite: () => ({
+  vite: (env) => ({
     plugins: [tailwindcss()],
+
+    oxc: {
+      jsx: {
+        // Vite 8 transforms JSX with oxc, and @vitejs/plugin-react does not set
+        // `development` — oxc then defaults to the dev transform even in a
+        // production build. That emits `jsxDEV()` calls, but React's
+        // `jsx-dev-runtime` is an empty stub once NODE_ENV is production, so
+        // every component throws "jsxDEV is not a function" on first render.
+        // The dev transform also bakes absolute source paths into the bundle.
+        development: env.mode !== 'production',
+      },
+    },
   }),
 
   manifest: {
