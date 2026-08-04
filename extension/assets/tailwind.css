@@ -1,0 +1,10 @@
+@import 'tailwindcss';
+
+/*
+ * Content-script UI lives in a shadow root, so YouTube's styles never reach it.
+ * WXT applies `all: initial` to the shadow root, which also wipes the default
+ * font — restore it here rather than per-component.
+ */
+@theme {
+  --font-sans: 'Roboto', 'Arial', system-ui, sans-serif;
+}

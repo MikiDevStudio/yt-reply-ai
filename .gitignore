@@ -1,0 +1,25 @@
+# Secrets
+.env
+.env.*
+!.env.example
+
+# Legacy projects (reference only, not part of this repo)
+Reply-AI-YT/
+yt-reply-extension/
+
+# Agent skills: real files live in .agents/skills, .claude/skills are junctions to them
+.claude/skills/
+
+# Dependencies
+node_modules/
+
+# Build output
+.output/
+.wxt/
+dist/
+*.zip
+
+# Editor / OS
+.DS_Store
+Thumbs.db
+*.log
