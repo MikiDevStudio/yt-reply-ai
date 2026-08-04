@@ -60,7 +60,9 @@ export type Request =
   | { type: 'auth:disconnect' }
   | { type: 'auth:setKey'; apiKey: string }
   | { type: 'models:list' }
-  | { type: 'usage:get' };
+  | { type: 'usage:get' }
+  /** Rewrite a soul profile, or reshape one written for another tool. */
+  | { type: 'soul:improve'; markdown: string; mode: 'tighten' | 'import' };
 
 /**
  * Every one-shot reply is wrapped rather than thrown.

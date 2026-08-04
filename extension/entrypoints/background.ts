@@ -10,7 +10,7 @@ import {
 import { connectWithOAuth } from '@/lib/openrouter/auth';
 import { fetchKeyInfo, fetchModels, streamCompletion } from '@/lib/openrouter/client';
 import { OpenRouterError } from '@/lib/openrouter/errors';
-import { buildReplyPrompt } from '@/lib/prompt';
+import { buildReplyPrompt, buildSoulPrompt } from '@/lib/prompt';
 import * as settings from '@/lib/settings';
 import { recallDescription, rememberDescription } from '@/lib/video-cache';
 
@@ -197,6 +197,36 @@ async function respond(request: Request): Promise<Response<unknown>> {
       const key = await settings.apiKey.getValue();
       if (!key) return { ok: false, kind: 'unauthorized', message: 'Not connected' };
       return { ok: true, data: await fetchKeyInfo(key) };
+    }
+
+    case 'soul:improve': {
+      const [key, model] = await Promise.all([
+        settings.apiKey.getValue(),
+        settings.model.getValue(),
+      ]);
+      if (!key) {
+        return { ok: false, kind: 'unauthorized', message: 'Connect your OpenRouter account first' };
+      }
+
+      // Streamed and then assembled: one editor-sized answer has nothing to
+      // show progressively, but the streaming path is the one that handles
+      // mid-response provider errors properly.
+      const stream = streamCompletion({
+        apiKey: key,
+        model,
+        messages: buildSoulPrompt(request.markdown, request.mode),
+        maxTokens: 900,
+      });
+
+      let next = await stream.next();
+      while (!next.done) next = await stream.next();
+
+      const text = next.value.text.trim();
+      if (!text) {
+        return { ok: false, kind: 'empty', message: 'The model returned nothing' };
+      }
+
+      return { ok: true, data: text };
     }
   }
 }

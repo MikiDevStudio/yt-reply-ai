@@ -14,6 +14,49 @@ export const STYLES: Record<string, string> = {
   brief: 'Answer in one short sentence.',
 };
 
+/**
+ * Rewrite a soul profile, or turn a persona written elsewhere into one.
+ *
+ * The model is told to keep facts and voice and to cut everything else: the
+ * profile is prepended to every single reply, so a paragraph of flourish is a
+ * paragraph billed hundreds of times. `import` additionally reshapes free-form
+ * text — what people get out of ChatGPT when they ask it to describe their
+ * channel — into the same headings the constructor produces.
+ */
+export function buildSoulPrompt(markdown: string, mode: 'tighten' | 'import'): ChatMessage[] {
+  const system = [
+    'You edit voice profiles for an assistant that writes YouTube comment replies.',
+    'A profile describes who the channel owner is, how they sound, and how they handle different kinds of comments.',
+    '',
+    'Rules:',
+    '- Keep every fact and preference the text states. Invent nothing.',
+    '- Cut filler, repetition and anything that does not change how a reply reads.',
+    '- Write instructions the way one would brief a person, in plain sentences.',
+    '- Use markdown headings and bullet lists. No preamble, no commentary, no code fences.',
+    '- Answer with the profile itself and nothing else.',
+  ];
+
+  if (mode === 'import') {
+    system.push(
+      '',
+      'The input was written for another tool and may be a persona description, a style guide, or notes.',
+      'Reshape it under these headings, dropping any that the input says nothing about:',
+      '## Who I am, ## How I sound, ## Phrases that sound like me, ## How I handle different comments.',
+    );
+  }
+
+  return [
+    { role: 'system', content: system.join('\n') },
+    {
+      role: 'user',
+      content:
+        mode === 'import'
+          ? `Turn this into a profile:\n\n${markdown}`
+          : `Tighten this profile:\n\n${markdown}`,
+    },
+  ];
+}
+
 interface BuildOptions {
   context: GenerationContext;
   soul: string;
