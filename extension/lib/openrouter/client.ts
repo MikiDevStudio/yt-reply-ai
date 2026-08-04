@@ -18,8 +18,25 @@ export interface CompletionOptions {
   apiKey: string;
   model: string;
   messages: ChatMessage[];
+  /**
+   * Left unset for replies. A cap counts *thinking* tokens too, so on a
+   * reasoning model it truncates the answer mid-word long before the answer is
+   * long — measured: 396 completion tokens, 380 of them reasoning, 62
+   * characters of visible text. The prompt asks for one to three sentences;
+   * that is the real limit, and it costs nothing when it is respected.
+   */
   maxTokens?: number;
   temperature?: number;
+  /**
+   * How hard the model may think before answering. `minimal` is the right
+   * setting for a comment reply and the difference is not subtle: on
+   * gemini-3.6-flash the same reply went from 536 tokens and $0.0041 to 33
+   * tokens and $0.0003, and from 4.7s to 1.7s.
+   *
+   * Not every model accepts it, so the request retries without it once if the
+   * API rejects the parameter.
+   */
+  reasoningEffort?: 'minimal' | 'low' | 'medium' | 'high';
   signal?: AbortSignal;
 }
 
@@ -36,7 +53,7 @@ export interface CompletionOptions {
 export async function* streamCompletion(
   options: CompletionOptions,
 ): AsyncGenerator<string, CompletionResult> {
-  const response = await post('/chat/completions', options.apiKey, options.signal, {
+  const body = {
     model: options.model,
     messages: options.messages,
     stream: true,
@@ -45,7 +62,9 @@ export async function* streamCompletion(
     // Ask for token counts and cost in the final chunk, so callers can show
     // spend without a second round trip.
     usage: { include: true },
-  });
+  };
+
+  const response = await postWithReasoning(options, body);
 
   const result: CompletionResult = { text: '' };
 
@@ -84,6 +103,41 @@ export async function* streamCompletion(
   }
 
   return result;
+}
+
+/**
+ * Send the request, dropping `reasoning` if this model will not take it.
+ *
+ * Models disagree about the parameter in both directions: some ignore it, some
+ * reject the request outright — `google/gemini-3.6-flash` refuses
+ * `enabled: false` with "Reasoning is mandatory for this endpoint" while
+ * happily accepting `effort: minimal`. Retrying once without it costs one round
+ * trip on the models that object and nothing on the ones that do not, which
+ * beats maintaining a compatibility list that would rot within a month.
+ */
+async function postWithReasoning(
+  options: CompletionOptions,
+  body: Record<string, unknown>,
+): Promise<Response> {
+  if (!options.reasoningEffort) {
+    return post('/chat/completions', options.apiKey, options.signal, body);
+  }
+
+  try {
+    return await post('/chat/completions', options.apiKey, options.signal, {
+      ...body,
+      reasoning: { effort: options.reasoningEffort },
+    });
+  } catch (error) {
+    const rejected =
+      error instanceof OpenRouterError &&
+      error.kind === 'invalid_request' &&
+      /reasoning/i.test(error.message);
+
+    if (!rejected) throw error;
+
+    return post('/chat/completions', options.apiKey, options.signal, body);
+  }
 }
 
 /** Read the key's own usage and remaining allowance. */

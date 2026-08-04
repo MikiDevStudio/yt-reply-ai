@@ -28,9 +28,12 @@ export const apiKey = storage.defineItem<string | null>('local:openrouter.apiKey
  * Prices are per million tokens, as of the last check.
  */
 export const MODEL_PRESETS = {
-  /** Default. $1.50 in / $7.50 out — roughly 1000 replies per dollar. */
+  /**
+   * Default. $1.50 in / $7.50 out, and it thinks before answering: measured at
+   * $0.0003 per reply with reasoning held to `minimal`, $0.0041 without.
+   */
   balanced: 'google/gemini-3.6-flash',
-  /** $0.25 in / $1.50 out — roughly 5000 replies per dollar. */
+  /** $0.25 in / $1.50 out, no reasoning — measured at $0.00005 per reply. */
   cheap: 'google/gemini-3.1-flash-lite',
   /**
    * Offered when a paid call fails for lack of credits, so a new account is

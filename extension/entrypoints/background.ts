@@ -85,7 +85,15 @@ async function generate(
   });
 
   try {
-    const stream = streamCompletion({ apiKey: key, model, messages, signal, maxTokens: 400 });
+    // No token cap: see CompletionOptions.maxTokens. The reply length is set by
+    // the prompt and the soul profile, not by cutting the model off mid-word.
+    const stream = streamCompletion({
+      apiKey: key,
+      model,
+      messages,
+      signal,
+      reasoningEffort: 'minimal',
+    });
 
     let next = await stream.next();
     while (!next.done) {
@@ -93,7 +101,14 @@ async function generate(
       next = await stream.next();
     }
 
-    post(port, { type: 'done', text: next.value.text, usage: next.value.usage });
+    post(port, {
+      type: 'done',
+      text: next.value.text,
+      usage: next.value.usage,
+      // A provider default can still cut a long answer short. Saying so beats
+      // handing over a sentence that ends mid-word as if it were finished.
+      truncated: next.value.finishReason === 'length',
+    });
   } catch (error) {
     const failure = asOpenRouterError(error);
     // A cancelled generation is a choice, not a failure. The port is usually
@@ -216,11 +231,14 @@ async function respond(request: Request): Promise<Response<unknown>> {
       // Streamed and then assembled: one editor-sized answer has nothing to
       // show progressively, but the streaming path is the one that handles
       // mid-response provider errors properly.
+      //
+      // Uncapped for the same reason as a reply — a profile cut off halfway is
+      // worse than a long one — but reasoning stays available here, since
+      // rewriting someone's voice is the one place thinking earns its cost.
       const stream = streamCompletion({
         apiKey: key,
         model,
         messages: buildSoulPrompt(request.markdown, request.mode),
-        maxTokens: 900,
       });
 
       let next = await stream.next();

@@ -11,7 +11,7 @@ import type { TokenUsage } from '@/lib/openrouter/types';
 export type GenerationState =
   | { status: 'idle' }
   | { status: 'streaming'; text: string }
-  | { status: 'done'; text: string; usage?: TokenUsage }
+  | { status: 'done'; text: string; usage?: TokenUsage; truncated?: boolean }
   | {
       status: 'error';
       kind: OpenRouterErrorKind;
@@ -59,7 +59,12 @@ export function useGeneration() {
             );
             break;
           case 'done':
-            setState({ status: 'done', text: message.text, usage: message.usage });
+            setState({
+              status: 'done',
+              text: message.text,
+              usage: message.usage,
+              truncated: message.truncated,
+            });
             disconnect();
             break;
           case 'error':

@@ -123,9 +123,11 @@ export function ReplyPopover({ context, autoStart, onInsert, onClose }: ReplyPop
 
         <div className="card-actions items-center justify-between">
           <span className="text-sm text-base-content/50">
-            {state.status === 'done' && state.usage
-              ? `${state.usage.totalTokens} tokens`
-              : ' '}
+            {state.status === 'done' && state.truncated
+              ? 'Cut short by the model — press Regenerate'
+              : state.status === 'done' && state.usage
+                ? `${state.usage.totalTokens} tokens`
+                : ' '}
           </span>
 
           <div className="flex gap-1">

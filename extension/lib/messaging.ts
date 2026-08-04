@@ -50,7 +50,8 @@ export type GenerateClientMessage =
 /** Background → content script, over the generate port. */
 export type GenerateServerMessage =
   | { type: 'delta'; text: string }
-  | { type: 'done'; text: string; usage?: TokenUsage }
+  /** `truncated` when the model stopped because it ran out of room, not because it finished. */
+  | { type: 'done'; text: string; usage?: TokenUsage; truncated?: boolean }
   | { type: 'error'; kind: OpenRouterErrorKind; message: string; retryAfterSeconds?: number };
 
 /** One-shot request/response pairs, sent with `chrome.runtime.sendMessage`. */
