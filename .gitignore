@@ -3,6 +3,9 @@
 .env.*
 !.env.example
 
+# Extension signing key — losing it is survivable, leaking it is not
+.keys/
+
 # Legacy projects (reference only, not part of this repo)
 Reply-AI-YT/
 yt-reply-extension/
