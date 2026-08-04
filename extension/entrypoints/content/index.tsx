@@ -2,6 +2,7 @@ import './style.css';
 import ReactDOM from 'react-dom/client';
 import type { ContentScriptContext } from '#imports';
 import { ReplyButton } from './ReplyButton';
+import { syncTheme } from './theme';
 import {
   COMMENTS_CONTAINER,
   INJECTED_ATTR,
@@ -85,6 +86,10 @@ async function mountButton(ctx: ContentScriptContext, toolbar: HTMLElement) {
     // shortcuts globally (space pauses, `k` toggles play, ...).
     isolateEvents: true,
     onMount: (container) => {
+      // daisyUI reads the theme off this element; it must sit inside the shadow
+      // root, not on the host. See theme.ts.
+      ctx.onInvalidated(syncTheme(container));
+
       const root = ReactDOM.createRoot(container);
       root.render(<ReplyButton onOpen={() => handleOpen(toolbar)} />);
       return root;

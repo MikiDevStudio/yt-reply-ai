@@ -1,9 +1,106 @@
 @import 'tailwindcss';
 
 /*
- * Content-script UI lives in a shadow root, so YouTube's styles never reach it.
- * WXT applies `all: initial` to the shadow root, which also wipes the default
- * font — restore it here rather than per-component.
+ * Themes are emitted against two selectors: `:root` and `[data-theme="name"]`.
+ * `:root` never matches inside a shadow root, and a shadow stylesheet cannot
+ * reach the host element either — so injected UI carries `data-theme` on a
+ * wrapper *inside* the shadow root. See `entrypoints/content/theme.ts`.
+ *
+ * (The plugin's `root` option looks like it would solve this, but it only
+ * accepts a plain selector: passing `:where(:root, :host)` is silently ignored
+ * and the default is emitted instead. Verified in the built CSS.)
+ *
+ * Built-in themes are off: we ship exactly two, and 35 unused ones would bloat
+ * the content script that loads on every YouTube page.
+ */
+@plugin "daisyui" {
+  themes: false;
+  logs: false;
+
+  /*
+   * `rootcolor` paints background and text colour onto the root element, and
+   * the scroll modules reach for the page root — which on a content script is
+   * YouTube's document, not ours. Our surfaces set their own colours.
+   */
+  exclude: rootcolor, rootscrolllock, rootscrollgutter;
+}
+
+@plugin "daisyui/theme" {
+  name: 'replyai-light';
+  default: true;
+  color-scheme: light;
+
+  --color-base-100: oklch(100% 0 0);
+  --color-base-200: oklch(97% 0 0);
+  --color-base-300: oklch(93% 0 0);
+  --color-base-content: oklch(21% 0 0);
+  --color-primary: oklch(56% 0.2 285);
+  --color-primary-content: oklch(99% 0 0);
+  --color-secondary: oklch(65% 0.12 285);
+  --color-secondary-content: oklch(99% 0 0);
+  --color-accent: oklch(70% 0.15 195);
+  --color-accent-content: oklch(21% 0 0);
+  --color-neutral: oklch(35% 0 0);
+  --color-neutral-content: oklch(98% 0 0);
+  --color-info: oklch(70% 0.13 235);
+  --color-info-content: oklch(21% 0 0);
+  --color-success: oklch(68% 0.16 155);
+  --color-success-content: oklch(21% 0 0);
+  --color-warning: oklch(80% 0.16 85);
+  --color-warning-content: oklch(21% 0 0);
+  --color-error: oklch(62% 0.22 25);
+  --color-error-content: oklch(99% 0 0);
+
+  --radius-selector: 1rem;
+  --radius-field: 0.5rem;
+  --radius-box: 0.75rem;
+  --size-selector: 0.25rem;
+  --size-field: 0.25rem;
+  --border: 1px;
+  --depth: 0;
+  --noise: 0;
+}
+
+@plugin "daisyui/theme" {
+  name: 'replyai-dark';
+  prefersdark: true;
+  color-scheme: dark;
+
+  /* Tuned against YouTube's dark surfaces (#0f0f0f page, #272727 chips). */
+  --color-base-100: oklch(20% 0 0);
+  --color-base-200: oklch(26% 0 0);
+  --color-base-300: oklch(32% 0 0);
+  --color-base-content: oklch(95% 0 0);
+  --color-primary: oklch(70% 0.17 285);
+  --color-primary-content: oklch(17% 0 0);
+  --color-secondary: oklch(60% 0.1 285);
+  --color-secondary-content: oklch(98% 0 0);
+  --color-accent: oklch(75% 0.13 195);
+  --color-accent-content: oklch(17% 0 0);
+  --color-neutral: oklch(30% 0 0);
+  --color-neutral-content: oklch(95% 0 0);
+  --color-info: oklch(74% 0.12 235);
+  --color-info-content: oklch(17% 0 0);
+  --color-success: oklch(72% 0.15 155);
+  --color-success-content: oklch(17% 0 0);
+  --color-warning: oklch(82% 0.15 85);
+  --color-warning-content: oklch(17% 0 0);
+  --color-error: oklch(68% 0.2 25);
+  --color-error-content: oklch(17% 0 0);
+
+  --radius-selector: 1rem;
+  --radius-field: 0.5rem;
+  --radius-box: 0.75rem;
+  --size-selector: 0.25rem;
+  --size-field: 0.25rem;
+  --border: 1px;
+  --depth: 0;
+  --noise: 0;
+}
+
+/*
+ * WXT applies `all: initial` to the shadow root, which also drops the inherited
+ * font. Restore YouTube's stack so injected UI reads as part of the page.
  */
 @theme {
   --font-sans: 'Roboto', 'Arial', system-ui, sans-serif;

@@ -25,7 +25,7 @@ kept as reference only:
 |---|---|
 | **WXT 0.21** | File-based entrypoints, HMR for content scripts, shadow-root UI helpers, MV3 by default. |
 | **React 19 + TypeScript** | The settings page is a real multi-screen app, not a form. |
-| **Tailwind v4 + shadcn/ui** | Component UI without fighting YouTube's cascade. |
+| **Tailwind v4 + daisyUI 5** | Class-only component library — no JS, so nothing renders into a portal (see below). Semantic colour names mean one theme definition instead of `dark:` on every element. |
 | **Shadow DOM** for all injected UI | YouTube's styles cannot reach us, ours cannot reach YouTube. The previous prototype needed 7 KB of defensive CSS without it. |
 | **OpenRouter** as the only provider | One OpenAI-compatible API for every model, OAuth PKCE onboarding, per-key usage endpoint, free-tier models, prompt caching pass-through, no inference markup. |
 
@@ -51,6 +51,18 @@ Web Store policy on automated engagement.
 
 **All YouTube DOM knowledge lives in `extension/entrypoints/content/youtube-dom.ts`.**
 Anchors are custom element tag names and framework ids, never CSS classes.
+
+**No portal-based component library in the content script.** Radix — and so
+shadcn/ui — renders overlays into a portal appended to `document.body`. From a
+content script that portal escapes the shadow root, lands in YouTube's DOM and
+loses every style we set. daisyUI is CSS classes only, so this cannot happen.
+
+**Themes are attached to an element inside the shadow root, not the host.**
+daisyUI emits `:root` and `[data-theme="…"]`; a stylesheet inside a shadow root
+can match neither the document root nor its own host. The plugin's `root` option
+looks like the fix but silently ignores anything other than a plain selector.
+The theme follows YouTube's `dark` attribute on `<html>` rather than
+`prefers-color-scheme`, because YouTube's dark mode is a site setting.
 
 ## Token budget
 
