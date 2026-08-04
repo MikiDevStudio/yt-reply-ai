@@ -12,6 +12,7 @@
     "zip": "wxt zip",
     "zip:firefox": "wxt zip -b firefox",
     "compile": "tsc --noEmit",
+    "smoke": "tsx scripts/smoke-openrouter.ts",
     "postinstall": "wxt prepare"
   },
   "dependencies": {
@@ -25,6 +26,7 @@
     "@wxt-dev/module-react": "^1.1.5",
     "daisyui": "^5.7.15",
     "tailwindcss": "^4.3.3",
+    "tsx": "^4.23.5",
     "typescript": "^5.9.3",
     "wxt": "^0.21.3"
   }

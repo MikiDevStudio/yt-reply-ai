@@ -1,3 +1,181 @@
+import type { Browser } from '#imports';
+import {
+  GENERATE_PORT,
+  type GenerateClientMessage,
+  type GenerateServerMessage,
+  type Request,
+  type Response,
+} from '@/lib/messaging';
+import { connectWithOAuth } from '@/lib/openrouter/auth';
+import { fetchKeyInfo, fetchModels, streamCompletion } from '@/lib/openrouter/client';
+import { OpenRouterError } from '@/lib/openrouter/errors';
+import { buildReplyPrompt } from '@/lib/prompt';
+import * as settings from '@/lib/settings';
+
+/**
+ * The background service worker owns everything that touches the network.
+ *
+ * Two reasons, both hard requirements rather than preferences:
+ * - A content script's `fetch` follows YouTube's CORS rules and cannot reach
+ *   openrouter.ai. From here, `host_permissions` makes it work.
+ * - The API key must never be readable from a page we do not control.
+ *
+ * Listeners are registered synchronously at the top level. Chrome replays
+ * events to a restarted worker, but only for listeners registered this way.
+ */
 export default defineBackground(() => {
-  console.log('Hello background!', { id: browser.runtime.id });
+  browser.runtime.onConnect.addListener(handleConnect);
+  browser.runtime.onMessage.addListener(handleMessage);
 });
+
+/** Generation runs over a port so tokens can stream back as they arrive. */
+function handleConnect(port: Browser.runtime.Port) {
+  if (port.name !== GENERATE_PORT) return;
+
+  const controller = new AbortController();
+
+  // The user closing the popover, navigating away, or the tab going away all
+  // land here. Aborting stops billing at providers that support it.
+  port.onDisconnect.addListener(() => controller.abort());
+
+  port.onMessage.addListener((message: GenerateClientMessage) => {
+    if (message.type === 'cancel') {
+      controller.abort();
+      return;
+    }
+    if (message.type === 'start') {
+      void generate(port, message, controller.signal);
+    }
+  });
+}
+
+async function generate(
+  port: Browser.runtime.Port,
+  request: Extract<GenerateClientMessage, { type: 'start' }>,
+  signal: AbortSignal,
+) {
+  // Read state on every invocation. The worker is restarted freely, so nothing
+  // may be cached in module scope.
+  const [key, model, soul, savedStyle, savedLevel] = await Promise.all([
+    settings.apiKey.getValue(),
+    settings.model.getValue(),
+    settings.soul.getValue(),
+    settings.style.getValue(),
+    settings.contextLevel.getValue(),
+  ]);
+
+  if (!key) {
+    post(port, {
+      type: 'error',
+      kind: 'unauthorized',
+      message: 'Connect your OpenRouter account first',
+    });
+    return;
+  }
+
+  const messages = buildReplyPrompt({
+    context: request.context,
+    soul,
+    style: request.style ?? savedStyle,
+    level: request.contextLevel ?? savedLevel,
+  });
+
+  try {
+    const stream = streamCompletion({ apiKey: key, model, messages, signal, maxTokens: 400 });
+
+    let next = await stream.next();
+    while (!next.done) {
+      post(port, { type: 'delta', text: next.value });
+      next = await stream.next();
+    }
+
+    post(port, { type: 'done', text: next.value.text, usage: next.value.usage });
+  } catch (error) {
+    const failure = asOpenRouterError(error);
+    // A cancelled generation is a choice, not a failure. The port is usually
+    // already gone by this point anyway.
+    if (failure.kind === 'aborted') return;
+
+    post(port, {
+      type: 'error',
+      kind: failure.kind,
+      message: failure.message,
+      retryAfterSeconds: failure.retryAfterSeconds,
+    });
+  }
+}
+
+/** Posting to a closed port throws; the disconnect is not worth reporting. */
+function post(port: Browser.runtime.Port, message: GenerateServerMessage) {
+  try {
+    port.postMessage(message);
+  } catch {
+    // Receiver is gone.
+  }
+}
+
+/**
+ * One-shot requests.
+ *
+ * Returning `true` keeps the message channel open for the async reply — without
+ * it Chrome closes the channel as soon as this function returns and the caller
+ * receives `undefined`.
+ */
+function handleMessage(
+  request: Request,
+  _sender: Browser.runtime.MessageSender,
+  sendResponse: (response: Response<unknown>) => void,
+): boolean {
+  respond(request)
+    .then(sendResponse)
+    .catch((error) => {
+      const failure = asOpenRouterError(error);
+      sendResponse({ ok: false, kind: failure.kind, message: failure.message });
+    });
+  return true;
+}
+
+async function respond(request: Request): Promise<Response<unknown>> {
+  switch (request.type) {
+    case 'auth:status': {
+      const key = await settings.apiKey.getValue();
+      return { ok: true, data: { connected: Boolean(key) } };
+    }
+
+    case 'auth:connect': {
+      const key = await connectWithOAuth();
+      await settings.apiKey.setValue(key);
+      return { ok: true, data: { connected: true } };
+    }
+
+    case 'auth:setKey': {
+      // Validate before storing, so a typo surfaces immediately rather than at
+      // the first generation attempt.
+      await fetchKeyInfo(request.apiKey);
+      await settings.apiKey.setValue(request.apiKey);
+      return { ok: true, data: { connected: true } };
+    }
+
+    case 'auth:disconnect': {
+      await settings.apiKey.removeValue();
+      return { ok: true, data: { connected: false } };
+    }
+
+    case 'models:list':
+      return { ok: true, data: await fetchModels() };
+
+    case 'usage:get': {
+      const key = await settings.apiKey.getValue();
+      if (!key) return { ok: false, kind: 'unauthorized', message: 'Not connected' };
+      return { ok: true, data: await fetchKeyInfo(key) };
+    }
+  }
+}
+
+function asOpenRouterError(error: unknown): OpenRouterError {
+  if (error instanceof OpenRouterError) return error;
+  return new OpenRouterError(
+    'upstream',
+    error instanceof Error ? error.message : 'Unexpected failure',
+  );
+}
