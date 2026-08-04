@@ -4,6 +4,7 @@ import type { KeyInfo } from '@/lib/openrouter/types';
 import {
   type ContextLevel,
   MODEL_PRESETS,
+  autoGenerate as autoGenerateSetting,
   contextLevel as contextLevelSetting,
   model as modelSetting,
 } from '@/lib/settings';
@@ -31,6 +32,7 @@ export function App() {
   const [usage, setUsage] = useState<KeyInfo | null>(null);
   const [model, setModel] = useState<string>(MODEL_PRESETS.balanced);
   const [level, setLevel] = useState<ContextLevel>(0);
+  const [autoStart, setAutoStart] = useState(true);
   const [manualKey, setManualKey] = useState('');
   const [showManual, setShowManual] = useState(false);
   const [busy, setBusy] = useState(false);
@@ -40,6 +42,7 @@ export function App() {
     void refresh();
     void modelSetting.getValue().then(setModel);
     void contextLevelSetting.getValue().then(setLevel);
+    void autoGenerateSetting.getValue().then(setAutoStart);
   }, []);
 
   async function refresh() {
@@ -189,6 +192,31 @@ export function App() {
               </label>
             ))}
           </div>
+        </div>
+      </section>
+
+      <section className="card card-border bg-base-100">
+        <div className="card-body gap-4">
+          <h2 className="card-title text-base">Generating</h2>
+
+          <label className="flex cursor-pointer items-start gap-3 text-sm">
+            <input
+              type="checkbox"
+              className="toggle toggle-sm"
+              checked={autoStart}
+              onChange={(event) => {
+                setAutoStart(event.target.checked);
+                void autoGenerateSetting.setValue(event.target.checked);
+              }}
+            />
+            <span>
+              <span className="font-medium">Start writing as soon as I open the popover</span>
+              <span className="block text-xs text-base-content/60">
+                Off means the popover opens empty and waits for Generate — useful for picking a
+                tone first, or for not spending a request on every click.
+              </span>
+            </span>
+          </label>
         </div>
       </section>
 

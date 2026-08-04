@@ -8,22 +8,31 @@ const STYLE_ORDER = ['auto', 'friendly', 'humorous', 'engaging', 'brief'] as con
 
 interface ReplyPopoverProps {
   context: GenerationContext;
+  /** Start generating as soon as the popover opens. See `settings.autoGenerate`. */
+  autoStart: boolean;
   /** Writes the text into YouTube's reply box. */
   onInsert: (text: string) => void;
   onClose: () => void;
 }
 
-export function ReplyPopover({ context, onInsert, onClose }: ReplyPopoverProps) {
+export function ReplyPopover({ context, autoStart, onInsert, onClose }: ReplyPopoverProps) {
   const { state, generate, cancel } = useGeneration();
   const [style, setStyle] = useState<string>('auto');
   const [copied, setCopied] = useState(false);
   const streamRef = useRef<HTMLDivElement>(null);
 
-  // Generate immediately: the user already expressed intent by clicking the
-  // button. Making them press Generate as well would be a second click for
-  // nothing.
-  useEffect(() => {
+  // Whether this popover has spent a request yet. Once it has, changing the
+  // tone regenerates even with auto-start off — at that point the user has
+  // already opted into generating and is adjusting the result.
+  const started = useRef(false);
+
+  const start = () => {
+    started.current = true;
     generate(context, style);
+  };
+
+  useEffect(() => {
+    if (autoStart || started.current) start();
     // Re-running on `style` is deliberate — picking a tone regenerates.
   }, [style]);
 
@@ -86,19 +95,24 @@ export function ReplyPopover({ context, onInsert, onClose }: ReplyPopoverProps) 
             kind={state.kind}
             message={state.message}
             retryAfterSeconds={state.retryAfterSeconds}
-            onRetry={() => generate(context, style)}
+            onRetry={start}
           />
         ) : (
           <div
             ref={streamRef}
             className="max-h-56 min-h-20 overflow-y-auto whitespace-pre-wrap rounded-box border border-base-300 p-3 text-sm"
           >
-            {text || (
-              <span className="flex items-center gap-2 text-base-content/50">
-                <span className="loading loading-dots loading-sm" />
-                Writing…
-              </span>
-            )}
+            {text ||
+              (state.status === 'idle' ? (
+                <span className="text-base-content/50">
+                  Pick a tone, then press Generate.
+                </span>
+              ) : (
+                <span className="flex items-center gap-2 text-base-content/50">
+                  <span className="loading loading-dots loading-sm" />
+                  Writing…
+                </span>
+              ))}
           </div>
         )}
 
@@ -117,11 +131,10 @@ export function ReplyPopover({ context, onInsert, onClose }: ReplyPopoverProps) 
             ) : (
               <button
                 type="button"
-                className="btn btn-ghost btn-sm"
-                disabled={state.status === 'idle'}
-                onClick={() => generate(context, style)}
+                className={`btn btn-sm ${state.status === 'idle' ? 'btn-primary' : 'btn-ghost'}`}
+                onClick={start}
               >
-                Regenerate
+                {state.status === 'idle' ? 'Generate' : 'Regenerate'}
               </button>
             )}
 

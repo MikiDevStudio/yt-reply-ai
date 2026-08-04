@@ -63,6 +63,18 @@ export const style = storage.defineItem<string>('local:generation.style', {
   fallback: 'auto',
 });
 
+/**
+ * Whether opening the popover starts a generation on its own.
+ *
+ * On by default: clicking the button is already a statement of intent, and a
+ * second click for nothing is a worse first impression. Turning it off is for
+ * people who want to pick a tone — or just read the comment — before spending a
+ * request, which matters on metered credit and on rate-limited free models.
+ */
+export const autoGenerate = storage.defineItem<boolean>('local:generation.auto', {
+  fallback: true,
+});
+
 /** The user's voice profile, as markdown. Empty until they create one. */
 export const soul = storage.defineItem<string>('local:soul.active', {
   fallback: '',

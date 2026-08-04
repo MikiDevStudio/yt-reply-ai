@@ -22,10 +22,18 @@ interface OpenOptions {
   ctx: ContentScriptContext;
   anchor: HTMLElement;
   context: GenerationContext;
+  /** Start generating on open, or wait for the user to press Generate. */
+  autoStart: boolean;
   onInsert: (text: string) => void;
 }
 
-export async function openPopover({ ctx, anchor, context, onInsert }: OpenOptions): Promise<void> {
+export async function openPopover({
+  ctx,
+  anchor,
+  context,
+  autoStart,
+  onInsert,
+}: OpenOptions): Promise<void> {
   const { container, root } = await ensureHost(ctx);
 
   position(container, anchor);
@@ -46,6 +54,7 @@ export async function openPopover({ ctx, anchor, context, onInsert }: OpenOption
     <ReplyPopover
       key={context.commentText.slice(0, 64) + context.commentAuthor}
       context={context}
+      autoStart={autoStart}
       onInsert={(text) => {
         onInsert(text);
         close();

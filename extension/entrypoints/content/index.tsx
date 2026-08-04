@@ -2,7 +2,7 @@ import './style.css';
 import ReactDOM from 'react-dom/client';
 import type { ContentScriptContext } from '#imports';
 import type { GenerationContext } from '@/lib/messaging';
-import { contextLevel } from '@/lib/settings';
+import { autoGenerate, contextLevel } from '@/lib/settings';
 import { openPopover } from './popover';
 import { ReplyButton } from './ReplyButton';
 import { syncTheme } from './theme';
@@ -112,10 +112,16 @@ async function handleOpen(ctx: ContentScriptContext, toolbar: HTMLElement, ancho
   const comment = readComment(toolbar);
   if (!comment) return;
 
+  const [context, autoStart] = await Promise.all([
+    buildContext(comment),
+    autoGenerate.getValue(),
+  ]);
+
   void openPopover({
     ctx,
     anchor,
-    context: await buildContext(comment),
+    context,
+    autoStart,
     onInsert: (text) => void insertGeneratedReply(toolbar, text),
   });
 }
