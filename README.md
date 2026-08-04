@@ -104,6 +104,24 @@ npm install
 npm run dev       # launches Chrome with the extension loaded
 npm run build
 npm run compile   # typecheck
+npm run smoke     # exercise the OpenRouter client against the live API
 ```
+
+`npm run smoke` reads `OPENROUTER_API_KEY` from the repo-root `.env`. It checks
+the client against the API rather than against the documentation — streaming,
+usage accounting, error mapping and cancellation — and prints the free models
+that currently exist, which is how default model ids get chosen.
+
+The extension ID is pinned to `lbldodejinpgfnoaficdhaglkbhnkmlb`, because the
+OAuth redirect URL embeds it. Do not regenerate the key in `.keys/`.
+
+### Loading a build by hand
+
+```
+chrome://extensions → Developer mode → Load unpacked → extension/.output/chrome-mv3
+```
+
+Then open the extension's settings, connect an OpenRouter account (or paste a
+key), and open a video with comments.
 
 Test video: <https://www.youtube.com/watch?v=5ViTG9HrtFk>

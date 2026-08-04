@@ -77,6 +77,109 @@ export function readComment(toolbar: HTMLElement): CommentData | null {
   return { text, author, isReply };
 }
 
+/** YouTube's own Reply button, which opens the reply box. */
+const NATIVE_REPLY_BUTTON = 'ytd-button-renderer#reply-button-end button, #reply-button-end button';
+
+/** The contenteditable YouTube types replies into. */
+const REPLY_EDITABLE = 'ytd-commentbox #contenteditable-root';
+
+/**
+ * Open the reply box under a comment and hand back its editable element.
+ *
+ * We click YouTube's own Reply button rather than constructing the box
+ * ourselves: the box carries the parent-comment id and the posting logic, and
+ * only YouTube knows how to wire that up.
+ *
+ * Returns `null` if the box does not appear — YouTube disables replies on some
+ * comments, and the button is absent entirely when signed out.
+ */
+export async function openReplyBox(toolbar: HTMLElement): Promise<HTMLElement | null> {
+  const engagementBar = toolbar.closest(ENGAGEMENT_BAR) ?? toolbar.parentElement;
+  const existing = engagementBar?.parentElement?.querySelector<HTMLElement>(REPLY_EDITABLE);
+  if (existing) return existing;
+
+  const replyButton = toolbar.querySelector<HTMLElement>(NATIVE_REPLY_BUTTON);
+  if (!replyButton) return null;
+
+  replyButton.click();
+
+  const host = toolbar.closest(COMMENT_HOST) ?? document;
+  return waitForElement<HTMLElement>(host, REPLY_EDITABLE, 3000);
+}
+
+/**
+ * Put text into YouTube's reply box.
+ *
+ * Assigning `textContent` is not enough. The box is a `contenteditable` driven
+ * by a Polymer component that tracks its own state from input events — set the
+ * text directly and YouTube still believes the box is empty, leaving the Reply
+ * button disabled. `insertText` goes through the editing pipeline and produces
+ * the events that component listens for.
+ *
+ * `execCommand` is deprecated but remains the only thing that reliably drives a
+ * third-party contenteditable, so there is a manual fallback behind it.
+ */
+export function insertReplyText(editable: HTMLElement, text: string): void {
+  editable.focus();
+
+  const selection = window.getSelection();
+  const range = document.createRange();
+  range.selectNodeContents(editable);
+  selection?.removeAllRanges();
+  selection?.addRange(range);
+
+  if (document.execCommand('insertText', false, text)) {
+    collapseToEnd(editable);
+    return;
+  }
+
+  editable.textContent = text;
+  editable.dispatchEvent(
+    new InputEvent('input', { bubbles: true, composed: true, inputType: 'insertText', data: text }),
+  );
+  collapseToEnd(editable);
+}
+
+function collapseToEnd(editable: HTMLElement): void {
+  const selection = window.getSelection();
+  const range = document.createRange();
+  range.selectNodeContents(editable);
+  range.collapse(false);
+  selection?.removeAllRanges();
+  selection?.addRange(range);
+}
+
+/** Resolve once `selector` matches inside `root`, or with `null` on timeout. */
+function waitForElement<T extends Element>(
+  root: ParentNode,
+  selector: string,
+  timeoutMs: number,
+): Promise<T | null> {
+  const existing = root.querySelector<T>(selector);
+  if (existing) return Promise.resolve(existing);
+
+  return new Promise((resolve) => {
+    const timer = setTimeout(() => {
+      observer.disconnect();
+      resolve(null);
+    }, timeoutMs);
+
+    const observer = new MutationObserver(() => {
+      const found = root.querySelector<T>(selector);
+      if (found) {
+        clearTimeout(timer);
+        observer.disconnect();
+        resolve(found);
+      }
+    });
+
+    observer.observe(root === document ? document.body : (root as Node), {
+      childList: true,
+      subtree: true,
+    });
+  });
+}
+
 /** Metadata about the video the comments belong to, scraped from the page. */
 export interface VideoContext {
   videoId: string;

@@ -29,5 +29,9 @@ export default defineConfig({
     // Listing openrouter.ai here lets the background service worker call the API
     // without being subject to the page's CORS rules. Never widen this to <all_urls>.
     host_permissions: ['https://openrouter.ai/*'],
+
+    // `options_ui` is not set here on purpose. WXT generates it from the options
+    // entrypoint and overrides whatever this config says, so `open_in_tab` lives
+    // in a meta tag in entrypoints/options/index.html instead.
   },
 });

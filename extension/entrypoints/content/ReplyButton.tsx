@@ -1,5 +1,8 @@
+import { useRef } from 'react';
+
 interface ReplyButtonProps {
-  onOpen: () => void;
+  /** Receives the button element so the popover can anchor to it. */
+  onOpen: (anchor: HTMLElement) => void;
 }
 
 /**
@@ -12,10 +15,13 @@ interface ReplyButtonProps {
  * daisyUI semantic colours instead.
  */
 export function ReplyButton({ onOpen }: ReplyButtonProps) {
+  const ref = useRef<HTMLButtonElement>(null);
+
   return (
     <button
+      ref={ref}
       type="button"
-      onClick={onOpen}
+      onClick={() => ref.current && onOpen(ref.current)}
       className="btn btn-sm gap-1.5 border-0 bg-[var(--yt-spec-badge-chip-background,rgba(255,255,255,0.1))] text-[var(--yt-spec-text-primary,#f1f1f1)] shadow-none"
     >
       <SparkIcon />

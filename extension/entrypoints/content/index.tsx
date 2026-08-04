@@ -1,13 +1,17 @@
 import './style.css';
 import ReactDOM from 'react-dom/client';
 import type { ContentScriptContext } from '#imports';
+import { openPopover } from './popover';
 import { ReplyButton } from './ReplyButton';
 import { syncTheme } from './theme';
 import {
   COMMENTS_CONTAINER,
   INJECTED_ATTR,
   findUninjectedToolbars,
+  insertReplyText,
+  openReplyBox,
   readComment,
+  readVideoContext,
 } from './youtube-dom';
 
 export default defineContentScript({
@@ -91,7 +95,7 @@ async function mountButton(ctx: ContentScriptContext, toolbar: HTMLElement) {
       ctx.onInvalidated(syncTheme(container));
 
       const root = ReactDOM.createRoot(container);
-      root.render(<ReplyButton onOpen={() => handleOpen(toolbar)} />);
+      root.render(<ReplyButton onOpen={(button) => handleOpen(ctx, toolbar, button)} />);
       return root;
     },
     onRemove: (root) => root?.unmount(),
@@ -100,8 +104,39 @@ async function mountButton(ctx: ContentScriptContext, toolbar: HTMLElement) {
   ui.mount();
 }
 
-function handleOpen(toolbar: HTMLElement) {
+function handleOpen(ctx: ContentScriptContext, toolbar: HTMLElement, anchor: HTMLElement) {
   const comment = readComment(toolbar);
-  // TODO(#4): open the generation popover instead of logging.
-  console.log('[Reply AI] comment:', comment);
+  if (!comment) return;
+
+  const video = readVideoContext();
+
+  void openPopover({
+    ctx,
+    anchor,
+    context: {
+      commentText: comment.text,
+      commentAuthor: comment.author,
+      isReply: comment.isReply,
+      ...(video ? { video } : {}),
+    },
+    onInsert: (text) => void insertGeneratedReply(toolbar, text),
+  });
+}
+
+/**
+ * Put the generated text in front of the user — and stop there.
+ *
+ * We never post. The reply box is opened and filled; sending is the user's
+ * click on YouTube's own button. That keeps a human in the loop and keeps us
+ * clear of Chrome Web Store policy on automated engagement.
+ */
+async function insertGeneratedReply(toolbar: HTMLElement, text: string) {
+  const editable = await openReplyBox(toolbar);
+  if (!editable) {
+    // Replies can be disabled on a comment, and the button is absent entirely
+    // when signed out. Falling back to the clipboard beats losing the text.
+    await navigator.clipboard.writeText(text);
+    return;
+  }
+  insertReplyText(editable, text);
 }
