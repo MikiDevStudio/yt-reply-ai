@@ -1,12 +1,14 @@
+import { Undo2 } from 'lucide-react';
 import { useEffect, useState } from 'react';
 import { soul, soulProfile } from '@/lib/settings';
-import { DEFAULT_PROFILE, type SoulProfile, renderSoul } from '@/lib/soul';
+import { DEFAULT_PROFILE, type SoulProfile, type SoulType, matchType, renderSoul } from '@/lib/soul';
 import { useSetting } from '@/lib/use-setting';
+import { Fold } from '../Fold';
 import { Section } from '../Section';
 import { Constructor } from '../soul/Constructor';
 import { Editor } from '../soul/Editor';
 import { Import } from '../soul/Import';
-import { Preview } from '../soul/Preview';
+import { Types } from '../soul/Types';
 
 /**
  * The soul profile: built by clicking, stored as markdown, editable either way.
@@ -15,6 +17,12 @@ import { Preview } from '../soul/Preview';
  * and the editor lets the user write over the result. Neither side is allowed
  * to discard the other silently: a change that would overwrite hand-written
  * text asks first, every time, until the divergence is gone.
+ *
+ * Three levels of disclosure, not three screens. A type and one sentence about
+ * the channel are enough to leave with; the constructor and the markdown are a
+ * click away for anyone who wants them. Not a wizard — a wizard is better the
+ * first time and worse every time after, and someone who came back to flip one
+ * switch should not be walked through steps.
  */
 export function Soul() {
   const [stored, setStored, profileLoaded] = useSetting(soulProfile);
@@ -23,6 +31,14 @@ export function Soul() {
 
   /** A change to the answers, held back until the user says it may land. */
   const [pending, setPending] = useState<Partial<SoulProfile> | null>(null);
+
+  /**
+   * The profile as it stood before the last type pick.
+   *
+   * In page memory, never storage: an undo that survives a tab reload is not an
+   * undo anyone reaches for.
+   */
+  const [previous, setPrevious] = useState<SoulProfile | null>(null);
 
   // Adopt the stored markdown once it arrives, but never overwrite what the
   // user is in the middle of typing.
@@ -47,6 +63,11 @@ export function Soul() {
   /** Answers exist, but the markdown no longer matches what they render to. */
   const detached = stored !== null && text !== renderSoul(profile);
 
+  const type = matchType(profile);
+
+  /** Nothing set up yet — matching no type here means untouched, not custom. */
+  const fresh = stored === null && text.trim().length === 0;
+
   const apply = (patch: Partial<SoulProfile>) => {
     const next = { ...profile, ...patch };
     const rendered = renderSoul(next);
@@ -62,7 +83,29 @@ export function Soul() {
       setPending(patch);
       return;
     }
+    // Any other edit closes the undo window. What it would restore stopped
+    // being the profile the user had before the pick.
+    setPrevious(null);
     apply(patch);
+  };
+
+  /**
+   * Picking a type overwrites eight values at once, seven of them inside a
+   * fold. The existing guard does not cover that — a profile built with the
+   * constructor is neither hand-written nor detached, so it falls straight
+   * through — and the fix on a flow designed to be one click is undo, not a
+   * second confirmation.
+   */
+  const pick = (picked: SoulType) => {
+    if (handWritten || detached) {
+      setPending(picked.preset);
+      return;
+    }
+    // Nothing to undo on a profile nobody has touched: restoring the defaults
+    // would leave a profile matching no type, labelled Custom, that the user
+    // never built.
+    setPrevious(fresh ? null : profile);
+    apply(picked.preset);
   };
 
   const replaceWith = (value: string) => {
@@ -72,6 +115,7 @@ export function Soul() {
     setStored(null);
     setMarkdown(value);
     setDraft(value);
+    setPrevious(null);
   };
 
   return (
@@ -113,19 +157,62 @@ export function Soul() {
           </div>
         )}
 
-        <Constructor profile={profile} onChange={update} />
+        <div className="flex flex-col gap-3">
+          <div className="flex items-center justify-between gap-2">
+            <span className="text-sm text-base-content/60">
+              {fresh
+                ? 'Start from a type. Everything it sets stays yours to change.'
+                : type === null && 'Custom — these answers match no type.'}
+            </span>
+
+            {previous && (
+              <button
+                type="button"
+                className="btn btn-ghost btn-xs"
+                onClick={() => {
+                  apply(previous);
+                  setPrevious(null);
+                }}
+              >
+                <Undo2 aria-hidden className="size-3.5" />
+                Undo
+              </button>
+            )}
+          </div>
+
+          <Types selected={type} onPick={pick} />
+        </div>
+
+        <div className="flex flex-col gap-2">
+          <span className="font-medium">What is the channel about, and who is answering?</span>
+          <span className="text-xs text-base-content/60">
+            One or two sentences. This is the only part the model cannot guess.
+          </span>
+          <textarea
+            className="textarea min-h-20 w-full text-sm"
+            placeholder="I make woodworking videos. I answer as myself, not as a brand."
+            value={profile.about}
+            onChange={(event) => update({ about: event.target.value })}
+          />
+        </div>
       </Section>
 
-      <Section
-        title="Try it"
-        description="Generate a reply to a sample comment with the profile as it stands."
+      <Fold
+        title="Configure in detail"
+        description="Tone, length, language, and how each kind of comment gets handled."
+        // A custom profile opens: folding away settings that matched no type
+        // hides the user's own work and makes "folded, not hidden" a lie.
+        defaultOpen={stored !== null && type === null}
       >
-        <Preview />
-      </Section>
+        <Constructor profile={profile} onChange={update} />
+      </Fold>
 
-      <Section
+      <Fold
         title="What actually gets sent"
         description="The markdown the constructor produces. Edit it directly if you would rather write your own."
+        // A hand-written profile opens here instead: that text is the profile,
+        // and an open constructor above it is an invitation to overwrite it.
+        defaultOpen={handWritten}
       >
         <Editor
           markdown={text}
@@ -133,14 +220,15 @@ export function Soul() {
           onDraftChange={setDraft}
           onSave={() => draft !== null && draft !== text && setMarkdown(draft)}
         />
-      </Section>
 
-      <Section
-        title="Import a profile"
-        description="Already have a persona written elsewhere? Bring it in instead of rebuilding it here."
-      >
-        <Import onApply={replaceWith} />
-      </Section>
+        <div className="flex flex-col gap-2 border-t border-base-300 pt-4">
+          <span className="font-medium">Import a profile</span>
+          <span className="text-sm text-base-content/70">
+            Already have a persona written elsewhere? Bring it in instead of rebuilding it here.
+          </span>
+          <Import onApply={replaceWith} />
+        </div>
+      </Fold>
     </>
   );
 }

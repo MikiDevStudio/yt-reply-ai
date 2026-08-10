@@ -30,24 +30,13 @@ const EMOJI_LABELS: Record<EmojiUse, string> = {
  * The profile, built by clicking.
  *
  * Almost nobody writes a persona prompt from an empty box, so every answer here
- * is a choice rather than a field — except the two where only the user has the
- * information: what the channel is about, and the phrases that sound like them.
+ * is a choice rather than a field — except the phrases, where only the user has
+ * the information. What the channel is about is asked one level up, next to the
+ * types: it is the one answer nobody should have to open a fold to give.
  */
 export function Constructor({ profile, onChange }: ConstructorProps) {
   return (
     <div className="flex flex-col gap-6">
-      <Field
-        label="What is the channel about, and who is answering?"
-        hint="One or two sentences. This is the only part the model cannot guess."
-      >
-        <textarea
-          className="textarea min-h-20 w-full text-sm"
-          placeholder="I make woodworking videos. I answer as myself, not as a brand."
-          value={profile.about}
-          onChange={(event) => onChange({ about: event.target.value })}
-        />
-      </Field>
-
       <Field label="Tone" hint="Pick one or two. More than that averages out into nothing.">
         <div className="flex flex-wrap gap-2">
           {TONES.map((tone) => {

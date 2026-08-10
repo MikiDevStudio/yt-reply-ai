@@ -173,6 +173,142 @@ export const DEFAULT_PROFILE: SoulProfile = {
   },
 };
 
+export type SoulTypeId = 'creator' | 'expert' | 'brand' | 'comedian';
+
+export interface SoulType {
+  id: SoulTypeId;
+  name: string;
+  /** One line: what changes in the replies, not what the persona "is". */
+  description: string;
+  /** A reply written by hand, to show the voice without spending a request. */
+  sample: string;
+  /** The fields a type owns. Everything else belongs to the user. */
+  preset: Pick<SoulProfile, 'tone' | 'replyLength' | 'emoji' | 'rules'>;
+}
+
+/**
+ * Starting points, as presets over the profile that already exists.
+ *
+ * A type sets four fields and nothing else, because nothing else is the type's
+ * to set: `about` is the user's own words, `phrases` are their phrases, and
+ * `language` is about their audience. There is no second data model behind
+ * this and nothing stored — see `matchType`.
+ *
+ * The four differ in `rules`, not only in tone. A type that swapped two tone
+ * chips would be a label rather than a behaviour. Keep every preset pairwise
+ * distinct when adding one, or `matchType` stops being unambiguous.
+ */
+export const SOUL_TYPES: readonly SoulType[] = [
+  {
+    id: 'creator',
+    name: 'Creator',
+    description: 'Warm and short, and it asks something back.',
+    sample: 'That genuinely made my day — thank you! Which part tripped you up the first time?',
+    preset: {
+      tone: ['warm', 'enthusiastic'],
+      replyLength: 'short',
+      emoji: 'sparing',
+      rules: {
+        praise: 'thank-invite',
+        question: 'answer',
+        criticism: 'acknowledge',
+        hate: 'ignore',
+        spam: 'skip',
+      },
+    },
+  },
+  {
+    id: 'expert',
+    name: 'Expert',
+    description: 'Plain answers that point back at the video.',
+    sample:
+      'It works below 12V, but the regulator drops out under load and you get the flicker. I go through the numbers around 6:40.',
+    preset: {
+      tone: ['expert', 'concise'],
+      replyLength: 'medium',
+      emoji: 'none',
+      rules: {
+        praise: 'thank',
+        question: 'answer-point',
+        criticism: 'acknowledge-explain',
+        hate: 'firm',
+        spam: 'skip',
+      },
+    },
+  },
+  {
+    id: 'brand',
+    name: 'Brand',
+    description: 'Measured, names what you said, keeps its distance.',
+    sample: 'Thanks for calling out the setup guide specifically — good to know that part landed. 🙌',
+    preset: {
+      tone: ['warm', 'concise'],
+      replyLength: 'short',
+      emoji: 'sparing',
+      rules: {
+        praise: 'thank-specific',
+        question: 'answer-ask',
+        criticism: 'ask-specifics',
+        hate: 'firm',
+        spam: 'skip',
+      },
+    },
+  },
+  {
+    id: 'comedian',
+    name: 'Comedian',
+    description: 'Dry and quick, and it jokes hostility away.',
+    sample: 'Ten minutes you will never get back. Imagine having to film it 😅',
+    preset: {
+      tone: ['funny', 'dry'],
+      replyLength: 'short',
+      emoji: 'freely',
+      rules: {
+        praise: 'thank',
+        question: 'answer',
+        criticism: 'acknowledge',
+        hate: 'defuse',
+        spam: 'skip',
+      },
+    },
+  },
+];
+
+/** Tone chips are toggled in whatever order they are clicked. */
+function sameTone(a: readonly string[], b: readonly string[]): boolean {
+  if (a.length !== b.length) return false;
+  const left = [...a].sort();
+  const right = [...b].sort();
+  return left.every((tone, index) => tone === right[index]);
+}
+
+/**
+ * Which type the profile currently matches, or null when it matches none.
+ *
+ * Derived rather than stored: nothing to keep in sync and nothing to go stale.
+ * The label survives edits to `about`, `phrases` and `language`, and disappears
+ * the moment one of the four owned fields moves — the profile stops being an
+ * Expert when it stops answering like one, not when the user types their
+ * channel name.
+ *
+ * Returning null does not mean "custom" on its own: a brand-new profile matches
+ * nothing either, and `DEFAULT_PROFILE` deliberately matches no type. The
+ * caller tells those apart by whether anything is stored at all.
+ */
+export function matchType(profile: SoulProfile): SoulTypeId | null {
+  const kinds = Object.keys(RULE_LABELS) as CommentKind[];
+
+  const found = SOUL_TYPES.find(
+    ({ preset }) =>
+      sameTone(profile.tone, preset.tone) &&
+      profile.replyLength === preset.replyLength &&
+      profile.emoji === preset.emoji &&
+      kinds.every((kind) => profile.rules[kind] === preset.rules[kind]),
+  );
+
+  return found?.id ?? null;
+}
+
 /**
  * Render the answers as the markdown that goes into the prompt.
  *
