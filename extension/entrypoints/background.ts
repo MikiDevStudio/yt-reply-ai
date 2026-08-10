@@ -8,7 +8,7 @@ import {
   type Response,
 } from '@/lib/messaging';
 import { connectWithOAuth } from '@/lib/openrouter/auth';
-import { fetchKeyInfo, fetchModels, streamCompletion } from '@/lib/openrouter/client';
+import { fetchKeyInfo, fetchModel, fetchModels, streamCompletion } from '@/lib/openrouter/client';
 import { OpenRouterError } from '@/lib/openrouter/errors';
 import { angleFor, buildReplyPrompt, buildSoulPrompt, creativityPreset } from '@/lib/prompt';
 import * as settings from '@/lib/settings';
@@ -256,6 +256,12 @@ async function respond(request: Request): Promise<Response<unknown>> {
 
     case 'models:list':
       return { ok: true, data: await fetchModels() };
+
+    case 'models:validate':
+      // Same bargain as `auth:setKey` above: check it now, in the settings page
+      // where the id was typed, rather than letting it surface as a failed reply
+      // under a comment with no hint that the id was the problem.
+      return { ok: true, data: await fetchModel(request.id) };
 
     case 'usage:get': {
       const key = await settings.apiKey.getValue();

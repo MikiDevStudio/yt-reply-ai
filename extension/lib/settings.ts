@@ -1,4 +1,5 @@
 import { storage } from '#imports';
+import type { ModelInfo } from './openrouter/types';
 import type { SoulProfile } from './soul';
 
 /**
@@ -53,6 +54,21 @@ export const MODEL_PRESETS = {
  */
 export const model = storage.defineItem<string>('local:openrouter.model', {
   fallback: MODEL_PRESETS.balanced,
+});
+
+/**
+ * A model id typed by hand, with what the catalogue said about it.
+ *
+ * One object rather than a field per number, so the snapshot can never be half
+ * written. It is kept apart from `model` for two reasons: the row can show real
+ * figures before the network answers, and switching to a preset and back does
+ * not erase what the user typed.
+ *
+ * `model` is still the only answer to which model is used — it equals either a
+ * preset id or this one's.
+ */
+export const customModel = storage.defineItem<ModelInfo | null>('local:openrouter.customModel', {
+  fallback: null,
 });
 
 /**

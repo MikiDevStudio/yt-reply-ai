@@ -84,6 +84,8 @@ export type Request =
   | { type: 'auth:disconnect' }
   | { type: 'auth:setKey'; apiKey: string }
   | { type: 'models:list' }
+  /** Check one id against the catalogue and return what it says about it. */
+  | { type: 'models:validate'; id: string }
   | { type: 'usage:get' }
   /** Rewrite a soul profile, or reshape one written for another tool. */
   | { type: 'soul:improve'; markdown: string; mode: 'tighten' | 'import' };

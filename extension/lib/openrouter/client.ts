@@ -156,27 +156,74 @@ export async function fetchKeyInfo(apiKey: string, signal?: AbortSignal): Promis
  * List available models.
  *
  * Always fetched, never hardcoded: model ids churn constantly, and a baked-in
- * list is guaranteed to rot. Unauthenticated — this endpoint takes no key.
+ * list is guaranteed to rot.
  */
 export async function fetchModels(signal?: AbortSignal): Promise<ModelInfo[]> {
-  const response = await fetch(`${API_BASE}/models`, { headers: APP_HEADERS, signal });
+  const { data } = await getPublic('/models', signal);
+  return (data ?? []).map(toModelInfo);
+}
+
+/** `author/slug`, with the optional `:free` or `:batch` style variant suffix. */
+const MODEL_ID = /^[\w.-]+\/[\w.-]+(?::[\w.-]+)?$/;
+
+/**
+ * Look up a single model.
+ *
+ * `GET /model/{author}/{slug}` rather than a search through the list: 1.4 KB
+ * against 656 KB, the variant suffix survives in the path, and an id nobody
+ * offers comes back as a 404 carrying OpenRouter's own wording — better than
+ * anything we would invent about someone else's catalogue.
+ *
+ * The shape is checked before the request so `gpt-4` or a pasted URL fails
+ * without a round trip, and so nothing unexamined is interpolated into a path.
+ */
+export async function fetchModel(id: string, signal?: AbortSignal): Promise<ModelInfo> {
+  if (!MODEL_ID.test(id)) {
+    throw new OpenRouterError(
+      'invalid_request',
+      'A model id looks like anthropic/claude-sonnet-5 — the author, a slash, the model.',
+    );
+  }
+
+  const { data } = await getPublic(`/model/${id}`, signal);
+  return toModelInfo(data);
+}
+
+function toModelInfo(model: any): ModelInfo {
+  const promptPrice = Number(model.pricing?.prompt ?? 0);
+  const completionPrice = Number(model.pricing?.completion ?? 0);
+  return {
+    id: model.id,
+    name: model.name ?? model.id,
+    contextLength: model.context_length ?? 0,
+    promptPrice,
+    completionPrice,
+    isFree: promptPrice === 0 && completionPrice === 0,
+    acceptsReasoning: (model.supported_parameters ?? []).includes('reasoning'),
+  };
+}
+
+/**
+ * A GET that carries no key.
+ *
+ * Both catalogue endpoints are public. That was checked against the live API
+ * rather than remembered, because the API reference marks both as requiring a
+ * bearer token and neither does.
+ */
+async function getPublic(path: string, signal?: AbortSignal): Promise<any> {
+  let response: Response;
+  try {
+    response = await fetch(`${API_BASE}${path}`, { headers: APP_HEADERS, signal });
+  } catch (error) {
+    if (isAbort(error)) throw new OpenRouterError('aborted', 'Cancelled');
+    throw new OpenRouterError('network', 'Could not reach OpenRouter');
+  }
+
   if (!response.ok) {
     throw OpenRouterError.fromResponse(response.status, await response.text());
   }
 
-  const { data } = await response.json();
-  return (data ?? []).map((model: any): ModelInfo => {
-    const promptPrice = Number(model.pricing?.prompt ?? 0);
-    const completionPrice = Number(model.pricing?.completion ?? 0);
-    return {
-      id: model.id,
-      name: model.name ?? model.id,
-      contextLength: model.context_length ?? 0,
-      promptPrice,
-      completionPrice,
-      isFree: promptPrice === 0 && completionPrice === 0,
-    };
-  });
+  return response.json();
 }
 
 function normaliseUsage(usage: any): TokenUsage {

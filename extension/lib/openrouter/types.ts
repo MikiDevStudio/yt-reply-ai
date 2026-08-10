@@ -33,7 +33,7 @@ export interface KeyInfo {
   isFreeTier: boolean;
 }
 
-/** Subset of `GET /api/v1/models`. */
+/** Subset of `GET /api/v1/models` and `GET /api/v1/model/{id}`, which agree. */
 export interface ModelInfo {
   id: string;
   name: string;
@@ -43,4 +43,12 @@ export interface ModelInfo {
   completionPrice: number;
   /** Free variants carry a 20/min, 50/day cap — the UI has to say so. */
   isFree: boolean;
+  /**
+   * Whether `supported_parameters` lists `reasoning`.
+   *
+   * Decides whether a cost estimate means anything: the same reply measured 33
+   * completion tokens with thinking held to minimal and 396 with it left alone.
+   * A model that will not take the setting cannot be quoted a per-reply price.
+   */
+  acceptsReasoning: boolean;
 }
