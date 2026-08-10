@@ -44,7 +44,30 @@ export interface GenerationContext {
 
 /** Content script → background, over the generate port. */
 export type GenerateClientMessage =
-  | { type: 'start'; context: GenerationContext; style?: string; contextLevel?: ContextLevel }
+  | {
+      type: 'start';
+      context: GenerationContext;
+      style?: string;
+      contextLevel?: ContextLevel;
+      /** 1–5. Omitted falls back to the stored level. */
+      creativity?: number;
+      /**
+       * Which try this is, counting from 1. Drives the angle, the per-attempt
+       * creativity bump and how hard the model is allowed to think.
+       */
+      attempt?: number;
+      /**
+       * Replies already offered for this comment, oldest first.
+       *
+       * Sent from the content script because the attempt stack lives there: the
+       * worker is torn down between requests and cannot hold state of its own.
+       */
+      previous?: string[];
+      /** Language the user typed in the popover. Wins over everything else. */
+      language?: string;
+      /** Language detected from the comment text, used when nothing is pinned. */
+      detectedLanguage?: string;
+    }
   | { type: 'cancel' };
 
 /** Background → content script, over the generate port. */

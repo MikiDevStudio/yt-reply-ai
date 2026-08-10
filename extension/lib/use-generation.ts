@@ -2,11 +2,18 @@ import type { Browser } from '#imports';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import {
   GENERATE_PORT,
+  type GenerateClientMessage,
   type GenerateServerMessage,
   type GenerationContext,
 } from '@/lib/messaging';
 import type { OpenRouterErrorKind } from '@/lib/openrouter/errors';
 import type { TokenUsage } from '@/lib/openrouter/types';
+
+/** Everything a `start` message carries besides the comment itself. */
+export type GenerateOptions = Omit<
+  Extract<GenerateClientMessage, { type: 'start' }>,
+  'type' | 'context'
+>;
 
 export type GenerationState =
   | { status: 'idle' }
@@ -41,7 +48,7 @@ export function useGeneration() {
   }, []);
 
   const generate = useCallback(
-    (context: GenerationContext, style?: string) => {
+    (context: GenerationContext, options: GenerateOptions = {}) => {
       // Starting again while a request is in flight abandons the old one.
       disconnect();
       setState({ status: 'streaming', text: '' });
@@ -94,7 +101,7 @@ export function useGeneration() {
         );
       });
 
-      port.postMessage({ type: 'start', context, style });
+      port.postMessage({ type: 'start', context, ...options });
     },
     [disconnect],
   );

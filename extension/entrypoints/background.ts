@@ -10,8 +10,9 @@ import {
 import { connectWithOAuth } from '@/lib/openrouter/auth';
 import { fetchKeyInfo, fetchModels, streamCompletion } from '@/lib/openrouter/client';
 import { OpenRouterError } from '@/lib/openrouter/errors';
-import { buildReplyPrompt, buildSoulPrompt } from '@/lib/prompt';
+import { angleFor, buildReplyPrompt, buildSoulPrompt, creativityPreset } from '@/lib/prompt';
 import * as settings from '@/lib/settings';
+import type { SoulProfile } from '@/lib/soul';
 import { recallDescription, rememberDescription } from '@/lib/video-cache';
 
 /**
@@ -58,12 +59,14 @@ async function generate(
 ) {
   // Read state on every invocation. The worker is restarted freely, so nothing
   // may be cached in module scope.
-  const [key, model, soul, savedStyle, savedLevel] = await Promise.all([
+  const [key, model, soul, profile, savedStyle, savedLevel, savedCreativity] = await Promise.all([
     settings.apiKey.getValue(),
     settings.model.getValue(),
     settings.soul.getValue(),
+    settings.soulProfile.getValue(),
     settings.style.getValue(),
     settings.contextLevel.getValue(),
+    settings.creativity.getValue(),
   ]);
 
   if (!key) {
@@ -76,12 +79,24 @@ async function generate(
   }
 
   const level = request.contextLevel ?? savedLevel;
+  const attempt = Math.max(1, request.attempt ?? 1);
+
+  // Every retry is a statement that the previous answer missed, so each one gets
+  // a step more room than the last. The stored level is left where the user put
+  // it — the bump belongs to this attempt, not to the setting.
+  const preset = creativityPreset((request.creativity ?? savedCreativity) + attempt - 1);
+  const { language, isGuess } = resolveLanguage(request, profile);
 
   const messages = buildReplyPrompt({
     context: level >= 2 ? await withCachedDescription(request.context) : request.context,
     soul,
     style: request.style ?? savedStyle,
     level,
+    creativity: preset.level,
+    angle: angleFor(attempt),
+    previous: request.previous,
+    language,
+    languageIsGuess: isGuess,
   });
 
   try {
@@ -92,7 +107,11 @@ async function generate(
       model,
       messages,
       signal,
-      reasoningEffort: 'minimal',
+      temperature: preset.temperature,
+      // `minimal` keeps the first reply fast and cheap. From the second attempt
+      // the obvious answer has already been rejected, and finding a different
+      // one is exactly the work thinking pays for.
+      reasoningEffort: attempt === 1 ? 'minimal' : 'low',
     });
 
     let next = await stream.next();
@@ -122,6 +141,31 @@ async function generate(
       retryAfterSeconds: failure.retryAfterSeconds,
     });
   }
+}
+
+/**
+ * Decide which language the reply is written in.
+ *
+ * Precedence, strongest first: what the user typed in the popover, the language
+ * pinned in the soul profile, then what was detected from the comment itself.
+ *
+ * The last case is marked as a guess when the profile was written by hand
+ * (`soulProfile` is `null`), because a hand-written profile can pin a language in
+ * prose that we cannot read. Detection then becomes a suggestion the profile may
+ * override rather than an order that silently beats it.
+ */
+function resolveLanguage(
+  request: Extract<GenerateClientMessage, { type: 'start' }>,
+  profile: SoulProfile | null,
+): { language?: string; isGuess: boolean } {
+  const typed = request.language?.trim();
+  if (typed) return { language: typed, isGuess: false };
+  if (profile?.language) return { language: profile.language, isGuess: false };
+
+  const detected = request.detectedLanguage?.trim();
+  if (!detected) return { isGuess: false };
+
+  return { language: detected, isGuess: profile === null };
 }
 
 /**

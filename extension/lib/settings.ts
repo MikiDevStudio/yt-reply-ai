@@ -79,6 +79,22 @@ export const style = storage.defineItem<string>('local:generation.style', {
 });
 
 /**
+ * How far the model may stray, 1–5. See `CREATIVITY` in `lib/prompt.ts`.
+ *
+ * Three by default: the middle of the table is where a reply sounds written
+ * rather than either generated or unhinged. Set from the popover and kept
+ * globally — someone who likes their replies bold likes them bold on the next
+ * comment too, and re-picking under every comment is the kind of friction this
+ * control exists to remove.
+ *
+ * Each regeneration raises the level a step for that attempt only, which is why
+ * this value never moves on its own.
+ */
+export const creativity = storage.defineItem<number>('local:generation.creativity', {
+  fallback: 3,
+});
+
+/**
  * Whether opening the popover starts a generation on its own.
  *
  * On by default: clicking the button is already a statement of intent, and a

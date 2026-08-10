@@ -39,6 +39,8 @@ const COMMENT_TIME = '.published-time-text a';
 export const INJECTED_ATTR = 'data-reply-ai-mounted';
 
 export interface CommentData {
+  /** Stable per comment, used to key generated attempts. See `commentKey`. */
+  id: string;
   /** Visible text of the comment being replied to. */
   text: string;
   /** Channel handle, e.g. `@someone`. Empty string if it could not be read. */
@@ -86,7 +88,33 @@ export function readComment(toolbar: HTMLElement): CommentData | null {
   const isReply = Boolean(host.closest(REPLIES_RENDERER));
   const parent = isReply ? readThreadComment(host) : null;
 
-  return { text, author, isReply, ...(parent ? { parent } : {}) };
+  return { id: commentKey(author, text), text, author, isReply, ...(parent ? { parent } : {}) };
+}
+
+/**
+ * A key for one comment, derived from its content.
+ *
+ * Not the element: YouTube recycles comment nodes as you scroll, so a node
+ * identity outlives nothing. Not an id attribute either — the rendered markup
+ * carries none we can rely on across their A/B variants, and a key that is
+ * sometimes absent is worse than a key that is always derived.
+ *
+ * Author plus text is unique enough for what it guards: a stack of generated
+ * replies inside a single tab. Two identical comments by the same person sharing
+ * one stack is not a failure worth extra machinery.
+ */
+function commentKey(author: string, text: string): string {
+  const source = `${author}\n${text}`;
+
+  // FNV-1a. Short, stable, and no crypto import for something that only has to
+  // avoid collisions inside one page.
+  let hash = 0x811c9dc5;
+  for (let index = 0; index < source.length; index += 1) {
+    hash ^= source.charCodeAt(index);
+    hash = Math.imul(hash, 0x01000193);
+  }
+
+  return (hash >>> 0).toString(36);
 }
 
 /**

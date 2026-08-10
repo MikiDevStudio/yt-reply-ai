@@ -82,6 +82,13 @@ Context is tiered and user-controlled:
 | L1 | + video title, channel, parent comment | ~500 tokens |
 | L2 | + video description / summary | first call only |
 
+A retry is not free. The first attempt runs with reasoning held to `minimal`; every
+attempt after it gets `low`, because pressing the button again says the obvious answer
+missed and finding a different one is the work thinking pays for. Measured on
+`gemini-3.6-flash`: $0.0005 for the first reply, ~$0.0055 for each retry. Holding every
+attempt at `minimal` costs ~$0.0008 and still varies — the angle deck does most of that
+work — but the replies are noticeably flatter.
+
 The video-level context is fetched once per `videoId`, cached in `storage.session`, and
 reused across every comment on that video. With OpenRouter's prompt-caching pass-through
 the shared prefix is billed at 0.1–0.25× on repeat calls. Note the provider minimum of

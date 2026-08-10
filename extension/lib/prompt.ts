@@ -15,6 +15,85 @@ export const STYLES: Record<string, string> = {
 };
 
 /**
+ * How far the model may stray, as five presets of our own.
+ *
+ * Each level carries both an instruction and the temperature that goes with it,
+ * because neither works alone. Telling a model to be bolder does not change its
+ * sampling distribution — it still reaches for the most probable opening words —
+ * and raising the temperature without saying what to do with the room produces
+ * noise rather than wit. The pairing is what the earlier prototype got right:
+ * every template there had its own prompt *and* its own temperature.
+ *
+ * The table is ours rather than a raw parameter exposed to the user, so a level
+ * can be retuned without anyone relearning what "0.9" meant.
+ */
+export const CREATIVITY = [
+  {
+    level: 1,
+    label: 'Plain',
+    instruction: 'Answer plainly. The obvious, expected reply is the right one.',
+    temperature: 0.4,
+  },
+  {
+    level: 2,
+    label: 'Grounded',
+    instruction: 'Stay close to the point. A small personal detail is welcome.',
+    temperature: 0.7,
+  },
+  {
+    level: 3,
+    label: 'Natural',
+    instruction: 'Say it in your own words, not the expected phrasing.',
+    temperature: 0.9,
+  },
+  {
+    level: 4,
+    label: 'Inventive',
+    instruction: 'Find an angle the commenter did not expect. Avoid the obvious opener.',
+    temperature: 1.1,
+  },
+  {
+    level: 5,
+    label: 'Bold',
+    instruction: 'Be bold: a joke, a sharp turn, an unexpected detail. Never generic.',
+    temperature: 1.3,
+  },
+] as const;
+
+export type CreativityLevel = (typeof CREATIVITY)[number];
+
+/** Clamp to the table, since the level is raised per attempt and can run off the end. */
+export function creativityPreset(level: number): CreativityLevel {
+  const index = Math.min(Math.max(Math.round(level), 1), CREATIVITY.length) - 1;
+  // The clamp makes the lookup safe; the fallback is what convinces the compiler,
+  // which cannot see that, and lands on the middle of the table if it is ever wrong.
+  return CREATIVITY[index] ?? CREATIVITY[2];
+}
+
+/**
+ * A different route through the same comment, one per attempt.
+ *
+ * Temperature widens the spread around one answer; it does not make the model
+ * take a different approach. Handing each attempt an explicit move is what makes
+ * the second try a genuine alternative rather than the first one reworded.
+ *
+ * `direct` is first because for most comments the straight answer really is the
+ * best one — the deck exists for when it is not.
+ */
+export const ANGLES = [
+  'Answer straight. No detour.',
+  'Bring in a detail from behind the scenes — how it was made, what it cost, what nearly went wrong.',
+  'Turn it around: answer, then ask them something specific that is worth answering.',
+  'Find the humour in it. A joke that lands, not a joke that tries.',
+  'Take the less obvious side of it, politely. Say the thing the commenter did not expect to hear.',
+] as const;
+
+/** Cycle the deck, so a fourth press does not repeat the third. */
+export function angleFor(attempt: number): string {
+  return ANGLES[(Math.max(1, attempt) - 1) % ANGLES.length] ?? ANGLES[0];
+}
+
+/**
  * Rewrite a soul profile, or turn a persona written elsewhere into one.
  *
  * The model is told to keep facts and voice and to cut everything else: the
@@ -62,6 +141,21 @@ interface BuildOptions {
   soul: string;
   style: string;
   level: ContextLevel;
+  /** 1–5, already raised for this attempt. */
+  creativity: number;
+  /** The move this attempt was handed. See `angleFor`. */
+  angle?: string;
+  /** Replies already offered for this comment, oldest first. */
+  previous?: string[];
+  /** The language to write in, named outright. Empty means follow the comment. */
+  language?: string;
+  /**
+   * True when `language` was detected rather than chosen, and the profile was
+   * written by hand so we cannot tell whether it pins one. The instruction is
+   * then qualified instead of absolute — a profile saying "always answer in
+   * English" must still win over what the commenter happened to type.
+   */
+  languageIsGuess?: boolean;
 }
 
 /**
@@ -72,14 +166,20 @@ interface BuildOptions {
  * prefix that prompt caching can reuse (#8). The comment itself, which changes
  * every time, goes last.
  */
-export function buildReplyPrompt({ context, soul, style, level }: BuildOptions): ChatMessage[] {
+export function buildReplyPrompt({
+  context,
+  soul,
+  style,
+  level,
+  creativity,
+  angle,
+  previous,
+  language,
+  languageIsGuess,
+}: BuildOptions): ChatMessage[] {
   const system = [
     'You write replies to YouTube comments on behalf of the channel owner.',
-    // Qualified because a soul profile may pin a language instead. Without the
-    // clause the two instructions contradict each other outright.
-    'Reply in the same language as the comment, unless the rules below say otherwise.',
     'Write only the reply text. No greetings block, no signature, no quotes around it.',
-    'Keep it to one to three sentences unless the comment clearly needs more.',
   ];
 
   if (soul.trim()) {
@@ -88,6 +188,7 @@ export function buildReplyPrompt({ context, soul, style, level }: BuildOptions):
 
   const styleHint = STYLES[style] ?? STYLES.auto;
   system.push('', `Tone for this reply: ${styleHint}`);
+  system.push(`How far to stray: ${creativityPreset(creativity).instruction}`);
 
   // L1 and above add video context. It is constant per video, so it belongs in
   // the cacheable prefix rather than in the user turn.
@@ -105,6 +206,28 @@ export function buildReplyPrompt({ context, soul, style, level }: BuildOptions):
     if (level >= 2 && context.video.description) {
       system.push('', 'Video description:', context.video.description);
     }
+  }
+
+  // Language goes last, on purpose.
+  //
+  // It used to be the first line of the system prompt, with an English video
+  // title and description sitting between it and the comment — and the model
+  // followed whatever was nearest, answering a Russian comment in English. The
+  // rule now sits closer to the comment than the metadata does, and names the
+  // language outright rather than leaving it to be inferred.
+  system.push(
+    '',
+    language
+      ? languageIsGuess
+        ? `Write the reply in ${language}, unless the rules above pin a different language.`
+        : `Write the reply in ${language}.`
+      : 'Write the reply in the same language the comment was written in.',
+  );
+
+  if (level >= 1 && context.video) {
+    system.push(
+      'The video title and description may be in another language. That must not change the language of the reply.',
+    );
   }
 
   const user = [
@@ -131,6 +254,22 @@ export function buildReplyPrompt({ context, soul, style, level }: BuildOptions):
     context.commentAuthor ? `${context.commentAuthor} wrote:` : 'The commenter wrote:',
     context.commentText,
   );
+
+  // The angle and the rejected attempts live in the user turn rather than the
+  // system prompt: both change on every press, and the system prompt is the part
+  // prompt caching reuses. Putting them here also makes them the last thing the
+  // model reads before answering, which is where an instruction carries most.
+  if (angle) {
+    user.push('', `Approach for this reply: ${angle}`);
+  }
+
+  if (previous && previous.length > 0) {
+    user.push(
+      '',
+      'Already offered and turned down. Do not repeat the move or the opening words:',
+      ...previous.map((text, index) => `${index + 1}. ${text}`),
+    );
+  }
 
   return [
     { role: 'system', content: system.join('\n') },

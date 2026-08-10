@@ -21,6 +21,8 @@ interface PopoverHost {
 interface OpenOptions {
   ctx: ContentScriptContext;
   anchor: HTMLElement;
+  /** Keys the attempt stack this comment already has, if any. */
+  commentId: string;
   context: GenerationContext;
   /** Start generating on open, or wait for the user to press Generate. */
   autoStart: boolean;
@@ -30,6 +32,7 @@ interface OpenOptions {
 export async function openPopover({
   ctx,
   anchor,
+  commentId,
   context,
   autoStart,
   onInsert,
@@ -49,10 +52,11 @@ export async function openPopover({
 
   container.style.display = 'block';
   root.render(
-    // Keying on the comment forces a fresh generation when a different comment
-    // is opened while the popover is already up.
+    // Keying on the comment remounts when a different comment is opened while
+    // the popover is already up, so state never leaks between comments.
     <ReplyPopover
-      key={context.commentText.slice(0, 64) + context.commentAuthor}
+      key={commentId}
+      commentId={commentId}
       context={context}
       autoStart={autoStart}
       onInsert={(text) => {

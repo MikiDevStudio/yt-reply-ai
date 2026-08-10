@@ -5,6 +5,7 @@ import type { GenerationContext } from '@/lib/messaging';
 import { autoGenerate, contextLevel, enabled } from '@/lib/settings';
 import { closePopover, openPopover } from './popover';
 import { ReplyButton } from './ReplyButton';
+import { clearHistory } from './session';
 import { syncTheme } from './theme';
 import {
   COMMENTS_CONTAINER,
@@ -163,9 +164,15 @@ async function handleOpen(ctx: ContentScriptContext, toolbar: HTMLElement, ancho
   void openPopover({
     ctx,
     anchor,
+    commentId: comment.id,
     context,
     autoStart,
-    onInsert: (text) => void insertGeneratedReply(toolbar, text),
+    onInsert: (text) => {
+      // The choice is made, so the attempts that lost are no longer interesting.
+      // Reopening this comment later is a new question.
+      clearHistory(comment.id);
+      void insertGeneratedReply(toolbar, text);
+    },
   });
 }
 
