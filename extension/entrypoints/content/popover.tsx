@@ -13,6 +13,16 @@ import { syncTheme } from './theme';
  */
 let host: PopoverHost | null = null;
 
+/**
+ * Everything the current opening attached to the window: the scroll and resize
+ * listeners, and the observer watching the card's size.
+ *
+ * Held at module level because closing does not always go through the popover
+ * itself — the master switch tears the injected UI down from elsewhere, and
+ * listeners left behind would keep repositioning a card that is no longer there.
+ */
+let detach: (() => void) | null = null;
+
 interface PopoverHost {
   container: HTMLElement;
   root: ReactDOM.Root;
@@ -39,18 +49,41 @@ export async function openPopover({
 }: OpenOptions): Promise<void> {
   const { container, root } = await ensureHost(ctx);
 
-  position(container, anchor);
+  // A fresh opening picks its side again; while it stays open, it keeps it.
+  side = null;
+
+  // Opening one comment while another is up replaces it, listeners and all.
+  detach?.();
+
   const reposition = () => position(container, anchor);
   window.addEventListener('scroll', reposition, { passive: true, capture: true });
   window.addEventListener('resize', reposition, { passive: true });
 
-  const close = () => {
+  // Placement waits on this rather than on a frame callback. React commits when
+  // it is ready, which may be after the next frame — measuring on a timer we
+  // picked would sometimes measure an empty box. The observer fires exactly when
+  // there is something to measure, and again whenever the card changes size: it
+  // grows as the reply streams in and as the note field is typed into.
+  const observer = new ResizeObserver(() => {
+    reposition();
+    // Revealed only once it has been placed, so it is never drawn in the wrong
+    // spot and then moved.
+    if (container.firstElementChild) container.style.visibility = 'visible';
+  });
+
+  detach = () => {
     window.removeEventListener('scroll', reposition, { capture: true });
     window.removeEventListener('resize', reposition);
-    closePopover();
+    observer.disconnect();
+    detach = null;
   };
 
+  const close = () => closePopover();
+
   container.style.display = 'block';
+  // Nothing has been rendered yet, so there is nothing to measure and nowhere
+  // correct to put it. Hidden until the first frame says how big it is.
+  container.style.visibility = 'hidden';
   root.render(
     // Keying on the comment remounts when a different comment is opened while
     // the popover is already up, so state never leaks between comments.
@@ -66,9 +99,18 @@ export async function openPopover({
       onClose={close}
     />,
   );
+
+  // The container is `position: fixed` with no width of its own, so its box is
+  // the card's box — one observer covers both the first placement and every
+  // resize after it.
+  observer.observe(container);
 }
 
 export function closePopover(): void {
+  // Runs whoever closed it — the button, Escape, Insert, or the master switch
+  // turning the whole injected UI off.
+  detach?.();
+
   if (!host) return;
   host.root.render(null);
   host.container.style.display = 'none';
@@ -108,23 +150,47 @@ async function ensureHost(ctx: ContentScriptContext): Promise<PopoverHost> {
   return host;
 }
 
+const MARGIN = 8;
+
 /**
- * Place the popover under its trigger, kept inside the viewport.
+ * Which side of the button this opening chose.
  *
- * Flips above the button when there is no room below, which is the common case
- * for comments near the bottom of a long thread.
+ * Decided once and then held. It used to be recomputed on every scroll event,
+ * from a card whose height changes as the reply streams in — so the popover
+ * flipped from under the button to over it and back while the page moved under
+ * it, which reads as the thing jumping around by itself.
+ */
+let side: 'below' | 'above' | null = null;
+
+/**
+ * Place the popover against its trigger, kept whole and inside the viewport.
+ *
+ * The side is chosen on the first call after opening; every call after that
+ * only slides the card to keep it on screen. Sliding rather than flipping is
+ * the point: a flip moves the card past the pointer that is aiming at it.
  */
 function position(container: HTMLElement, anchor: HTMLElement): void {
+  const card = container.firstElementChild?.getBoundingClientRect();
+  if (!card) return;
+
   const rect = anchor.getBoundingClientRect();
-  const width = container.firstElementChild?.getBoundingClientRect().width ?? 420;
-  const height = container.firstElementChild?.getBoundingClientRect().height ?? 320;
-  const margin = 8;
 
-  const spaceBelow = window.innerHeight - rect.bottom;
-  const top = spaceBelow < height + margin ? rect.top - height - margin : rect.bottom + margin;
+  if (side === null) {
+    const below = window.innerHeight - rect.bottom - MARGIN;
+    const above = rect.top - MARGIN;
+    // Below unless it does not fit and above fits better. Ties go below, which
+    // is where a menu opened by a button is expected to be.
+    side = card.height <= below || below >= above ? 'below' : 'above';
+  }
 
-  const left = Math.min(Math.max(margin, rect.left), window.innerWidth - width - margin);
+  const top = side === 'below' ? rect.bottom + MARGIN : rect.top - card.height - MARGIN;
 
-  container.style.top = `${Math.max(margin, top)}px`;
-  container.style.left = `${left}px`;
+  // Clamp last, so a card that would hang off either edge slides back into the
+  // viewport instead of being cut off. `maxTop` is floored at the margin for the
+  // card taller than the window: showing its top beats showing neither end.
+  const maxTop = Math.max(MARGIN, window.innerHeight - card.height - MARGIN);
+  const maxLeft = Math.max(MARGIN, window.innerWidth - card.width - MARGIN);
+
+  container.style.top = `${Math.min(Math.max(MARGIN, top), maxTop)}px`;
+  container.style.left = `${Math.min(Math.max(MARGIN, rect.left), maxLeft)}px`;
 }
