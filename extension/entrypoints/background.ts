@@ -53,61 +53,80 @@ function handleConnect(port: Browser.runtime.Port) {
   });
 }
 
+/**
+ * How often to send a sign of life while a generation is running.
+ *
+ * Chrome stops an idle service worker after 30 seconds, and a reasoning model
+ * can spend longer than that thinking before it emits its first visible token —
+ * from the outside the worker looks idle the whole time. Traffic on the port is
+ * activity, so a tick well inside the window keeps the worker alive; without it
+ * the popover was told the extension had stopped responding while the answer
+ * was still being written.
+ */
+const KEEPALIVE_MS = 15_000;
+
 async function generate(
   port: Browser.runtime.Port,
   request: Extract<GenerateClientMessage, { type: 'start' }>,
   signal: AbortSignal,
 ) {
-  // Read state on every invocation. The worker is restarted freely, so nothing
-  // may be cached in module scope.
-  const [key, model, soul, profile, savedStyle, savedLevel, savedCreativity, savedAudience] =
-    await Promise.all([
-      settings.apiKey.getValue(),
-      settings.model.getValue(),
-      settings.soul.getValue(),
-      settings.soulProfile.getValue(),
-      settings.style.getValue(),
-      settings.contextLevel.getValue(),
-      settings.creativity.getValue(),
-      settings.replyAs.getValue(),
-    ]);
-
-  if (!key) {
-    post(port, {
-      type: 'error',
-      kind: 'unauthorized',
-      message: 'No OpenRouter key is stored',
-      // Never connected, as opposed to a key OpenRouter has since rejected.
-      // The two need different words, and only this side can tell them apart.
-      hadKey: false,
-    });
-    return;
-  }
-
-  const level = request.contextLevel ?? savedLevel;
-  const attempt = Math.max(1, request.attempt ?? 1);
-
-  // Every retry is a statement that the previous answer missed, so each one gets
-  // a step more room than the last. The stored level is left where the user put
-  // it — the bump belongs to this attempt, not to the setting.
-  const preset = creativityPreset((request.creativity ?? savedCreativity) + attempt - 1);
-  const { language, isGuess } = resolveLanguage(request, profile);
-
-  const messages = buildReplyPrompt({
-    context: level >= 2 ? await withCachedDescription(request.context) : request.context,
-    soul,
-    style: request.style ?? savedStyle,
-    level,
-    audience: request.audience ?? savedAudience,
-    note: request.note,
-    creativity: preset.level,
-    angle: angleFor(attempt),
-    previous: request.previous,
-    language,
-    languageIsGuess: isGuess,
-  });
+  const keepalive = setInterval(() => post(port, { type: 'thinking' }), KEEPALIVE_MS);
+  // Read in the try below, reported in the catch: which model failed decides
+  // what the rate-limit message is allowed to claim.
+  let model: string | undefined;
 
   try {
+    // Read state on every invocation. The worker is restarted freely, so nothing
+    // may be cached in module scope.
+    const [key, chosen, soul, profile, savedStyle, savedLevel, savedCreativity, savedAudience] =
+      await Promise.all([
+        settings.apiKey.getValue(),
+        settings.model.getValue(),
+        settings.soul.getValue(),
+        settings.soulProfile.getValue(),
+        settings.style.getValue(),
+        settings.contextLevel.getValue(),
+        settings.creativity.getValue(),
+        settings.replyAs.getValue(),
+      ]);
+
+    model = chosen;
+
+    if (!key) {
+      post(port, {
+        type: 'error',
+        kind: 'unauthorized',
+        message: 'No OpenRouter key is stored',
+        // Never connected, as opposed to a key OpenRouter has since rejected.
+        // The two need different words, and only this side can tell them apart.
+        hadKey: false,
+      });
+      return;
+    }
+
+    const level = request.contextLevel ?? savedLevel;
+    const attempt = Math.max(1, request.attempt ?? 1);
+
+    // Every retry is a statement that the previous answer missed, so each one
+    // gets a step more room than the last. The stored level is left where the
+    // user put it — the bump belongs to this attempt, not to the setting.
+    const preset = creativityPreset((request.creativity ?? savedCreativity) + attempt - 1);
+    const { language, isGuess } = resolveLanguage(request, profile);
+
+    const messages = buildReplyPrompt({
+      context: level >= 2 ? await withCachedDescription(request.context) : request.context,
+      soul,
+      style: request.style ?? savedStyle,
+      level,
+      audience: request.audience ?? savedAudience,
+      note: request.note,
+      creativity: preset.level,
+      angle: angleFor(attempt),
+      previous: request.previous,
+      language,
+      languageIsGuess: isGuess,
+    });
+
     // No token cap: see CompletionOptions.maxTokens. The reply length is set by
     // the prompt and the soul profile, not by cutting the model off mid-word.
     const stream = streamCompletion({
@@ -116,10 +135,14 @@ async function generate(
       messages,
       signal,
       temperature: preset.temperature,
-      // `minimal` keeps the first reply fast and cheap. From the second attempt
-      // the obvious answer has already been rejected, and finding a different
-      // one is exactly the work thinking pays for.
-      reasoningEffort: attempt === 1 ? 'minimal' : 'low',
+      // The first reply is the one that decides whether any of this is worth
+      // using, so it gets room to think rather than the cheapest setting that
+      // works. `minimal` used to be first, on the argument that speed matters
+      // most; it does not — a fast reply that misses the comment is a reason to
+      // uninstall, and the person who sees it will not press regenerate to find
+      // out whether the second one is better. Retries step up again, because by
+      // then the obvious answer has already been turned down.
+      reasoningEffort: attempt === 1 ? 'low' : 'medium',
     });
 
     let next = await stream.next();
@@ -141,7 +164,15 @@ async function generate(
     // already gone by this point anyway.
     if (asOpenRouterError(error).kind === 'aborted') return;
 
+    // Everything is inside the try, including reading settings and building the
+    // prompt. It used to start above it, so a failure there threw into nothing:
+    // no message was ever sent, the popover sat on its spinner until Chrome
+    // retired the worker, and the user was told the extension had stopped
+    // responding — for what was really a bug on this side.
+    console.warn('[reply-ai] generate failed', error);
     post(port, { type: 'error', ...(await describeFor(error, model)) });
+  } finally {
+    clearInterval(keepalive);
   }
 }
 

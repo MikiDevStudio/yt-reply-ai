@@ -54,6 +54,10 @@ export function useGeneration() {
 
       port.onMessage.addListener((message: GenerateServerMessage) => {
         switch (message.type) {
+          // Nothing to do with it: receiving it is the point. See the note on
+          // the message type.
+          case 'thinking':
+            break;
           case 'delta':
             setState((current) =>
               current.status === 'streaming'

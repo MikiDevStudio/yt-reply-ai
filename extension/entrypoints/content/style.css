@@ -10,3 +10,10 @@
 @import '../../assets/theme.css';
 
 @source '.';
+/*
+ * Components shared with the other entrypoints. Every stylesheet that renders
+ * one has to scan it: with source detection off, a class nobody scans is a
+ * class nobody emits, and the failure card rendered as unstyled text — two
+ * sentences running into each other and a button outside the box.
+ */
+@source '../../components';

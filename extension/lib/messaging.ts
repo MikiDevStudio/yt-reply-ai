@@ -99,6 +99,14 @@ export interface FailurePayload {
 /** Background → content script, over the generate port. */
 export type GenerateServerMessage =
   | { type: 'delta'; text: string }
+  /**
+   * Still working, nothing to show yet.
+   *
+   * Carries no data: the message exists so that traffic crosses the port while
+   * a model is thinking, which is what stops Chrome from retiring the service
+   * worker mid-answer. See `KEEPALIVE_MS` in the background.
+   */
+  | { type: 'thinking' }
   /** `truncated` when the model stopped because it ran out of room, not because it finished. */
   | { type: 'done'; text: string; usage?: TokenUsage; truncated?: boolean }
   | ({ type: 'error' } & FailurePayload);

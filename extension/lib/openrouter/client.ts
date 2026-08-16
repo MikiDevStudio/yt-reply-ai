@@ -38,10 +38,14 @@ export interface CompletionOptions {
   maxTokens?: number;
   temperature?: number;
   /**
-   * How hard the model may think before answering. `minimal` is the right
-   * setting for a comment reply and the difference is not subtle: on
-   * gemini-3.6-flash the same reply went from 536 tokens and $0.0041 to 33
-   * tokens and $0.0003, and from 4.7s to 1.7s.
+   * How hard the model may think before answering.
+   *
+   * The setting is worth real money and real seconds: on gemini-3.6-flash the
+   * same reply came to 536 tokens, $0.0041 and 4.7s with reasoning left alone,
+   * against 33 tokens, $0.0003 and 1.7s at `minimal`. That measurement once
+   * argued for `minimal` everywhere; it no longer decides the matter, because
+   * the reply people judge the product on is the first one they see. What the
+   * caller picks is in `background.ts`.
    *
    * Not every model accepts it, so the request retries without it once if the
    * API rejects the parameter.

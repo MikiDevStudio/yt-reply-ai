@@ -82,7 +82,12 @@ export function creativityPreset(level: number): CreativityLevel {
  */
 export const ANGLES = [
   'Answer straight. No detour.',
-  'Bring in a detail from behind the scenes — how it was made, what it cost, what nearly went wrong.',
+  // This one used to ask for a detail from behind the scenes — how it was made,
+  // what nearly went wrong. A model with no such detail available does not
+  // decline: it makes one up, and every second attempt on one video came back
+  // with the same invented story about a render that nearly caught fire. The
+  // move is still worth having, but only over material that exists.
+  'Pick out something concrete the video or the voice profile above actually states, and answer through that. If they state nothing usable, answer straight instead.',
   'Turn it around: answer, then ask them something specific that is worth answering.',
   'Find the humour in it. A joke that lands, not a joke that tries.',
   'Take the less obvious side of it, politely. Say the thing the commenter did not expect to hear.',
@@ -200,6 +205,14 @@ export function buildReplyPrompt({
           'You write replies to YouTube comments on behalf of the channel owner.',
           'Write only the reply text. No greetings block, no signature, no quotes around it.',
         ];
+
+  // The reply is posted under someone's own name, so an invented fact is not a
+  // stylistic slip — it is the user telling their audience something untrue
+  // about their own work. Weaker models reach for a plausible anecdote whenever
+  // they are short of material, which is exactly when they have none.
+  system.push(
+    'Never state anything about the video, the channel or how it was made that is not written below. If you do not know a detail, leave it out — do not invent it, and do not imply it.',
+  );
 
   if (soul.trim()) {
     system.push('', 'Voice and rules to follow:', soul.trim());

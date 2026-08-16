@@ -3,3 +3,5 @@
 @import '../../assets/theme.css';
 
 @source '.';
+/* Shared components, scanned here too. See content/style.css. */
+@source '../../components';

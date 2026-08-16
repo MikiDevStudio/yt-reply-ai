@@ -62,67 +62,65 @@ export function FailureNotice({ facts, onRetry, at, className = '' }: FailureNot
   }
 
   return (
-    // The stack lives in an inner div rather than on the alert itself: daisyUI
-    // makes `.alert` a grid, `flex-col` only sets a direction, and the two lines
-    // ran together into "…rejected the keyIt was revoked…".
-    <div role="alert" className={`alert alert-error alert-soft text-sm ${className}`}>
-      <div className="flex flex-col items-start gap-2 text-left">
-        <span className="font-medium">{failure.title}</span>
+    // Built from utilities rather than daisyUI's `.alert`, which is a grid with
+    // `grid-auto-flow: column` and an auto-sized track: it laid the title and
+    // the explanation out as columns — "…rejected the keyIt was revoked…" — and
+    // grew past the 420px popover until the button hung off the edge. A card
+    // this shape is three utilities; fighting the component was more.
+    <div
+      role="alert"
+      className={`flex w-full min-w-0 flex-col items-start gap-2 rounded-box border border-error/25 bg-error/10 p-3 text-left text-sm ${className}`}
+    >
+      <span className="font-medium text-error">{failure.title}</span>
 
-        {failure.detail && <span className="opacity-80">{failure.detail}</span>}
+      {failure.detail && (
+        <span className="text-base-content/80">{failure.detail}</span>
+      )}
 
-        {/* OpenRouter's own words, kept quiet: useful when reporting a problem,
-            never the first thing to read. */}
-        {failure.raw && <span className="text-xs opacity-60">{failure.raw}</span>}
+      {/* OpenRouter's own words, kept quiet: useful when reporting a problem,
+          never the first thing to read. `break-words` because a provider can
+          answer with an unbroken URL or a stack of ids. */}
+      {failure.raw && (
+        <span className="break-words text-xs text-base-content/50">{failure.raw}</span>
+      )}
 
-        {actions.length > 0 && (
-          <div className="flex flex-wrap gap-2">
-            {actions.map((action) => {
-              if (action.kind === 'retry') {
-                return onRetry ? (
-                  <button
-                    key="retry"
-                    type="button"
-                    className="btn btn-sm text-sm"
-                    onClick={onRetry}
-                  >
-                    {action.label}
-                  </button>
-                ) : null;
-              }
+      {actions.length > 0 && (
+        <div className="flex flex-wrap gap-2">
+          {actions.map((action) => {
+            if (action.kind === 'retry') {
+              return onRetry ? (
+                <button key="retry" type="button" className="btn btn-sm text-sm" onClick={onRetry}>
+                  {action.label}
+                </button>
+              ) : null;
+            }
 
-              if (action.kind === 'free-model') {
-                return (
-                  <button
-                    key="free-model"
-                    type="button"
-                    className="btn btn-sm text-sm"
-                    onClick={() => void useFreeModel()}
-                  >
-                    {action.label}
-                  </button>
-                );
-              }
-
-              const open =
-                action.kind === 'options'
-                  ? () => openOptions(action.section)
-                  : () => void sendRequest({ type: 'ui:openUrl', url: action.url });
-
+            if (action.kind === 'free-model') {
               return (
                 <button
-                  key={action.label}
+                  key="free-model"
                   type="button"
                   className="btn btn-sm text-sm"
-                  onClick={open}
+                  onClick={() => void useFreeModel()}
                 >
                   {action.label}
                 </button>
               );
-            })}
-          </div>
-        )}
-      </div>
+            }
+
+            const open =
+              action.kind === 'options'
+                ? () => openOptions(action.section)
+                : () => void sendRequest({ type: 'ui:openUrl', url: action.url });
+
+            return (
+              <button key={action.label} type="button" className="btn btn-sm text-sm" onClick={open}>
+                {action.label}
+              </button>
+            );
+          })}
+        </div>
+      )}
     </div>
   );
 }
