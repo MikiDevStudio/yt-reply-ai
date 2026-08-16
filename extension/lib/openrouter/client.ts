@@ -29,11 +29,16 @@ export interface CompletionOptions {
   model: string;
   messages: ChatMessage[];
   /**
-   * Left unset for replies. A cap counts *thinking* tokens too, so on a
-   * reasoning model it truncates the answer mid-word long before the answer is
-   * long — measured: 396 completion tokens, 380 of them reasoning, 62
-   * characters of visible text. The prompt asks for one to three sentences;
-   * that is the real limit, and it costs nothing when it is respected.
+   * The ceiling on everything the model produces, thinking included — that is
+   * what makes it worth setting, since reasoning tokens are billed as output
+   * and are otherwise unbounded.
+   *
+   * It has to be set generously rather than tightly. A cap counts thinking
+   * first, so a low one truncates the answer mid-word long before the answer is
+   * long: measured at 396 completion tokens, 380 of them reasoning, and 62
+   * characters of visible text. The prompt asks for one to three sentences, and
+   * that is what decides the length in the normal case; this only catches the
+   * run that has stopped being normal. Callers set it — see `background.ts`.
    */
   maxTokens?: number;
   temperature?: number;

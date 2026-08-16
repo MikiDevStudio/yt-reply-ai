@@ -17,6 +17,7 @@ import { describeFailure, type FailureKind } from '../lib/failure';
 import { fetchKeyInfo, fetchModels, isDegenerate, streamCompletion } from '../lib/openrouter/client';
 import { OpenRouterError, secondsUntilRetry } from '../lib/openrouter/errors';
 import { MODEL_PRESETS } from '../lib/models';
+import { angleFor, buildReplyPrompt } from '../lib/prompt';
 
 const root = join(dirname(fileURLToPath(import.meta.url)), '..', '..');
 
@@ -227,6 +228,35 @@ check(
 check(
   'a reset already past is dropped rather than shown as a negative wait',
   secondsUntilRetry(new Headers({ 'x-ratelimit-reset': String(Date.now() - 5_000) })) === undefined,
+);
+
+// Nothing that arrives from outside — a comment, a description, a profile, the
+// attempts already turned down — may decide how large the prompt gets. Fed the
+// worst input in every slot at once, it still has to come out bounded.
+const flood = 'x'.repeat(50_000);
+const stuffed = buildReplyPrompt({
+  context: {
+    commentText: flood,
+    commentAuthor: '@someone',
+    isReply: true,
+    parent: { text: flood, author: '@someone-else' },
+    video: { videoId: 'abc12345678', title: flood, channel: flood, description: flood },
+  },
+  soul: flood,
+  style: 'auto',
+  level: 2,
+  audience: 'owner',
+  note: flood,
+  creativity: 3,
+  angle: angleFor(1),
+  previous: Array.from({ length: 20 }, () => flood),
+});
+
+const promptChars = stuffed.reduce((total, message) => total + message.content.length, 0);
+check(
+  'no input can blow the prompt up',
+  promptChars < 12_000,
+  `${promptChars} chars from 50k in every field`,
 );
 
 // The promise in #15 is that no failure reaches the user without a message and

@@ -145,6 +145,60 @@ export function buildSoulPrompt(markdown: string, mode: 'tighten' | 'import'): C
   ];
 }
 
+/**
+ * How much of a soul profile travels with each reply.
+ *
+ * Exported because the editor says so on screen: a profile quietly cut in half
+ * would change how every reply sounds with nothing to explain it.
+ */
+export const SOUL_LIMIT = 4_000;
+
+/**
+ * What each part of a reply prompt is allowed to weigh, in characters.
+ *
+ * This is a comment reply, not a conversation: there is no history to carry and
+ * nothing here grows with use. Everything that arrives from outside can be
+ * arbitrarily long — a comment can be an essay, a soul profile is whatever the
+ * user typed, a description is whatever the channel pasted — and every one of
+ * those characters is billed on every attempt, prompt tokens and the thinking
+ * they provoke alike.
+ *
+ * The limits are set where the meaning is: the first thousand characters of a
+ * comment contain what is being asked, and a description opens with what the
+ * video is and ends in sponsor links. Roughly four characters to the token, so
+ * the whole prompt is bounded at about 2,300 tokens with everything at its
+ * maximum, against ~250 for the ordinary case of a short comment and no profile.
+ */
+const LIMITS = {
+  comment: 1_000,
+  /** The thread's opening comment is background, not the thing being answered. */
+  parent: 500,
+  title: 150,
+  channel: 80,
+  /** The scraper already cuts at 1,200; this is the same limit enforced where it is used. */
+  description: 1_200,
+  /** Prepended to every single reply, so its cost is paid the most often. */
+  soul: SOUL_LIMIT,
+  note: 500,
+  /** Each rejected attempt, quoted back so the next one does not repeat it. */
+  previousReply: 400,
+} as const;
+
+/**
+ * How many rejected attempts are worth quoting back.
+ *
+ * They exist to stop the next attempt repeating a move that was already turned
+ * down, and the last three carry that. Keeping all of them would make the
+ * prompt grow with every press — the one thing in here that otherwise would.
+ */
+const MAX_PREVIOUS = 3;
+
+/** Trim to a limit, marking the cut so the model knows the text was longer. */
+function clip(text: string, limit: number): string {
+  const trimmed = text.trim();
+  return trimmed.length > limit ? `${trimmed.slice(0, limit).trimEnd()}…` : trimmed;
+}
+
 interface BuildOptions {
   context: GenerationContext;
   soul: string;
@@ -219,7 +273,7 @@ export function buildReplyPrompt({
   );
 
   if (soul.trim()) {
-    system.push('', 'Voice and rules to follow:', soul.trim());
+    system.push('', 'Voice and rules to follow:', clip(soul, LIMITS.soul));
   }
 
   const styleHint = STYLES[style] ?? STYLES.auto;
@@ -234,8 +288,10 @@ export function buildReplyPrompt({
   // would announce a video and then say nothing about it.
   const videoFacts: string[] = [];
   if (level >= 1 && context.video) {
-    if (context.video.title) videoFacts.push(`Title: ${context.video.title}`);
-    if (context.video.channel) videoFacts.push(`Channel: ${context.video.channel}`);
+    if (context.video.title) videoFacts.push(`Title: ${clip(context.video.title, LIMITS.title)}`);
+    if (context.video.channel) {
+      videoFacts.push(`Channel: ${clip(context.video.channel, LIMITS.channel)}`);
+    }
   }
 
   if (videoFacts.length > 0) {
@@ -245,7 +301,7 @@ export function buildReplyPrompt({
     // largest constant part of the prompt and the only one big enough to bring
     // a prefix near the 1024-token minimum providers need for caching.
     if (level >= 2 && context.video?.description) {
-      system.push('', 'Video description:', context.video.description);
+      system.push('', 'Video description:', clip(context.video.description, LIMITS.description));
     }
   }
 
@@ -286,7 +342,7 @@ export function buildReplyPrompt({
       context.parent.author
         ? `The thread started with ${context.parent.author} writing:`
         : 'The thread started with:',
-      context.parent.text,
+      clip(context.parent.text, LIMITS.parent),
       '',
       'Answering this reply to it:',
     );
@@ -294,7 +350,7 @@ export function buildReplyPrompt({
 
   user.push(
     context.commentAuthor ? `${context.commentAuthor} wrote:` : 'The commenter wrote:',
-    context.commentText,
+    clip(context.commentText, LIMITS.comment),
   );
 
   // The angle and the rejected attempts live in the user turn rather than the
@@ -309,7 +365,9 @@ export function buildReplyPrompt({
     user.push(
       '',
       'Already offered and turned down. Do not repeat the move or the opening words:',
-      ...previous.map((text, index) => `${index + 1}. ${text}`),
+      ...previous
+        .slice(-MAX_PREVIOUS)
+        .map((text, index) => `${index + 1}. ${clip(text, LIMITS.previousReply)}`),
     );
   }
 
@@ -323,7 +381,7 @@ export function buildReplyPrompt({
       '',
       'The author wrote this for this reply. It is either an instruction to follow or a rough draft of the reply itself.',
       'If it is an instruction, do what it says. If it is a draft, keep everything it means and rewrite it in the voice above — never paste it back as it stands, and never answer it as though it were a comment.',
-      note.trim(),
+      clip(note, LIMITS.note),
     );
   }
 

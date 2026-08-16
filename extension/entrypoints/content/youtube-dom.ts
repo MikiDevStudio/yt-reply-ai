@@ -180,9 +180,45 @@ function readVideoDescription(videoId: string): string | null {
   const description = readDescriptionFromInitialData(videoId) ?? readRenderedDescription();
   if (!description) return null;
 
-  return description.length > MAX_DESCRIPTION_CHARS
-    ? `${description.slice(0, MAX_DESCRIPTION_CHARS).trimEnd()}…`
-    : description;
+  const useful = withoutBoilerplate(description);
+  if (!useful) return null;
+
+  return useful.length > MAX_DESCRIPTION_CHARS
+    ? `${useful.slice(0, MAX_DESCRIPTION_CHARS).trimEnd()}…`
+    : useful;
+}
+
+/**
+ * Drop the lines of a description that say nothing about the video.
+ *
+ * Cutting at a character count assumes the substance comes first, and on
+ * YouTube it often does not: a description can open with affiliate links, run a
+ * chapter list down the middle and end in a wall of hashtags. Sent as it is,
+ * the model is handed a page of URLs and told it is context.
+ *
+ * Removing those lines is worth more than raising the limit, and it is done
+ * here — with a filter, deterministically — rather than by asking a model to
+ * summarise: a summary costs a request per video, and a summariser that invents
+ * a detail poisons every reply written for that video.
+ */
+function withoutBoilerplate(description: string): string {
+  const lines = description
+    .split('\n')
+    .map((line) => line.trim())
+    .filter((line) => {
+      if (line.length === 0) return false;
+      // Timestamps: "00:00 Intro", the chapter list.
+      if (/^\d{1,2}:\d{2}(:\d{2})?\b/.test(line)) return false;
+      // Social and affiliate lines: a URL with barely any prose around it.
+      if (/https?:\/\//.test(line) && line.replace(/https?:\/\/\S+/g, '').trim().length < 40) {
+        return false;
+      }
+      // Hashtag walls and bare "#tag" rows.
+      if (/^#\w/.test(line) && !/\s\w{4,}/.test(line.replace(/#\w+/g, ''))) return false;
+      return true;
+    });
+
+  return lines.join('\n').trim();
 }
 
 function readDescriptionFromInitialData(videoId: string): string | null {

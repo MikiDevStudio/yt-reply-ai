@@ -77,6 +77,31 @@ const KEEPALIVE_MS = 15_000;
  */
 const GENERATION_TIMEOUT_MS = 45_000;
 
+/**
+ * The most one reply may cost in output tokens, thinking included.
+ *
+ * Reasoning is billed as output and is unbounded by default, which is how a
+ * three-sentence reply reached 24,209 reasoning tokens.
+ *
+ * Set from measurement rather than taste, and deliberately loose. A short
+ * comment takes 150 to 850 tokens to answer, but a comment that asks something
+ * specific took 1,300 on the paid preset — at 1,500 the ceiling started cutting
+ * genuine replies short, which is the failure this is not allowed to cause.
+ * 2,500 leaves that case a wide margin and still stops the runaway one at a
+ * tenth of where it went. A reply cut off by it arrives with `truncated` set,
+ * and the popover says so rather than passing off half a sentence as finished.
+ */
+const REPLY_TOKEN_CEILING = 2_500;
+
+/**
+ * The same ceiling for a soul profile, which is a page rather than a sentence.
+ *
+ * A profile that comes back cut in half is worse than one that costs a little
+ * more to produce, and this runs once when the user presses a button rather
+ * than on every reply.
+ */
+const PROFILE_TOKEN_CEILING = 4_000;
+
 async function generate(
   port: Browser.runtime.Port,
   request: Extract<GenerateClientMessage, { type: 'start' }>,
@@ -155,22 +180,14 @@ async function generate(
       languageIsGuess: isGuess,
     });
 
-    // No token cap: see CompletionOptions.maxTokens. The reply length is set by
-    // the prompt and the soul profile, not by cutting the model off mid-word.
     const stream = streamCompletion({
       apiKey: key,
       model,
       messages,
       signal: deadline.signal,
       temperature,
-      // The first reply is the one that decides whether any of this is worth
-      // using, so it gets room to think rather than the cheapest setting that
-      // works. `minimal` used to be first, on the argument that speed matters
-      // most; it does not — a fast reply that misses the comment is a reason to
-      // uninstall, and the person who sees it will not press regenerate to find
-      // out whether the second one is better. Retries step up again, because by
-      // then the obvious answer has already been turned down.
-      reasoningEffort: attempt === 1 ? 'low' : 'medium',
+      maxTokens: REPLY_TOKEN_CEILING,
+      reasoningEffort: await reasoningFor(attempt, model),
     });
 
     let next = await stream.next();
@@ -375,13 +392,13 @@ async function respond(request: Request): Promise<Response<unknown>> {
       // show progressively, but the streaming path is the one that handles
       // mid-response provider errors properly.
       //
-      // Uncapped for the same reason as a reply — a profile cut off halfway is
-      // worse than a long one — but reasoning stays available here, since
-      // rewriting someone's voice is the one place thinking earns its cost.
+      // Reasoning is left alone here, unlike a reply: rewriting someone's voice
+      // is the one place thinking earns its cost, and this runs once per press.
       const stream = streamCompletion({
         apiKey: key,
         model,
         messages: buildSoulPrompt(request.markdown, request.mode),
+        maxTokens: PROFILE_TOKEN_CEILING,
       });
 
       let next = await stream.next();
@@ -460,6 +477,28 @@ const FREE_MODEL_MAX_TEMPERATURE = 1.1;
 
 async function temperatureFor(wanted: number, model: string): Promise<number> {
   return (await isFreeModel(model)) ? Math.min(wanted, FREE_MODEL_MAX_TEMPERATURE) : wanted;
+}
+
+/**
+ * How hard the model may think, per attempt.
+ *
+ * The first reply is the one that decides whether any of this is worth using,
+ * so it gets room to think rather than the cheapest setting that works.
+ * `minimal` used to be first, on the argument that speed matters most; it does
+ * not — a fast reply that misses the comment is a reason to uninstall, and
+ * nobody who sees one presses regenerate to find out whether the second is
+ * better. Retries step up again, because by then the obvious answer has already
+ * been turned down.
+ *
+ * Free variants stay at `low` throughout, for the same reason their temperature
+ * is capped: the extra thinking does not come back as a better reply. At
+ * `medium` the free preset hit the token ceiling and spilled its own
+ * deliberation into the answer; at `low` the same comment came back finished
+ * every time, in three to seven seconds.
+ */
+async function reasoningFor(attempt: number, model: string): Promise<'low' | 'medium'> {
+  if (attempt === 1) return 'low';
+  return (await isFreeModel(model)) ? 'low' : 'medium';
 }
 
 /** Free variants are the ones OpenRouter's per-day cap applies to. */
