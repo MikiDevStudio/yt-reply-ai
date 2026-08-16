@@ -60,14 +60,22 @@ const NATIVE_REPLY_BUTTON = 'ytcp-comment-button#reply-button';
 /**
  * Where the reply box appears, and what to type into once it does.
  *
- * The box is matched by what it is rather than by an id: Studio has shipped it
- * as both a `contenteditable` and a `textarea` across variants, and either one
- * takes text the same way once found.
+ * `ytcp-commentbox#reply-dialog-id` mounts into the dialog container and puts a
+ * real `<textarea>` inside a `tp-yt-iron-autogrow-textarea`. The field is
+ * matched by what it is rather than by that chain of ids: the wrapper is a
+ * Polymer implementation detail, while "the editable thing inside the reply
+ * dialog" is the contract, and it survives the wrapper being swapped.
  */
 const REPLY_DIALOG = '#reply-dialog-container';
 const REPLY_FIELD = '[contenteditable="true"], textarea';
 
-/** The per-comment video card, which the channel-wide inbox shows on every row. */
+/**
+ * The per-comment video card.
+ *
+ * Filled in on the channel-wide inbox, where every row can be a different video.
+ * Rendered empty on the single-video route — no title, no href — which is why
+ * the id also gets read out of the path.
+ */
 const VIDEO_TITLE = '#video-thumbnail #video-title';
 const VIDEO_LINK = '#video-thumbnail a#body';
 
@@ -126,12 +134,19 @@ function readVideoContext(toolbar: HTMLElement): VideoContext | null {
   const host = toolbar.closest<HTMLElement>(COMMENT_HOST);
 
   const href = host?.querySelector<HTMLAnchorElement>(VIDEO_LINK)?.getAttribute('href') ?? '';
-  const videoId = href.match(VIDEO_ID)?.[0] ?? location.pathname.match(/\/video\/([\w-]{11})/)?.[1];
-  if (!videoId) return null;
-
   const title = host?.querySelector(VIDEO_TITLE)?.textContent?.trim() ?? '';
-  // The single-video route hides the card, so there may be no title to send. The
-  // id alone still keeps the description cache keyed correctly.
+
+  const videoId =
+    href.match(VIDEO_ID)?.[0] ?? location.pathname.match(/\/video\/([\w-]{11})/)?.[1] ?? '';
+
+  // Each route withholds what the other supplies: the single-video inbox has the
+  // id in its path and renders the card empty, the channel-wide one shows the
+  // title and may name no id at all. Either half is worth sending; neither means
+  // there is nothing to say about the video, and the prompt then omits the
+  // section rather than announcing a video it cannot describe.
+  if (!videoId && !title) return null;
+
+  // Studio never names the channel next to a comment.
   return { videoId, title, channel: '' };
 }
 

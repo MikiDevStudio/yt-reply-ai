@@ -211,17 +211,23 @@ export function buildReplyPrompt({
 
   // L1 and above add video context. It is constant per video, so it belongs in
   // the cacheable prefix rather than in the user turn.
+  // What the page could actually tell us about the video. Studio's single-video
+  // inbox names neither the title nor the channel next to a comment, so both
+  // fields are conditional — and so is the heading above them, which on its own
+  // would announce a video and then say nothing about it.
+  const videoFacts: string[] = [];
   if (level >= 1 && context.video) {
-    system.push('', 'The comment is on this video:');
-    // Studio's inbox names neither next to a comment on every route. An empty
-    // `Title:` line teaches the model that the field means nothing.
-    if (context.video.title) system.push(`Title: ${context.video.title}`);
-    if (context.video.channel) system.push(`Channel: ${context.video.channel}`);
+    if (context.video.title) videoFacts.push(`Title: ${context.video.title}`);
+    if (context.video.channel) videoFacts.push(`Channel: ${context.video.channel}`);
+  }
+
+  if (videoFacts.length > 0) {
+    system.push('', 'The comment is on this video:', ...videoFacts);
 
     // L2 adds the description. Same reasoning, one tier down in cost: it is the
     // largest constant part of the prompt and the only one big enough to bring
     // a prefix near the 1024-token minimum providers need for caching.
-    if (level >= 2 && context.video.description) {
+    if (level >= 2 && context.video?.description) {
       system.push('', 'Video description:', context.video.description);
     }
   }
@@ -242,7 +248,8 @@ export function buildReplyPrompt({
       : 'Write the reply in the same language the comment was written in.',
   );
 
-  if (level >= 1 && context.video) {
+  // Only worth saying when there is metadata to be misled by.
+  if (videoFacts.length > 0) {
     system.push(
       'The video title and description may be in another language. That must not change the language of the reply.',
     );
