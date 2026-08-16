@@ -1,5 +1,5 @@
 import { useSetting } from '@/lib/use-setting';
-import { type ContextLevel, autoGenerate, contextLevel } from '@/lib/settings';
+import { type ContextLevel, contextLevel } from '@/lib/settings';
 import { Section } from '../Section';
 
 /**
@@ -16,29 +16,12 @@ const CONTEXT_LEVELS: ReadonlyArray<{ level: ContextLevel; label: string; hint: 
 
 export function Generation() {
   const [level, setLevel] = useSetting(contextLevel);
-  const [autoStart, setAutoStart] = useSetting(autoGenerate);
 
+  // Auto-generation used to live here. It moved into the popover itself (#30):
+  // whether opening a comment should spend a request is decided while looking
+  // at the comment, not on a settings page in another tab.
   return (
     <>
-      <Section title="When the popover opens">
-        <label className="flex cursor-pointer items-start gap-3 text-sm">
-          <input
-            type="checkbox"
-            className="toggle toggle-sm"
-            checked={autoStart ?? true}
-            disabled={autoStart === null}
-            onChange={(event) => setAutoStart(event.target.checked)}
-          />
-          <span>
-            <span className="font-medium">Start writing immediately</span>
-            <span className="block text-xs text-base-content/60">
-              Off means the popover opens empty and waits for Generate — useful for picking a
-              tone first, or for not spending a request on every click.
-            </span>
-          </span>
-        </label>
-      </Section>
-
       <Section
         title="Context sent with each comment"
         description="More context means better replies and a bigger bill. The description is read once per video and reused for every comment on it."

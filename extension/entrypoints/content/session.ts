@@ -63,6 +63,26 @@ export function moveCursor(commentId: string, cursor: number): void {
  */
 export function clearHistory(commentId: string): void {
   histories.delete(commentId);
+  notes.delete(commentId);
+}
+
+/**
+ * What the user typed for a particular comment, kept for as long as its
+ * attempts are.
+ *
+ * Per comment rather than per tab, unlike the language: a note says something
+ * about this one exchange ("tell them it ships next week"), and carrying it to
+ * the next comment would quietly put words in a reply nobody meant them for.
+ */
+const notes = new Map<string, string>();
+
+export function readNote(commentId: string): string {
+  return notes.get(commentId) ?? '';
+}
+
+export function writeNote(commentId: string, note: string): void {
+  if (note) notes.set(commentId, note);
+  else notes.delete(commentId);
 }
 
 /**

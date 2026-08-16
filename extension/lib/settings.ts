@@ -116,6 +116,28 @@ export const autoGenerate = storage.defineItem<boolean>('local:generation.auto',
 });
 
 /**
+ * Who the reply is written as.
+ *
+ * The same person is a channel owner under their own videos and an ordinary
+ * viewer under everyone else's, and the two need different replies: an owner
+ * answers for the channel and can promise things, a viewer speaks only for
+ * themselves and thanking people for watching would be absurd.
+ *
+ * Kept as a setting rather than guessed from the page. The signal — whether the
+ * comment sits under a video whose channel is the user's — is not something we
+ * can read reliably from the DOM for someone who is not signed in as the owner,
+ * and getting it wrong silently is worse than one visible switch.
+ *
+ * The full viewer flow, with a button in the "Add a comment" box, is #19. This
+ * is its prompt half, which the reply popover can use today.
+ */
+export type Audience = 'owner' | 'viewer';
+
+export const replyAs = storage.defineItem<Audience>('local:generation.replyAs', {
+  fallback: 'owner',
+});
+
+/**
  * The user's voice profile, as markdown. Empty until they create one.
  *
  * This is what the prompt uses, whether it came from the constructor or was

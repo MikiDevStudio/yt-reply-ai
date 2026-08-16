@@ -12,7 +12,12 @@ import { useEffect, useRef, useState } from 'react';
 import { detectLanguage } from '@/lib/language';
 import type { GenerationContext } from '@/lib/messaging';
 import { angleFor, CREATIVITY, STYLES } from '@/lib/prompt';
-import { creativity as creativitySetting } from '@/lib/settings';
+import {
+  type Audience,
+  autoGenerate as autoGenerateSetting,
+  creativity as creativitySetting,
+  replyAs as replyAsSetting,
+} from '@/lib/settings';
 import { useGeneration } from '@/lib/use-generation';
 import {
   type Attempt,
@@ -20,7 +25,9 @@ import {
   pushAttempt,
   readHistory,
   readLanguageOverride,
+  readNote,
   writeLanguageOverride,
+  writeNote,
 } from './session';
 
 /** Order shown in the picker. `auto` first because it is the default. */
@@ -62,6 +69,14 @@ export function ReplyPopover({
   const [detected, setDetected] = useState<string | null>(null);
   const [language, setLanguage] = useState(readLanguageOverride() ?? '');
 
+  const [note, setNote] = useState(() => readNote(commentId));
+  const [audience, setAudience] = useState<Audience>('owner');
+  const [autoOn, setAutoOn] = useState(autoStart);
+
+  // Read by `start`, which can be called in the same handler that changes the
+  // audience — before a re-render has made the new value visible to it.
+  const audienceRef = useRef<Audience | null>(null);
+
   // What this attempt was asked for, so the finished text can be filed under it.
   const pending = useRef<{ angle: string; creativity: number } | null>(null);
   // Whether this popover has spent a request yet. Once it has, changing the
@@ -79,6 +94,10 @@ export function ReplyPopover({
   useEffect(() => {
     void creativitySetting.getValue().then(setLevel);
     void detectLanguage(context.commentText).then(setDetected);
+    void replyAsSetting.getValue().then((stored) => {
+      setAudience(stored);
+      audienceRef.current = stored;
+    });
   }, [context.commentText]);
 
   const start = () => {
@@ -98,6 +117,10 @@ export function ReplyPopover({
       creativity: level,
       attempt,
       previous: attempts.map((entry) => entry.text),
+      // Until the stored value has arrived the worker's own copy is the better
+      // answer, so say nothing rather than send a default that may be wrong.
+      ...(audienceRef.current ? { audience: audienceRef.current } : {}),
+      ...(note.trim() ? { note: note.trim() } : {}),
       ...(applied.current ? { language: applied.current } : {}),
       ...(detected ? { detectedLanguage: detected } : {}),
     });
@@ -174,6 +197,41 @@ export function ReplyPopover({
     if (started.current && !busy) start();
   };
 
+  /**
+   * Switch who the reply speaks as, and regenerate if something is already on
+   * screen — the same bargain the tone buttons make.
+   */
+  const chooseAudience = (next: Audience) => {
+    if (next === audience) return;
+
+    setAudience(next);
+    audienceRef.current = next;
+    void replyAsSetting.setValue(next);
+    if (started.current && !busy) start();
+  };
+
+  /**
+   * Auto-generation, moved here from the settings page: it is decided while
+   * looking at a comment, not on another tab.
+   *
+   * Turning it on deliberately starts nothing. It says what the next popover
+   * should do; spending a request on the comment already open would be a
+   * surprise, and turning it off mid-stream would not stop that stream either.
+   */
+  const toggleAuto = (on: boolean) => {
+    setAutoOn(on);
+    void autoGenerateSetting.setValue(on);
+  };
+
+  /**
+   * Kept per comment for as long as its attempts are, so closing the popover by
+   * accident does not lose what was typed. Nothing is sent until Generate.
+   */
+  const changeNote = (value: string) => {
+    setNote(value);
+    writeNote(commentId, value.trim());
+  };
+
   const overridden = language.trim().length > 0 && language.trim() !== detected;
 
   return (
@@ -233,6 +291,43 @@ export function ReplyPopover({
           {context.commentText || 'This comment has no text.'}
         </p>
 
+        <div className="flex items-center gap-2">
+          <div className="join" role="group" aria-label="Reply as">
+            {(['owner', 'viewer'] as const).map((role) => (
+              <button
+                key={role}
+                type="button"
+                className={`btn join-item btn-sm text-sm ${
+                  audience === role ? 'btn-primary' : 'btn-ghost'
+                }`}
+                title={
+                  role === 'owner'
+                    ? 'Answering as the channel owner'
+                    : 'Answering as a viewer, speaking only for yourself'
+                }
+                aria-pressed={audience === role}
+                disabled={busy}
+                onClick={() => chooseAudience(role)}
+              >
+                {role === 'owner' ? 'As owner' : 'As viewer'}
+              </button>
+            ))}
+          </div>
+
+          <label
+            className="ml-auto flex cursor-pointer items-center gap-2 text-sm text-base-content/60"
+            title="Start writing as soon as the popover opens"
+          >
+            <input
+              type="checkbox"
+              className="toggle toggle-sm"
+              checked={autoOn}
+              onChange={(event) => toggleAuto(event.target.checked)}
+            />
+            Auto
+          </label>
+        </div>
+
         {/*
           `text-sm` rides on top of every size class in this popover: daisyUI
           ties font size to button height, and the resulting 11–12px is smaller
@@ -252,6 +347,22 @@ export function ReplyPopover({
             </button>
           ))}
         </div>
+
+        {/*
+          Optional, and empty by default: the note is what the user knows and the
+          page does not. It is read when Generate is pressed rather than on every
+          keystroke — a field that regenerated as you typed would spend a request
+          per word.
+        */}
+        <textarea
+          className="textarea textarea-sm w-full resize-none text-sm"
+          rows={2}
+          value={note}
+          disabled={busy}
+          aria-label="Note for this reply"
+          placeholder="Optional: what to say, or a draft to fix up"
+          onChange={(event) => changeNote(event.target.value)}
+        />
 
         {state.status === 'error' ? (
           <ErrorNotice

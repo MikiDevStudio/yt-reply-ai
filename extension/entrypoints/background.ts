@@ -59,15 +59,17 @@ async function generate(
 ) {
   // Read state on every invocation. The worker is restarted freely, so nothing
   // may be cached in module scope.
-  const [key, model, soul, profile, savedStyle, savedLevel, savedCreativity] = await Promise.all([
-    settings.apiKey.getValue(),
-    settings.model.getValue(),
-    settings.soul.getValue(),
-    settings.soulProfile.getValue(),
-    settings.style.getValue(),
-    settings.contextLevel.getValue(),
-    settings.creativity.getValue(),
-  ]);
+  const [key, model, soul, profile, savedStyle, savedLevel, savedCreativity, savedAudience] =
+    await Promise.all([
+      settings.apiKey.getValue(),
+      settings.model.getValue(),
+      settings.soul.getValue(),
+      settings.soulProfile.getValue(),
+      settings.style.getValue(),
+      settings.contextLevel.getValue(),
+      settings.creativity.getValue(),
+      settings.replyAs.getValue(),
+    ]);
 
   if (!key) {
     post(port, {
@@ -92,6 +94,8 @@ async function generate(
     soul,
     style: request.style ?? savedStyle,
     level,
+    audience: request.audience ?? savedAudience,
+    note: request.note,
     creativity: preset.level,
     angle: angleFor(attempt),
     previous: request.previous,

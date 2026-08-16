@@ -1,6 +1,6 @@
 import type { GenerationContext } from './messaging';
 import type { ChatMessage } from './openrouter/types';
-import type { ContextLevel } from './settings';
+import type { Audience, ContextLevel } from './settings';
 
 /**
  * Tone presets, layered on top of the user's soul profile rather than replacing
@@ -141,6 +141,13 @@ interface BuildOptions {
   soul: string;
   style: string;
   level: ContextLevel;
+  /** Whether the reply speaks for the channel or for one viewer. */
+  audience: Audience;
+  /**
+   * What the user typed in the popover for this reply: an instruction, or a
+   * draft of the reply itself. Empty when they typed nothing.
+   */
+  note?: string;
   /** 1–5, already raised for this attempt. */
   creativity: number;
   /** The move this attempt was handed. See `angleFor`. */
@@ -171,16 +178,28 @@ export function buildReplyPrompt({
   soul,
   style,
   level,
+  audience,
+  note,
   creativity,
   angle,
   previous,
   language,
   languageIsGuess,
 }: BuildOptions): ChatMessage[] {
-  const system = [
-    'You write replies to YouTube comments on behalf of the channel owner.',
-    'Write only the reply text. No greetings block, no signature, no quotes around it.',
-  ];
+  const system =
+    audience === 'viewer'
+      ? [
+          'You write replies to YouTube comments as an ordinary viewer of the video.',
+          // Spelled out because everything else in the prompt — the profile, the
+          // video metadata — reads like the channel's own material, and the model
+          // will happily assume the reply is the creator's if nobody says otherwise.
+          'You do not run this channel. Never speak for it, never thank anyone for watching, and never promise anything the channel would have to deliver.',
+          'Write only the reply text. No greetings block, no signature, no quotes around it.',
+        ]
+      : [
+          'You write replies to YouTube comments on behalf of the channel owner.',
+          'Write only the reply text. No greetings block, no signature, no quotes around it.',
+        ];
 
   if (soul.trim()) {
     system.push('', 'Voice and rules to follow:', soul.trim());
@@ -268,6 +287,20 @@ export function buildReplyPrompt({
       '',
       'Already offered and turned down. Do not repeat the move or the opening words:',
       ...previous.map((text, index) => `${index + 1}. ${text}`),
+    );
+  }
+
+  // The note goes last of all: it is the one part the user wrote for this exact
+  // reply, and it has to win over the angle and over anything the comment
+  // suggests. Two shapes, one instruction — an order to follow, or a draft to
+  // rewrite — because asking the user which one they meant would be a dropdown
+  // over a difference the model can see for itself.
+  if (note?.trim()) {
+    user.push(
+      '',
+      'The author wrote this for this reply. It is either an instruction to follow or a rough draft of the reply itself.',
+      'If it is an instruction, do what it says. If it is a draft, keep everything it means and rewrite it in the voice above — never paste it back as it stands, and never answer it as though it were a comment.',
+      note.trim(),
     );
   }
 

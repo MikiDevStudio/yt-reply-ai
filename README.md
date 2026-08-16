@@ -2,8 +2,9 @@
 
 Chrome MV3 extension that generates replies to YouTube comments in the author's own voice.
 
-Primary audience: **channel owners** answering their comment section. A viewer-facing
-mode (write/improve a comment under a video) is planned for phase 2.
+Primary audience: **channel owners** answering their comment section. The popover can
+already answer as a viewer instead — same voice, no speaking for the channel — but the
+viewer's own entry point, a button in the "Add a comment" box, is still phase 2 (#19).
 
 ## Repository layout
 

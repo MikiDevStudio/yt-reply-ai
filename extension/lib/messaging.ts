@@ -1,6 +1,6 @@
 import type { OpenRouterErrorKind } from './openrouter/errors';
 import type { TokenUsage } from './openrouter/types';
-import type { ContextLevel } from './settings';
+import type { Audience, ContextLevel } from './settings';
 
 /**
  * The wire protocol between content scripts and the background service worker.
@@ -63,6 +63,13 @@ export type GenerateClientMessage =
        * worker is torn down between requests and cannot hold state of its own.
        */
       previous?: string[];
+      /** Who the reply speaks as. Omitted falls back to the stored choice. */
+      audience?: Audience;
+      /**
+       * What the user typed for this reply — an instruction, or a draft to fix
+       * up. Per press, never stored, and absent when the field is empty.
+       */
+      note?: string;
       /** Language the user typed in the popover. Wins over everything else. */
       language?: string;
       /** Language detected from the comment text, used when nothing is pinned. */
