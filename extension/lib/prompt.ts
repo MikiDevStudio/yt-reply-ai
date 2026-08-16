@@ -212,12 +212,11 @@ export function buildReplyPrompt({
   // L1 and above add video context. It is constant per video, so it belongs in
   // the cacheable prefix rather than in the user turn.
   if (level >= 1 && context.video) {
-    system.push(
-      '',
-      'The comment is on this video:',
-      `Title: ${context.video.title}`,
-      `Channel: ${context.video.channel}`,
-    );
+    system.push('', 'The comment is on this video:');
+    // Studio's inbox names neither next to a comment on every route. An empty
+    // `Title:` line teaches the model that the field means nothing.
+    if (context.video.title) system.push(`Title: ${context.video.title}`);
+    if (context.video.channel) system.push(`Channel: ${context.video.channel}`);
 
     // L2 adds the description. Same reasoning, one tier down in cost: it is the
     // largest constant part of the prompt and the only one big enough to bring

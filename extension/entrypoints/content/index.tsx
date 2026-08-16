@@ -6,21 +6,24 @@ import { autoGenerate, contextLevel, enabled } from '@/lib/settings';
 import { closePopover, openPopover } from './popover';
 import { ReplyButton } from './ReplyButton';
 import { clearHistory } from './session';
+import { studioSurface } from './studio-dom';
+import { type CommentData, type CommentSurface, INJECTED_ATTR } from './surface';
 import { syncTheme } from './theme';
-import {
-  COMMENTS_CONTAINER,
-  type CommentData,
-  INJECTED_ATTR,
-  findUninjectedToolbars,
-  insertReplyText,
-  openReplyBox,
-  readComment,
-  readVideoContext,
-  readVideoDescription,
-} from './youtube-dom';
+import { watchSurface } from './youtube-dom';
+
+/**
+ * Which page this is.
+ *
+ * One content script for both rather than one per host: everything below —
+ * mounting, the popover, the generation path — is identical, and only the DOM
+ * underneath differs. Two entrypoints would mean two copies of this file
+ * drifting apart, and a second popover module with its own idea of what is open.
+ */
+const surface: CommentSurface =
+  location.hostname === 'studio.youtube.com' ? studioSurface : watchSurface;
 
 export default defineContentScript({
-  matches: ['*://www.youtube.com/*'],
+  matches: ['*://www.youtube.com/*', '*://studio.youtube.com/*'],
   // Required for createShadowRootUi: WXT hands our CSS to the shadow root
   // instead of injecting it into the page.
   cssInjectionMode: 'ui',
@@ -81,30 +84,32 @@ function setInjecting(ctx: ContentScriptContext, value: boolean) {
  */
 function watchComments(ctx: ContentScriptContext) {
   let commentsObserver: MutationObserver | undefined;
+  let watched: Element | null = null;
 
   const attach = (container: Element) => {
     commentsObserver?.disconnect();
+    watched = container;
     commentsObserver = new MutationObserver(() => scan(ctx));
     commentsObserver.observe(container, { childList: true, subtree: true });
-    ctx.onInvalidated(() => commentsObserver?.disconnect());
     scan(ctx);
   };
 
-  const existing = document.querySelector(COMMENTS_CONTAINER);
-  if (existing) {
-    attach(existing);
-    return;
-  }
+  ctx.onInvalidated(() => commentsObserver?.disconnect());
 
-  // Comments mount well after the rest of the watch page. Watch for the
-  // container once, then hand off to the scoped observer above.
+  // Comments mount well after the rest of the page, and both surfaces replace
+  // the container outright on navigation — Studio does it on every filter change
+  // too. So the bootstrap observer stays on: it re-attaches whenever the element
+  // we are watching is swapped for a new one, and does nothing while it is not.
   const bootstrap = new MutationObserver(() => {
-    const container = document.querySelector(COMMENTS_CONTAINER);
-    if (container) {
-      bootstrap.disconnect();
-      attach(container);
-    }
+    if (watched?.isConnected) return;
+
+    const container = document.querySelector(surface.commentsContainer);
+    if (container && container !== watched) attach(container);
   });
+
+  const existing = document.querySelector(surface.commentsContainer);
+  if (existing) attach(existing);
+
   bootstrap.observe(document.body, { childList: true, subtree: true });
   ctx.onInvalidated(() => bootstrap.disconnect());
 }
@@ -113,7 +118,7 @@ function watchComments(ctx: ContentScriptContext) {
 function scan(ctx: ContentScriptContext) {
   if (!injecting) return;
 
-  for (const toolbar of findUninjectedToolbars()) {
+  for (const toolbar of surface.findUninjectedToolbars()) {
     // Mark before mounting: `createIntegratedUi` is async-friendly and a second
     // mutation could otherwise re-enter here for the same toolbar.
     toolbar.setAttribute(INJECTED_ATTR, '');
@@ -153,11 +158,11 @@ async function mountButton(ctx: ContentScriptContext, toolbar: HTMLElement) {
 }
 
 async function handleOpen(ctx: ContentScriptContext, toolbar: HTMLElement, anchor: HTMLElement) {
-  const comment = readComment(toolbar);
+  const comment = surface.readComment(toolbar);
   if (!comment) return;
 
   const [context, autoStart] = await Promise.all([
-    buildContext(comment),
+    buildContext(comment, toolbar),
     autoGenerate.getValue(),
   ]);
 
@@ -194,12 +199,17 @@ const scrapedDescriptions = new Map<string, string>();
  * too, and its copy wins when building the prompt — this is about not gathering
  * a description nobody asked for.
  */
-async function buildContext(comment: CommentData): Promise<GenerationContext> {
+async function buildContext(
+  comment: CommentData,
+  toolbar: HTMLElement,
+): Promise<GenerationContext> {
   const level = await contextLevel.getValue();
-  const video = level >= 1 ? readVideoContext() : null;
+  const video = level >= 1 ? surface.readVideoContext(toolbar) : null;
 
   if (video && level >= 2 && !scrapedDescriptions.has(video.videoId)) {
-    const description = readVideoDescription(video.videoId);
+    // Studio has no description to read, so L2 there is L1 and the user is not
+    // billed for a tier the page cannot fill.
+    const description = surface.readVideoDescription?.(video.videoId);
     if (description) scrapedDescriptions.set(video.videoId, description);
   }
 
@@ -232,12 +242,12 @@ async function buildContext(comment: CommentData): Promise<GenerationContext> {
  * clear of Chrome Web Store policy on automated engagement.
  */
 async function insertGeneratedReply(toolbar: HTMLElement, text: string) {
-  const editable = await openReplyBox(toolbar);
-  if (!editable) {
+  const target = await surface.openReplyBox(toolbar);
+  if (!target) {
     // Replies can be disabled on a comment, and the button is absent entirely
     // when signed out. Falling back to the clipboard beats losing the text.
     await navigator.clipboard.writeText(text);
     return;
   }
-  insertReplyText(editable, text);
+  surface.insertReplyText(target, text);
 }

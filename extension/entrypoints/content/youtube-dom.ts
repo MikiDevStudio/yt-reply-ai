@@ -1,5 +1,7 @@
 /**
- * Every assumption about YouTube's DOM lives in this file and nowhere else.
+ * Every assumption about the watch page's DOM lives in this file and nowhere
+ * else. Studio's inbox is a different set of elements entirely; see
+ * `studio-dom.ts`.
  *
  * We anchor on custom element tag names (`ytd-*`) and framework-assigned ids
  * (`#toolbar`, `#content-text`) rather than CSS classes. Classes are generated
@@ -8,18 +10,27 @@
  *
  * When YouTube does eventually change something, this is the only file to fix.
  */
+import {
+  type CommentData,
+  type CommentSurface,
+  commentKey,
+  INJECTED_ATTR,
+  typeIntoEditable,
+  type VideoContext,
+  waitForElement,
+} from './surface';
 
 /** Wrapper around the whole comment section. Scope of our MutationObserver. */
-export const COMMENTS_CONTAINER = 'ytd-comments#comments';
+const COMMENTS_CONTAINER = 'ytd-comments#comments';
 
 /** The like/dislike/reply row under a single comment. */
-export const ENGAGEMENT_BAR = 'ytd-comment-engagement-bar';
+const ENGAGEMENT_BAR = 'ytd-comment-engagement-bar';
 
 /** Inside the engagement bar: the flex row that holds the action buttons. */
-export const TOOLBAR = '#toolbar';
+const TOOLBAR = '#toolbar';
 
 /** A single comment or reply. Top-level comments are wrapped in a thread renderer. */
-export const COMMENT_HOST = 'ytd-comment-view-model, ytd-comment-thread-renderer';
+const COMMENT_HOST = 'ytd-comment-view-model, ytd-comment-thread-renderer';
 
 /** Wrapper around the replies of one thread. Its presence marks a reply. */
 const REPLIES_RENDERER = 'ytd-comment-replies-renderer';
@@ -35,29 +46,13 @@ const COMMENT_TEXT = '#content-text';
 const COMMENT_AUTHOR = '#author-text';
 const COMMENT_TIME = '.published-time-text a';
 
-/** Marker attribute so we never inject twice into the same toolbar. */
-export const INJECTED_ATTR = 'data-reply-ai-mounted';
-
-export interface CommentData {
-  /** Stable per comment, used to key generated attempts. See `commentKey`. */
-  id: string;
-  /** Visible text of the comment being replied to. */
-  text: string;
-  /** Channel handle, e.g. `@someone`. Empty string if it could not be read. */
-  author: string;
-  /** True when this is a reply inside a thread rather than a top-level comment. */
-  isReply: boolean;
-  /** The comment that started the thread. Only present when `isReply`. */
-  parent?: { text: string; author: string };
-}
-
 /**
  * Find comment toolbars that do not have our button yet.
  *
  * `root` lets callers narrow the search to a subtree that just mutated instead
  * of rescanning the whole page.
  */
-export function findUninjectedToolbars(root: ParentNode = document): HTMLElement[] {
+function findUninjectedToolbars(root: ParentNode = document): HTMLElement[] {
   const bars = root.querySelectorAll<HTMLElement>(ENGAGEMENT_BAR);
   const toolbars: HTMLElement[] = [];
 
@@ -77,7 +72,7 @@ export function findUninjectedToolbars(root: ParentNode = document): HTMLElement
  * Returns `null` when the surrounding comment cannot be found, which happens if
  * YouTube recycles the node between us finding the toolbar and reading it.
  */
-export function readComment(toolbar: HTMLElement): CommentData | null {
+function readComment(toolbar: HTMLElement): CommentData | null {
   const host = toolbar.closest<HTMLElement>(COMMENT_HOST);
   if (!host) return null;
 
@@ -89,32 +84,6 @@ export function readComment(toolbar: HTMLElement): CommentData | null {
   const parent = isReply ? readThreadComment(host) : null;
 
   return { id: commentKey(author, text), text, author, isReply, ...(parent ? { parent } : {}) };
-}
-
-/**
- * A key for one comment, derived from its content.
- *
- * Not the element: YouTube recycles comment nodes as you scroll, so a node
- * identity outlives nothing. Not an id attribute either — the rendered markup
- * carries none we can rely on across their A/B variants, and a key that is
- * sometimes absent is worse than a key that is always derived.
- *
- * Author plus text is unique enough for what it guards: a stack of generated
- * replies inside a single tab. Two identical comments by the same person sharing
- * one stack is not a failure worth extra machinery.
- */
-function commentKey(author: string, text: string): string {
-  const source = `${author}\n${text}`;
-
-  // FNV-1a. Short, stable, and no crypto import for something that only has to
-  // avoid collisions inside one page.
-  let hash = 0x811c9dc5;
-  for (let index = 0; index < source.length; index += 1) {
-    hash ^= source.charCodeAt(index);
-    hash = Math.imul(hash, 0x01000193);
-  }
-
-  return (hash >>> 0).toString(36);
 }
 
 /**
@@ -152,7 +121,7 @@ const REPLY_EDITABLE = 'ytd-commentbox #contenteditable-root';
  * Returns `null` if the box does not appear — YouTube disables replies on some
  * comments, and the button is absent entirely when signed out.
  */
-export async function openReplyBox(toolbar: HTMLElement): Promise<HTMLElement | null> {
+async function openReplyBox(toolbar: HTMLElement): Promise<HTMLElement | null> {
   const engagementBar = toolbar.closest(ENGAGEMENT_BAR) ?? toolbar.parentElement;
   const existing = engagementBar?.parentElement?.querySelector<HTMLElement>(REPLY_EDITABLE);
   if (existing) return existing;
@@ -167,92 +136,12 @@ export async function openReplyBox(toolbar: HTMLElement): Promise<HTMLElement | 
 }
 
 /**
- * Put text into YouTube's reply box.
- *
- * Assigning `textContent` is not enough. The box is a `contenteditable` driven
- * by a Polymer component that tracks its own state from input events — set the
- * text directly and YouTube still believes the box is empty, leaving the Reply
- * button disabled. `insertText` goes through the editing pipeline and produces
- * the events that component listens for.
- *
- * `execCommand` is deprecated but remains the only thing that reliably drives a
- * third-party contenteditable, so there is a manual fallback behind it.
- */
-export function insertReplyText(editable: HTMLElement, text: string): void {
-  editable.focus();
-
-  const selection = window.getSelection();
-  const range = document.createRange();
-  range.selectNodeContents(editable);
-  selection?.removeAllRanges();
-  selection?.addRange(range);
-
-  if (document.execCommand('insertText', false, text)) {
-    collapseToEnd(editable);
-    return;
-  }
-
-  editable.textContent = text;
-  editable.dispatchEvent(
-    new InputEvent('input', { bubbles: true, composed: true, inputType: 'insertText', data: text }),
-  );
-  collapseToEnd(editable);
-}
-
-function collapseToEnd(editable: HTMLElement): void {
-  const selection = window.getSelection();
-  const range = document.createRange();
-  range.selectNodeContents(editable);
-  range.collapse(false);
-  selection?.removeAllRanges();
-  selection?.addRange(range);
-}
-
-/** Resolve once `selector` matches inside `root`, or with `null` on timeout. */
-function waitForElement<T extends Element>(
-  root: ParentNode,
-  selector: string,
-  timeoutMs: number,
-): Promise<T | null> {
-  const existing = root.querySelector<T>(selector);
-  if (existing) return Promise.resolve(existing);
-
-  return new Promise((resolve) => {
-    const timer = setTimeout(() => {
-      observer.disconnect();
-      resolve(null);
-    }, timeoutMs);
-
-    const observer = new MutationObserver(() => {
-      const found = root.querySelector<T>(selector);
-      if (found) {
-        clearTimeout(timer);
-        observer.disconnect();
-        resolve(found);
-      }
-    });
-
-    observer.observe(root === document ? document.body : (root as Node), {
-      childList: true,
-      subtree: true,
-    });
-  });
-}
-
-/** Metadata about the video the comments belong to, scraped from the page. */
-export interface VideoContext {
-  videoId: string;
-  title: string;
-  channel: string;
-}
-
-/**
  * Read video metadata off the watch page.
  *
  * Scraping beats the YouTube Data API here: no extra key, no quota, and we are
  * already sitting on the rendered page. Returns `null` outside a watch page.
  */
-export function readVideoContext(): VideoContext | null {
+function readVideoContext(): VideoContext | null {
   const videoId = new URL(location.href).searchParams.get('v');
   if (!videoId) return null;
 
@@ -287,7 +176,7 @@ const MAX_DESCRIPTION_CHARS = 1200;
  *
  * Returns `null` on a page where neither is readable.
  */
-export function readVideoDescription(videoId: string): string | null {
+function readVideoDescription(videoId: string): string | null {
   const description = readDescriptionFromInitialData(videoId) ?? readRenderedDescription();
   if (!description) return null;
 
@@ -331,3 +220,21 @@ function readRenderedDescription(): string | null {
 
   return text || null;
 }
+
+/**
+ * The watch page, as one object.
+ *
+ * `readVideoContext` ignores the toolbar it is handed: every comment on a watch
+ * page belongs to the same video, which is exactly what Studio's inbox cannot
+ * assume.
+ */
+export const watchSurface: CommentSurface = {
+  name: 'watch',
+  commentsContainer: COMMENTS_CONTAINER,
+  findUninjectedToolbars,
+  readComment,
+  readVideoContext: () => readVideoContext(),
+  readVideoDescription,
+  openReplyBox,
+  insertReplyText: typeIntoEditable,
+};
