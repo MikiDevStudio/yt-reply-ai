@@ -81,6 +81,8 @@ export async function* streamCompletion(
   const response = await postWithReasoning(options, body);
 
   const result: CompletionResult = { text: '' };
+  // Length at which the answer is next examined for having gone in circles.
+  let nextSanityCheck = DEGENERATE_MIN_LENGTH;
 
   for await (const chunk of readSse(response, options.signal)) {
     // A failure after the first byte arrives as a chunk, not an HTTP status —
@@ -99,6 +101,18 @@ export async function* streamCompletion(
     if (delta) {
       result.text += delta;
       yield delta;
+
+      // Checked while it streams rather than at the end, because the cost of a
+      // model stuck in a loop is paid per token: one free variant answered a
+      // three-sentence prompt with 32,829 tokens of `<pad>`, which on the
+      // default paid model would have been about a quarter of a dollar for
+      // nothing. Every 500 characters, so a normal reply is examined once.
+      if (result.text.length >= nextSanityCheck) {
+        if (isDegenerate(result.text)) {
+          throw new OpenRouterError('empty', 'The model repeated itself instead of answering');
+        }
+        nextSanityCheck = result.text.length + DEGENERATE_MIN_LENGTH;
+      }
     }
 
     if (chunk.usage) result.usage = normaliseUsage(chunk.usage);
@@ -114,6 +128,42 @@ export async function* streamCompletion(
   }
 
   return result;
+}
+
+/**
+ * Below this length nothing is judged: a reply is one to three sentences, and
+ * anything shorter than this cannot be long enough to have gone in circles.
+ */
+const DEGENERATE_MIN_LENGTH = 500;
+
+/** A run of special tokens — `<pad>`, `<unk>`, `<|endoftext|>` — and nothing else. */
+const SPECIAL_TOKEN_RUN = /^(?:<[^<>\s]{1,24}>\s*){20,}$/;
+
+/**
+ * Whether the model stopped writing and started repeating.
+ *
+ * Two failure modes, both observed rather than imagined: a model leaking its
+ * own padding token instead of text, and a model looping over a handful of
+ * words until it runs out of room. Neither is an answer, and both would
+ * otherwise arrive in the reply box looking like one.
+ *
+ * The measure is the share of distinct words, not their count: "thank you so
+ * much" repeated sixty times has four distinct words and is plainly broken,
+ * while a fixed ceiling low enough to catch it would be arbitrary. Below one
+ * word in seven being new, over at least fifty words, is nothing a person
+ * wrote — and the margin matters, because a false positive here throws away
+ * an answer the user paid for.
+ */
+export function isDegenerate(text: string): boolean {
+  const trimmed = text.trim();
+  if (trimmed.length < DEGENERATE_MIN_LENGTH) return false;
+
+  if (SPECIAL_TOKEN_RUN.test(trimmed)) return true;
+
+  const words = trimmed.split(/\s+/);
+  if (words.length < 50) return false;
+
+  return new Set(words).size / words.length < 0.15;
 }
 
 /**

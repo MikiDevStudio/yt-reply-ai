@@ -125,10 +125,11 @@ const COPY: Record<FailureKind, Failure> = {
   },
 
   empty: {
-    title: 'The model returned nothing',
+    title: 'The model did not write a reply',
     detail:
-      'Some models answer an empty message rather than say no. Another attempt often ' +
-      'works; a different model almost always does.',
+      'Some models answer with nothing at all, or repeat one token until they are ' +
+      'stopped, rather than say no. Another attempt often works; a different model ' +
+      'almost always does.',
     actions: [
       { kind: 'retry', label: 'Try again' },
       { kind: 'options', label: 'Change model', section: '/models' },

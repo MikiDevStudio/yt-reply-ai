@@ -79,10 +79,17 @@ export function useGeneration() {
             // Half an answer is still an answer worth editing, so a failure
             // after the first tokens keeps what arrived instead of clearing the
             // box and pretending the attempt produced nothing.
+            //
+            // Except when the text is the thing that failed: `empty` covers a
+            // model that returned nothing and one that repeated a token until
+            // it was stopped, and handing back a screen of `<pad>` under "the
+            // model returned nothing" would be worse than showing none of it.
+            const keepPartial = facts.kind !== 'empty';
+
             setState((current) => ({
               status: 'error',
               facts:
-                current.status === 'streaming' && current.text
+                keepPartial && current.status === 'streaming' && current.text
                   ? { ...facts, partial: current.text }
                   : facts,
             }));

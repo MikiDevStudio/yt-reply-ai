@@ -14,7 +14,7 @@ import { readFileSync } from 'node:fs';
 import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { describeFailure, type FailureKind } from '../lib/failure';
-import { fetchKeyInfo, fetchModels, streamCompletion } from '../lib/openrouter/client';
+import { fetchKeyInfo, fetchModels, isDegenerate, streamCompletion } from '../lib/openrouter/client';
 import { OpenRouterError, secondsUntilRetry } from '../lib/openrouter/errors';
 import { MODEL_PRESETS } from '../lib/models';
 
@@ -180,6 +180,25 @@ check(
   'the reset is read from the body, where a 429 actually carries it',
   account.retryAfterSeconds !== undefined && Math.abs(account.retryAfterSeconds - 45) <= 1,
   `${account.retryAfterSeconds}s`,
+);
+
+// The padding run is what google/gemma-4-26b-a4b-it:free answered a
+// three-sentence prompt with: 32,829 tokens of it, finish_reason "length".
+check('a run of padding tokens is not an answer', isDegenerate('<pad>'.repeat(200)));
+check(
+  'a looping model is not an answer',
+  isDegenerate('thank you so much '.repeat(60)),
+  'one phrase, sixty times',
+);
+check(
+  'a real reply is left alone',
+  !isDegenerate(
+    'Thanks for watching! The audio really was rough in that one — I recorded it on the ' +
+      'road with a borrowed mic, and by the time I noticed the hum it was too late to redo ' +
+      'the take. The next few are back on the usual setup, so it should sound like it used ' +
+      'to. Appreciate you sticking with it through the subtitles, and let me know if the ' +
+      'levels are any better in the latest one.',
+  ),
 );
 
 const midStream = OpenRouterError.fromStreamError({ code: 429, message: 'Rate limit exceeded' });
