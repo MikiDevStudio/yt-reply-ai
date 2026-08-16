@@ -1,5 +1,7 @@
-import { useEffect, useState } from 'react';
-import { type Response, sendRequest } from '@/lib/messaging';
+import { useEffect, useRef, useState } from 'react';
+import { FailureNotice } from '@/components/FailureNotice';
+import type { FailureFacts } from '@/lib/failure';
+import { failureOf, type Response, sendRequest } from '@/lib/messaging';
 import type { KeyInfo } from '@/lib/openrouter/types';
 import { Section } from '../Section';
 
@@ -15,7 +17,11 @@ export function Account() {
   const [manualKey, setManualKey] = useState('');
   const [showManual, setShowManual] = useState(false);
   const [busy, setBusy] = useState(false);
-  const [error, setError] = useState<string | null>(null);
+  const [failure, setFailure] = useState<FailureFacts | null>(null);
+
+  // What produced the failure on screen, so its retry button repeats that and
+  // not whatever was pressed last.
+  const lastAction = useRef<(() => Promise<Response<unknown>>) | null>(null);
 
   useEffect(() => {
     void refresh();
@@ -35,13 +41,14 @@ export function Account() {
   }
 
   async function run(action: () => Promise<Response<unknown>>) {
+    lastAction.current = action;
     setBusy(true);
-    setError(null);
+    setFailure(null);
 
     const result = await action();
     // Closing the consent window is a decision, not a failure worth an alert.
     if (!result.ok && result.kind !== 'aborted') {
-      setError(result.message ?? 'Something went wrong');
+      setFailure(failureOf(result));
     }
 
     await refresh();
@@ -61,7 +68,7 @@ export function Account() {
                 {usage.usage.toFixed(3)} credits used
                 {usage.limitRemaining !== null &&
                   ` · ${usage.limitRemaining.toFixed(3)} left on this key`}
-                {usage.isFreeTier && ' · free tier (50 requests/day)'}
+                {usage.isFreeTier && ' · no credits bought — free models capped at 50/day'}
               </span>
             )}
           </div>
@@ -125,10 +132,15 @@ export function Account() {
         </>
       )}
 
-      {error && (
-        <div role="alert" className="alert alert-error alert-soft text-sm">
-          {error}
-        </div>
+      {failure && (
+        <FailureNotice
+          facts={failure}
+          at="/account"
+          onRetry={() => {
+            const action = lastAction.current;
+            if (action) void run(action);
+          }}
+        />
       )}
     </Section>
   );

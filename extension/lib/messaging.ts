@@ -1,4 +1,4 @@
-import type { OpenRouterErrorKind } from './openrouter/errors';
+import type { FailureFacts, FailureKind, RateLimitFacts } from './failure';
 import type { TokenUsage } from './openrouter/types';
 import type { Audience, ContextLevel } from './settings';
 
@@ -77,12 +77,31 @@ export type GenerateClientMessage =
     }
   | { type: 'cancel' };
 
+/**
+ * A failure, as it crosses the boundary.
+ *
+ * The facts only — the background knows what happened and what the key's tier
+ * is, the UI decides what to say about it (`lib/failure.ts`). Sending finished
+ * prose instead would put user-facing copy in the service worker and leave the
+ * options page and the popover free to disagree about the same failure.
+ */
+export interface FailurePayload {
+  kind: FailureKind;
+  /** OpenRouter's own text, kept for the cases where it says more than we can. */
+  message: string;
+  retryAfterSeconds?: number;
+  /** Present on `rate_limited`, so the message can name the cap that was hit. */
+  rateLimit?: RateLimitFacts;
+  /** Present on `unauthorized`: false means no key was ever stored. */
+  hadKey?: boolean;
+}
+
 /** Background → content script, over the generate port. */
 export type GenerateServerMessage =
   | { type: 'delta'; text: string }
   /** `truncated` when the model stopped because it ran out of room, not because it finished. */
   | { type: 'done'; text: string; usage?: TokenUsage; truncated?: boolean }
-  | { type: 'error'; kind: OpenRouterErrorKind; message: string; retryAfterSeconds?: number };
+  | ({ type: 'error' } & FailurePayload);
 
 /** One-shot request/response pairs, sent with `chrome.runtime.sendMessage`. */
 export type Request =
@@ -96,7 +115,17 @@ export type Request =
   | { type: 'models:validate'; id: string }
   | { type: 'usage:get' }
   /** Rewrite a soul profile, or reshape one written for another tool. */
-  | { type: 'soul:improve'; markdown: string; mode: 'tighten' | 'import' };
+  | { type: 'soul:improve'; markdown: string; mode: 'tighten' | 'import' }
+  /**
+   * Open a tab, on behalf of a caller that cannot.
+   *
+   * A content script has no `browser.tabs` and no `runtime.openOptionsPage`, so
+   * every "Reconnect" or "Add credits" button in the injected popover has to
+   * come through here — the popover used to call `openOptionsPage` directly,
+   * which throws in a content script and left those buttons doing nothing.
+   */
+  | { type: 'ui:openOptions'; section: string }
+  | { type: 'ui:openUrl'; url: string };
 
 /**
  * Every one-shot reply is wrapped rather than thrown.
@@ -105,15 +134,21 @@ export type Request =
  * — the caller just sees `undefined` and has to guess. Making failure part of
  * the return type means the caller cannot ignore it by accident.
  */
-export type Response<T> =
-  | { ok: true; data: T }
-  | { ok: false; kind: OpenRouterErrorKind; message: string };
+export type Response<T> = { ok: true; data: T } | ({ ok: false } & FailurePayload);
+
+/** Strip the `ok` flag off a failed response, leaving what the UI describes. */
+export function failureOf(response: { ok: false } & FailurePayload): FailureFacts {
+  const { ok, ...facts } = response;
+  return facts;
+}
 
 export async function sendRequest<T>(request: Request): Promise<Response<T>> {
   try {
     return await browser.runtime.sendMessage(request);
   } catch {
     // Thrown when the service worker is gone or the extension was reloaded.
-    return { ok: false, kind: 'network', message: 'The extension is not responding' };
+    // Not a network failure: nothing was sent anywhere, so telling the user to
+    // check OpenRouter would send them looking in the wrong place.
+    return { ok: false, kind: 'interrupted', message: 'The extension is not responding' };
   }
 }

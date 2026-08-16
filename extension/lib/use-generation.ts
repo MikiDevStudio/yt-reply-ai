@@ -6,7 +6,7 @@ import {
   type GenerateServerMessage,
   type GenerationContext,
 } from '@/lib/messaging';
-import type { OpenRouterErrorKind } from '@/lib/openrouter/errors';
+import type { FailureFacts } from '@/lib/failure';
 import type { TokenUsage } from '@/lib/openrouter/types';
 
 /** Everything a `start` message carries besides the comment itself. */
@@ -19,12 +19,8 @@ export type GenerationState =
   | { status: 'idle' }
   | { status: 'streaming'; text: string }
   | { status: 'done'; text: string; usage?: TokenUsage; truncated?: boolean }
-  | {
-      status: 'error';
-      kind: OpenRouterErrorKind;
-      message: string;
-      retryAfterSeconds?: number;
-    };
+  /** `facts.partial` carries whatever streamed in before the failure. */
+  | { status: 'error'; facts: FailureFacts };
 
 /**
  * Drive one generation over a port to the background worker.
@@ -74,15 +70,21 @@ export function useGeneration() {
             });
             disconnect();
             break;
-          case 'error':
-            setState({
+          case 'error': {
+            const { type, ...facts } = message;
+            // Half an answer is still an answer worth editing, so a failure
+            // after the first tokens keeps what arrived instead of clearing the
+            // box and pretending the attempt produced nothing.
+            setState((current) => ({
               status: 'error',
-              kind: message.kind,
-              message: message.message,
-              retryAfterSeconds: message.retryAfterSeconds,
-            });
+              facts:
+                current.status === 'streaming' && current.text
+                  ? { ...facts, partial: current.text }
+                  : facts,
+            }));
             disconnect();
             break;
+          }
         }
       });
 
@@ -94,8 +96,10 @@ export function useGeneration() {
           current.status === 'streaming'
             ? {
                 status: 'error',
-                kind: 'network',
-                message: 'The extension stopped responding. Try again.',
+                facts: {
+                  kind: 'interrupted',
+                  ...(current.text ? { partial: current.text } : {}),
+                },
               }
             : current,
         );

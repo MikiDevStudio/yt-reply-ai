@@ -1,5 +1,7 @@
 import { useState } from 'react';
-import { sendRequest } from '@/lib/messaging';
+import { FailureNotice } from '@/components/FailureNotice';
+import type { FailureFacts } from '@/lib/failure';
+import { failureOf, sendRequest } from '@/lib/messaging';
 
 interface ImportProps {
   /** Replaces the whole profile with this text. */
@@ -18,11 +20,11 @@ interface ImportProps {
 export function Import({ onApply }: ImportProps) {
   const [text, setText] = useState('');
   const [busy, setBusy] = useState(false);
-  const [error, setError] = useState<string | null>(null);
+  const [failure, setFailure] = useState<FailureFacts | null>(null);
 
   async function convert() {
     setBusy(true);
-    setError(null);
+    setFailure(null);
 
     const result = await sendRequest<string>({
       type: 'soul:improve',
@@ -32,7 +34,7 @@ export function Import({ onApply }: ImportProps) {
 
     setBusy(false);
     if (!result.ok) {
-      setError(result.message);
+      setFailure(failureOf(result));
       return;
     }
 
@@ -50,11 +52,7 @@ export function Import({ onApply }: ImportProps) {
         onChange={(event) => setText(event.target.value)}
       />
 
-      {error && (
-        <div role="alert" className="alert alert-error alert-soft text-sm">
-          {error}
-        </div>
-      )}
+      {failure && <FailureNotice facts={failure} onRetry={() => void convert()} />}
 
       <div className="card-actions items-center justify-between">
         <span className="text-xs text-base-content/50">

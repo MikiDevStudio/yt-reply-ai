@@ -13,8 +13,9 @@
 import { readFileSync } from 'node:fs';
 import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
+import { describeFailure, type FailureKind } from '../lib/failure';
 import { fetchKeyInfo, fetchModels, streamCompletion } from '../lib/openrouter/client';
-import { OpenRouterError } from '../lib/openrouter/errors';
+import { OpenRouterError, secondsUntilRetry } from '../lib/openrouter/errors';
 import { MODEL_PRESETS } from '../lib/models';
 
 const root = join(dirname(fileURLToPath(import.meta.url)), '..', '..');
@@ -131,6 +132,87 @@ try {
   const kind = error instanceof OpenRouterError ? error.kind : 'not-an-OpenRouterError';
   check('abort surfaces as aborted', kind === 'aborted', `kind=${kind}`);
 }
+
+// 6. Failure mapping and copy — no network. A 429 or a mid-stream provider
+// error cannot be provoked on demand, so the paths that handle them are checked
+// against their inputs instead of waiting for the API to misbehave.
+const midStream = OpenRouterError.fromStreamError({ code: 429, message: 'Rate limit exceeded' });
+check('a 429 inside the stream keeps its kind', midStream.kind === 'rate_limited', midStream.kind);
+
+const codeless = OpenRouterError.fromStreamError({ message: 'provider went away' });
+check('a stream error with no code falls back to upstream', codeless.kind === 'upstream');
+
+check('retry-after is used as given', secondsUntilRetry(new Headers({ 'retry-after': '30' })) === 30);
+check(
+  'a reset in plain seconds is taken as a delay',
+  secondsUntilRetry(new Headers({ 'x-ratelimit-reset': '45' })) === 45,
+);
+
+const inTwoMinutes = secondsUntilRetry(
+  new Headers({ 'x-ratelimit-reset': String(Math.floor(Date.now() / 1000) + 120) }),
+);
+check(
+  'a reset as epoch seconds becomes a delay',
+  inTwoMinutes !== undefined && Math.abs(inTwoMinutes - 120) <= 1,
+  `${inTwoMinutes}s`,
+);
+
+const inOneMinute = secondsUntilRetry(
+  new Headers({ 'x-ratelimit-reset': String(Date.now() + 60_000) }),
+);
+check(
+  'a reset as epoch milliseconds becomes a delay',
+  inOneMinute !== undefined && Math.abs(inOneMinute - 60) <= 1,
+  `${inOneMinute}s`,
+);
+
+check(
+  'a reset already past is dropped rather than shown as a negative wait',
+  secondsUntilRetry(new Headers({ 'x-ratelimit-reset': String(Date.now() - 5_000) })) === undefined,
+);
+
+// The promise in #15 is that no failure reaches the user without a message and
+// something to press. TypeScript enforces the table being total; this enforces
+// the entries being useful.
+const KINDS: FailureKind[] = [
+  'unauthorized',
+  'no_credits',
+  'rate_limited',
+  'invalid_request',
+  'upstream',
+  'network',
+  'offline',
+  'empty',
+  'interrupted',
+];
+for (const kind of KINDS) {
+  const described = describeFailure({ kind });
+  check(
+    `${kind} has a message and a next step`,
+    described.title.length > 0 && described.actions.length > 0,
+  );
+}
+
+const dayCap = describeFailure({
+  kind: 'rate_limited',
+  rateLimit: { modelIsFree: true, hasPaid: false },
+  retryAfterSeconds: 90,
+});
+check(
+  'the free daily cap is named, with when it lifts',
+  Boolean(dayCap.detail?.includes('50 a day') && dayCap.detail.includes('2 min')),
+  dayCap.detail,
+);
+
+const paidModel = describeFailure({
+  kind: 'rate_limited',
+  rateLimit: { modelIsFree: false, hasPaid: true },
+});
+check(
+  'a paid model is not quoted the free-tier limits',
+  !paidModel.detail?.includes('20 requests'),
+  paidModel.detail,
+);
 
 console.log(`\n${failures === 0 ? 'All checks passed.' : `${failures} check(s) failed.`}`);
 process.exit(failures === 0 ? 0 : 1);

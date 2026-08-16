@@ -1,5 +1,6 @@
 import { useCallback, useRef, useState } from 'react';
-import { sendRequest } from '@/lib/messaging';
+import type { FailureFacts } from '@/lib/failure';
+import { failureOf, sendRequest } from '@/lib/messaging';
 import type { ModelCatalogue, ModelInfo } from '@/lib/openrouter/types';
 import { MODEL_PRESETS } from '@/lib/models';
 
@@ -51,8 +52,10 @@ export function repliesPerDollar(info: ModelInfo): number | null {
 /** The right-hand column of a row in the list. Fits on one line or is dropped. */
 export function priceHint(info: ModelInfo): string {
   // "Infinite replies per $1" is a joke, not a figure. The cap is the real
-  // limit on a free variant, so quote that instead.
-  if (info.isFree) return 'free · 50/day';
+  // limit on a free variant, so quote that instead. The per-minute one is the
+  // only figure that holds for every account — the daily cap is 50 or 1,000
+  // depending on whether credits were ever bought.
+  if (info.isFree) return 'free · 20 req/min';
 
   const perDollar = repliesPerDollar(info);
   if (perDollar !== null) return `≈${perDollar.toLocaleString('en-US')} replies per $1`;
@@ -65,7 +68,10 @@ export function describe(info: ModelInfo): string {
   const context = `${contextLabel(info.contextLength)} context`;
 
   if (info.isFree) {
-    return `${context} · free variant — 20 requests/min, 50/day.`;
+    return (
+      `${context} · free variant — 20 requests a minute, and 50 a day until the account has ` +
+      'bought $10 of credits, 1,000 after that.'
+    );
   }
 
   const prices = `$${perMillion(info.promptPrice)} / $${perMillion(info.completionPrice)} per M tokens`;
@@ -101,7 +107,8 @@ function contextLabel(tokens: number): string {
 export interface Catalogue {
   snapshot: ModelCatalogue | null;
   loading: boolean;
-  error: string | null;
+  /** Why the last fetch failed, in the shape `FailureNotice` renders. */
+  failure: FailureFacts | null;
   /** Fetch once, the first time the list is opened. Later calls do nothing. */
   load: () => void;
   /** Go and ask again, on the user's say-so. */
@@ -119,19 +126,19 @@ export interface Catalogue {
 export function useCatalogue(): Catalogue {
   const [snapshot, setSnapshot] = useState<ModelCatalogue | null>(null);
   const [loading, setLoading] = useState(false);
-  const [error, setError] = useState<string | null>(null);
+  const [failure, setFailure] = useState<FailureFacts | null>(null);
   const asked = useRef(false);
 
   const fetchList = useCallback(async (refresh: boolean) => {
     asked.current = true;
     setLoading(true);
-    setError(null);
+    setFailure(null);
 
     const result = await sendRequest<ModelCatalogue>({ type: 'models:list', refresh });
 
     setLoading(false);
     if (result.ok) setSnapshot(result.data);
-    else setError(result.message);
+    else setFailure(failureOf(result));
   }, []);
 
   const load = useCallback(() => {
@@ -141,7 +148,7 @@ export function useCatalogue(): Catalogue {
 
   const refresh = useCallback(() => void fetchList(true), [fetchList]);
 
-  return { snapshot, loading, error, load, refresh };
+  return { snapshot, loading, failure, load, refresh };
 }
 
 /** "16 Aug", the way a person writes a date they only need to recognise. */

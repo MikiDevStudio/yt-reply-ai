@@ -73,10 +73,7 @@ export async function* streamCompletion(
     // the headers already said 200. Without this branch the stream would just
     // end early and look like a successful short answer.
     if (chunk.error) {
-      throw new OpenRouterError(
-        'upstream',
-        chunk.error.message ?? 'The model provider failed mid-response',
-      );
+      throw OpenRouterError.fromStreamError(chunk.error);
     }
 
     result.generationId ??= chunk.id;
@@ -233,11 +230,11 @@ async function getPublic(path: string, signal?: AbortSignal): Promise<any> {
     response = await fetch(`${API_BASE}${path}`, { headers: APP_HEADERS, signal });
   } catch (error) {
     if (isAbort(error)) throw new OpenRouterError('aborted', 'Cancelled');
-    throw new OpenRouterError('network', 'Could not reach OpenRouter');
+    throw connectionFailure('Could not reach OpenRouter');
   }
 
   if (!response.ok) {
-    throw OpenRouterError.fromResponse(response.status, await response.text());
+    throw OpenRouterError.fromResponse(response.status, await response.text(), response.headers);
   }
 
   return response.json();
@@ -289,18 +286,28 @@ async function request(
     });
   } catch (error) {
     if (isAbort(error)) throw new OpenRouterError('aborted', 'Cancelled');
-    throw new OpenRouterError('network', 'Could not reach OpenRouter');
+    throw connectionFailure('Could not reach OpenRouter');
   }
 
   if (!response.ok) {
-    throw OpenRouterError.fromResponse(
-      response.status,
-      await response.text(),
-      response.headers.get('retry-after') ?? undefined,
-    );
+    throw OpenRouterError.fromResponse(response.status, await response.text(), response.headers);
   }
 
   return response;
+}
+
+/**
+ * Tell "this machine has no network" apart from "OpenRouter did not answer".
+ *
+ * `navigator.onLine` is only trustworthy in one direction: `true` means there is
+ * a network interface, not that anything is reachable, but `false` means the
+ * browser knows there is nothing to reach. Only that direction is used.
+ */
+function connectionFailure(message: string): OpenRouterError {
+  if (typeof navigator !== 'undefined' && navigator.onLine === false) {
+    return new OpenRouterError('offline', 'No internet connection');
+  }
+  return new OpenRouterError('network', message);
 }
 
 /**
@@ -349,7 +356,7 @@ async function* readSse(response: Response, signal?: AbortSignal): AsyncGenerato
     }
   } catch (error) {
     if (isAbort(error) || signal?.aborted) throw new OpenRouterError('aborted', 'Cancelled');
-    throw new OpenRouterError('network', 'The connection dropped mid-response');
+    throw connectionFailure('The connection dropped mid-response');
   } finally {
     reader.cancel().catch(() => {
       // Already closed; nothing to release.

@@ -1,5 +1,7 @@
 import { useState } from 'react';
-import { sendRequest } from '@/lib/messaging';
+import { FailureNotice } from '@/components/FailureNotice';
+import type { FailureFacts } from '@/lib/failure';
+import { failureOf, sendRequest } from '@/lib/messaging';
 
 interface EditorProps {
   /** The saved markdown. */
@@ -18,14 +20,14 @@ interface EditorProps {
  */
 export function Editor({ markdown, draft, onDraftChange, onSave }: EditorProps) {
   const [busy, setBusy] = useState(false);
-  const [error, setError] = useState<string | null>(null);
+  const [failure, setFailure] = useState<FailureFacts | null>(null);
   const [before, setBefore] = useState<string | null>(null);
 
   const dirty = draft !== markdown;
 
   async function improve() {
     setBusy(true);
-    setError(null);
+    setFailure(null);
 
     const result = await sendRequest<string>({
       type: 'soul:improve',
@@ -35,7 +37,7 @@ export function Editor({ markdown, draft, onDraftChange, onSave }: EditorProps) 
 
     setBusy(false);
     if (!result.ok) {
-      setError(result.message);
+      setFailure(failureOf(result));
       return;
     }
 
@@ -56,11 +58,7 @@ export function Editor({ markdown, draft, onDraftChange, onSave }: EditorProps) 
         onBlur={() => dirty && onSave()}
       />
 
-      {error && (
-        <div role="alert" className="alert alert-error alert-soft text-sm">
-          {error}
-        </div>
-      )}
+      {failure && <FailureNotice facts={failure} onRetry={() => void improve()} />}
 
       <div className="card-actions items-center justify-between">
         <span className="text-xs text-base-content/50">

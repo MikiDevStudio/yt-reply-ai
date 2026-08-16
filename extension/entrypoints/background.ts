@@ -1,5 +1,6 @@
 import type { Browser } from '#imports';
 import {
+  type FailurePayload,
   GENERATE_PORT,
   type GenerateClientMessage,
   type GenerateServerMessage,
@@ -75,7 +76,10 @@ async function generate(
     post(port, {
       type: 'error',
       kind: 'unauthorized',
-      message: 'Connect your OpenRouter account first',
+      message: 'No OpenRouter key is stored',
+      // Never connected, as opposed to a key OpenRouter has since rejected.
+      // The two need different words, and only this side can tell them apart.
+      hadKey: false,
     });
     return;
   }
@@ -133,17 +137,11 @@ async function generate(
       truncated: next.value.finishReason === 'length',
     });
   } catch (error) {
-    const failure = asOpenRouterError(error);
     // A cancelled generation is a choice, not a failure. The port is usually
     // already gone by this point anyway.
-    if (failure.kind === 'aborted') return;
+    if (asOpenRouterError(error).kind === 'aborted') return;
 
-    post(port, {
-      type: 'error',
-      kind: failure.kind,
-      message: failure.message,
-      retryAfterSeconds: failure.retryAfterSeconds,
-    });
+    post(port, { type: 'error', ...(await describeFor(error, model)) });
   }
 }
 
@@ -220,14 +218,13 @@ function handleMessage(
 ): boolean {
   respond(request)
     .then(sendResponse)
-    .catch((error) => {
+    .catch(async (error) => {
       // Logged as well as returned: the message that reaches the UI is written
       // for a user, and this console is the only place a stack survives when
       // something fails on a machine we cannot open a devtools window on.
       console.warn('[reply-ai]', request.type, 'failed', error);
 
-      const failure = asOpenRouterError(error);
-      sendResponse({ ok: false, kind: failure.kind, message: failure.message });
+      sendResponse({ ok: false, ...(await describeFor(error)) });
     });
   return true;
 }
@@ -275,8 +272,23 @@ async function respond(request: Request): Promise<Response<unknown>> {
 
     case 'usage:get': {
       const key = await settings.apiKey.getValue();
-      if (!key) return { ok: false, kind: 'unauthorized', message: 'Not connected' };
+      if (!key) {
+        return { ok: false, kind: 'unauthorized', message: 'No key stored', hadKey: false };
+      }
       return { ok: true, data: await fetchKeyInfo(key) };
+    }
+
+    case 'ui:openOptions': {
+      // `openOptionsPage` would do, but a tab keyed to a section does not, and
+      // every caller here wants to land on a particular one.
+      const url = browser.runtime.getURL(`/options.html#${request.section}`);
+      await browser.tabs.create({ url });
+      return { ok: true, data: null };
+    }
+
+    case 'ui:openUrl': {
+      await browser.tabs.create({ url: request.url });
+      return { ok: true, data: null };
     }
 
     case 'soul:improve': {
@@ -285,7 +297,7 @@ async function respond(request: Request): Promise<Response<unknown>> {
         settings.model.getValue(),
       ]);
       if (!key) {
-        return { ok: false, kind: 'unauthorized', message: 'Connect your OpenRouter account first' };
+        return { ok: false, kind: 'unauthorized', message: 'No key stored', hadKey: false };
       }
 
       // Streamed and then assembled: one editor-sized answer has nothing to
@@ -320,4 +332,67 @@ function asOpenRouterError(error: unknown): OpenRouterError {
     'upstream',
     error instanceof Error ? error.message : 'Unexpected failure',
   );
+}
+
+/**
+ * Gather the facts about a failure that only this side knows.
+ *
+ * The wording is not decided here — that is `lib/failure.ts`, on the UI side.
+ * What the UI cannot work out for itself is whether a key was ever stored, and
+ * which of OpenRouter's rate limits applies, which takes both the model's price
+ * and the account's paying history.
+ */
+async function describeFor(error: unknown, model?: string): Promise<FailurePayload> {
+  const failure = asOpenRouterError(error);
+  const payload: FailurePayload = {
+    kind: failure.kind,
+    message: failure.message,
+    retryAfterSeconds: failure.retryAfterSeconds,
+  };
+
+  if (failure.kind === 'unauthorized') {
+    payload.hadKey = Boolean(await settings.apiKey.getValue());
+  }
+
+  if (failure.kind === 'rate_limited') {
+    payload.rateLimit = {
+      modelIsFree: await isFreeModel(model ?? (await settings.model.getValue())),
+      hasPaid: await hasEverPaid(),
+    };
+  }
+
+  return payload;
+}
+
+/** Free variants are the ones OpenRouter's per-day cap applies to. */
+async function isFreeModel(id: string): Promise<boolean> {
+  const [custom, catalogue] = await Promise.all([
+    settings.customModel.getValue(),
+    settings.modelCatalogue.getValue(),
+  ]);
+
+  const known = custom?.id === id ? custom : catalogue?.models.find((entry) => entry.id === id);
+  // `:free` is OpenRouter's own naming for those variants, and is the best
+  // available answer when the catalogue has never been fetched.
+  return known ? known.isFree : id.endsWith(':free');
+}
+
+/**
+ * Whether the account has ever bought credits — the fact that decides between
+ * the 50 and the 1000 request daily cap.
+ *
+ * One extra request, made only after a 429 has already happened, so it costs
+ * nothing on the path that works. `null` when it cannot be answered: the
+ * message then names both caps rather than asserting the wrong one.
+ */
+async function hasEverPaid(): Promise<boolean | null> {
+  const key = await settings.apiKey.getValue();
+  if (!key) return null;
+
+  try {
+    const info = await fetchKeyInfo(key);
+    return !info.isFreeTier;
+  } catch {
+    return null;
+  }
 }

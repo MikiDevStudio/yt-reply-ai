@@ -9,6 +9,7 @@ import {
   X,
 } from 'lucide-react';
 import { useEffect, useRef, useState } from 'react';
+import { FailureNotice } from '@/components/FailureNotice';
 import { detectLanguage } from '@/lib/language';
 import type { GenerationContext } from '@/lib/messaging';
 import { angleFor, CREATIVITY, STYLES } from '@/lib/prompt';
@@ -170,9 +171,12 @@ export function ReplyPopover({
 
   const busy = state.status === 'streaming';
   const shown = attempts[cursor];
+  const failure = state.status === 'error' ? state.facts : null;
   // While streaming, the live text wins over the stack; the new attempt joins it
-  // only once it is complete.
-  const text = busy ? state.text : (shown?.text ?? '');
+  // only once it is complete. A failed attempt that got partway leaves its text
+  // here too — it is the most recent thing the user asked for, and it is often
+  // close enough to edit into a reply.
+  const text = busy ? state.text : (failure?.partial ?? shown?.text ?? '');
 
   const show = (index: number) => {
     setCursor(index);
@@ -364,14 +368,9 @@ export function ReplyPopover({
           onChange={(event) => changeNote(event.target.value)}
         />
 
-        {state.status === 'error' ? (
-          <ErrorNotice
-            kind={state.kind}
-            message={state.message}
-            retryAfterSeconds={state.retryAfterSeconds}
-            onRetry={() => start()}
-          />
-        ) : (
+        {/* The box is dropped only when a failure left nothing to look at —
+            an empty frame above the message would be furniture. */}
+        {(text || !failure) && (
           <div
             ref={streamRef}
             className="max-h-56 min-h-20 overflow-y-auto whitespace-pre-wrap rounded-box border border-base-300 p-3 text-sm"
@@ -387,6 +386,8 @@ export function ReplyPopover({
               ))}
           </div>
         )}
+
+        {failure && <FailureNotice facts={failure} onRetry={() => start()} />}
 
         <div className="card-actions items-center justify-between">
           <div className="flex items-center gap-2">
@@ -536,49 +537,3 @@ function Creativity({ level, disabled, onChange }: CreativityProps) {
   );
 }
 
-interface ErrorNoticeProps {
-  kind: string;
-  message: string;
-  retryAfterSeconds?: number;
-  onRetry: () => void;
-}
-
-/**
- * Each failure gets its own next action. A generic "try again" would be a lie
- * for most of these — retrying an unauthorised request never helps.
- */
-function ErrorNotice({ kind, message, retryAfterSeconds, onRetry }: ErrorNoticeProps) {
-  const openSettings = () => void browser.runtime.openOptionsPage();
-
-  return (
-    <div role="alert" className="alert alert-error alert-soft flex-col items-start gap-2 text-sm">
-      <span>{message}</span>
-
-      {kind === 'unauthorized' && (
-        <button type="button" className="btn btn-sm text-sm" onClick={openSettings}>
-          Connect OpenRouter
-        </button>
-      )}
-
-      {kind === 'no_credits' && (
-        <button type="button" className="btn btn-sm text-sm" onClick={openSettings}>
-          Switch to a free model
-        </button>
-      )}
-
-      {kind === 'rate_limited' && (
-        <span className="text-sm opacity-70">
-          {retryAfterSeconds
-            ? `Try again in ${retryAfterSeconds}s.`
-            : 'Free models allow 20 requests per minute and 50 per day.'}
-        </span>
-      )}
-
-      {(kind === 'upstream' || kind === 'network' || kind === 'empty') && (
-        <button type="button" className="btn btn-sm text-sm" onClick={onRetry}>
-          Try again
-        </button>
-      )}
-    </div>
-  );
-}

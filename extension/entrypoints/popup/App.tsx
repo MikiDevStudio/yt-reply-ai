@@ -1,5 +1,7 @@
 import { useEffect, useState } from 'react';
-import { sendRequest } from '@/lib/messaging';
+import { FailureNotice } from '@/components/FailureNotice';
+import type { FailureFacts } from '@/lib/failure';
+import { failureOf, sendRequest } from '@/lib/messaging';
 import type { KeyInfo } from '@/lib/openrouter/types';
 import { enabled as enabledSetting, model as modelSetting, soul as soulSetting } from '@/lib/settings';
 import { useSetting } from '@/lib/use-setting';
@@ -14,9 +16,20 @@ import { useSetting } from '@/lib/use-setting';
 export function App() {
   const [connected, setConnected] = useState<boolean | null>(null);
   const [usage, setUsage] = useState<KeyInfo | null>(null);
+  const [usageFailure, setUsageFailure] = useState<FailureFacts | null>(null);
   const [model, setModel] = useState('');
   const [hasSoul, setHasSoul] = useState<boolean | null>(null);
   const [on, setOn] = useSetting(enabledSetting);
+
+  // A key that cannot be read is a key that will not generate either, so the
+  // reason is shown here rather than swallowed — this panel is where someone
+  // looks first when replies stop working.
+  async function loadUsage() {
+    setUsageFailure(null);
+    const info = await sendRequest<KeyInfo>({ type: 'usage:get' });
+    if (info.ok) setUsage(info.data);
+    else setUsageFailure(failureOf(info));
+  }
 
   useEffect(() => {
     void (async () => {
@@ -27,10 +40,7 @@ export function App() {
       setModel(await modelSetting.getValue());
       setHasSoul((await soulSetting.getValue()).trim().length > 0);
 
-      if (isConnected) {
-        const info = await sendRequest<KeyInfo>({ type: 'usage:get' });
-        if (info.ok) setUsage(info.data);
-      }
+      if (isConnected) await loadUsage();
     })();
   }, []);
 
@@ -96,12 +106,16 @@ export function App() {
               )}
               {usage.isFreeTier && (
                 <p className="text-xs text-base-content/50">
-                  Free tier — 20 requests per minute, 50 per day.
+                  No credits bought yet — free models allow 20 requests a minute and 50 a day.
                 </p>
               )}
             </>
           )}
         </dl>
+      )}
+
+      {connected && usageFailure && (
+        <FailureNotice facts={usageFailure} onRetry={() => void loadUsage()} />
       )}
 
       <button

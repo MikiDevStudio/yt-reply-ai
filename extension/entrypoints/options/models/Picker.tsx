@@ -1,6 +1,8 @@
 import { Check, ChevronDown, RotateCw, Search } from 'lucide-react';
 import { useEffect, useMemo, useRef, useState } from 'react';
-import { sendRequest } from '@/lib/messaging';
+import { FailureNotice } from '@/components/FailureNotice';
+import type { FailureFacts } from '@/lib/failure';
+import { failureOf, sendRequest } from '@/lib/messaging';
 import type { ModelInfo } from '@/lib/openrouter/types';
 import {
   describe,
@@ -52,14 +54,14 @@ interface PickerProps {
 }
 
 export function Picker({ selected, custom, onPreset, onModel }: PickerProps) {
-  const { snapshot, loading, error, load, refresh } = useCatalogue();
+  const { snapshot, loading, failure, load, refresh } = useCatalogue();
 
   const [open, setOpen] = useState(false);
   const [query, setQuery] = useState('');
   const [highlight, setHighlight] = useState(0);
   /** An id being checked against the catalogue, from the `use-anyway` row. */
   const [checking, setChecking] = useState(false);
-  const [pickError, setPickError] = useState<string | null>(null);
+  const [pickFailure, setPickFailure] = useState<FailureFacts | null>(null);
 
   const container = useRef<HTMLDivElement>(null);
   const search = useRef<HTMLInputElement>(null);
@@ -139,11 +141,11 @@ export function Picker({ selected, custom, onPreset, onModel }: PickerProps) {
   function close() {
     setOpen(false);
     setQuery('');
-    setPickError(null);
+    setPickFailure(null);
   }
 
   async function choose(row: Row) {
-    setPickError(null);
+    setPickFailure(null);
 
     if (row.kind === 'preset') {
       onPreset(row.id);
@@ -164,7 +166,7 @@ export function Picker({ selected, custom, onPreset, onModel }: PickerProps) {
     setChecking(false);
 
     if (!result.ok) {
-      setPickError(result.message);
+      setPickFailure(failureOf(result));
       return;
     }
 
@@ -280,14 +282,9 @@ export function Picker({ selected, custom, onPreset, onModel }: PickerProps) {
               </p>
             )}
 
-            {error && !snapshot && (
+            {failure && !snapshot && (
               <div className="px-3 py-3">
-                <div role="alert" className="alert alert-error alert-soft text-sm">
-                  <span>{error}</span>
-                  <button type="button" className="btn btn-xs" onClick={() => refresh()}>
-                    Retry
-                  </button>
-                </div>
+                <FailureNotice facts={failure} onRetry={() => refresh()} at="/models" />
                 <p className="pt-2 text-xs text-base-content/50">
                   The models above still work — they need no catalogue.
                 </p>
@@ -342,10 +339,10 @@ export function Picker({ selected, custom, onPreset, onModel }: PickerProps) {
             )}
           </div>
 
-          {pickError && (
-            <p role="alert" className="border-t border-base-300 px-3 py-2 text-sm text-error">
-              {pickError}
-            </p>
+          {pickFailure && (
+            <div className="border-t border-base-300 p-3">
+              <FailureNotice facts={pickFailure} at="/models" />
+            </div>
           )}
         </div>
       )}

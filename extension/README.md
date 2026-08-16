@@ -32,3 +32,21 @@ prefix stable for provider-side caching.
 Everything is scraped from the rendered page. There is no YouTube Data API key
 and no quota to run out of; the cost is that `entrypoints/content/youtube-dom.ts`
 depends on YouTube's DOM, which is why every selector lives in that one file.
+
+## Failure states
+
+Every failure carries a message written for the user and at least one thing to
+press. The rule is enforced by shape rather than by review: `lib/failure.ts`
+maps each kind to its copy through a `Record<FailureKind, Failure>`, so a new
+kind does not compile until someone decides what it says and what it offers.
+
+The split is deliberate. The background worker sends facts — the kind, whatever
+OpenRouter said, whether a key was stored, which rate limit applies — and the UI
+turns them into words, so the popover, the popup and the settings page cannot
+drift apart on the same 402. `components/FailureNotice.tsx` renders them all.
+
+Two facts only the worker can supply, both gathered when the failure happens
+rather than in advance: whether the model in use is a free variant, and whether
+the account has ever bought credits (`is_free_tier` from `GET /key`). Together
+they decide which of OpenRouter's caps to name — 20 requests a minute always,
+plus 50 a day below $10 of lifetime credit and 1,000 at or above it.
