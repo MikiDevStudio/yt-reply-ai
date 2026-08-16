@@ -62,60 +62,67 @@ export function FailureNotice({ facts, onRetry, at, className = '' }: FailureNot
   }
 
   return (
-    <div
-      role="alert"
-      className={`alert alert-error alert-soft flex-col items-start gap-2 text-left text-sm ${className}`}
-    >
-      <span className="font-medium">{failure.title}</span>
+    // The stack lives in an inner div rather than on the alert itself: daisyUI
+    // makes `.alert` a grid, `flex-col` only sets a direction, and the two lines
+    // ran together into "…rejected the keyIt was revoked…".
+    <div role="alert" className={`alert alert-error alert-soft text-sm ${className}`}>
+      <div className="flex flex-col items-start gap-2 text-left">
+        <span className="font-medium">{failure.title}</span>
 
-      {failure.detail && <span className="opacity-80">{failure.detail}</span>}
+        {failure.detail && <span className="opacity-80">{failure.detail}</span>}
 
-      {/* OpenRouter's own words, kept quiet: useful when reporting a problem,
-          never the first thing to read. */}
-      {failure.raw && <span className="text-xs opacity-60">{failure.raw}</span>}
+        {/* OpenRouter's own words, kept quiet: useful when reporting a problem,
+            never the first thing to read. */}
+        {failure.raw && <span className="text-xs opacity-60">{failure.raw}</span>}
 
-      {actions.length > 0 && (
-        <div className="flex flex-wrap gap-2">
-          {actions.map((action) => {
-            if (action.kind === 'retry') {
-              return onRetry ? (
-                <button key="retry" type="button" className="btn btn-sm text-sm" onClick={onRetry}>
-                  {action.label}
-                </button>
-              ) : null;
-            }
+        {actions.length > 0 && (
+          <div className="flex flex-wrap gap-2">
+            {actions.map((action) => {
+              if (action.kind === 'retry') {
+                return onRetry ? (
+                  <button
+                    key="retry"
+                    type="button"
+                    className="btn btn-sm text-sm"
+                    onClick={onRetry}
+                  >
+                    {action.label}
+                  </button>
+                ) : null;
+              }
 
-            if (action.kind === 'free-model') {
+              if (action.kind === 'free-model') {
+                return (
+                  <button
+                    key="free-model"
+                    type="button"
+                    className="btn btn-sm text-sm"
+                    onClick={() => void useFreeModel()}
+                  >
+                    {action.label}
+                  </button>
+                );
+              }
+
+              const open =
+                action.kind === 'options'
+                  ? () => openOptions(action.section)
+                  : () => void sendRequest({ type: 'ui:openUrl', url: action.url });
+
               return (
                 <button
-                  key="free-model"
+                  key={action.label}
                   type="button"
                   className="btn btn-sm text-sm"
-                  onClick={() => void useFreeModel()}
+                  onClick={open}
                 >
                   {action.label}
                 </button>
               );
-            }
-
-            const open =
-              action.kind === 'options'
-                ? () => openOptions(action.section)
-                : () => void sendRequest({ type: 'ui:openUrl', url: action.url });
-
-            return (
-              <button
-                key={action.label}
-                type="button"
-                className="btn btn-sm text-sm"
-                onClick={open}
-              >
-                {action.label}
-              </button>
-            );
-          })}
-        </div>
-      )}
+            })}
+          </div>
+        )}
+      </div>
     </div>
   );
 }

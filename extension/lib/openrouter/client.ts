@@ -4,6 +4,16 @@ import type { ChatMessage, CompletionResult, KeyInfo, ModelInfo, TokenUsage } fr
 export const API_BASE = 'https://openrouter.ai/api/v1';
 
 /**
+ * What we call ourselves to OpenRouter.
+ *
+ * Used in two places that must agree: the request headers below and the label
+ * on the key minted by the OAuth flow. Left unset, that label reads "An app" on
+ * the consent screen and in the user's key list, which tells them nothing about
+ * what they are approving.
+ */
+export const APP_NAME = 'Reply AI for YouTube';
+
+/**
  * App identity, sent on every request.
  *
  * Besides being polite, these headers list the extension in OpenRouter's public
@@ -11,7 +21,7 @@ export const API_BASE = 'https://openrouter.ai/api/v1';
  */
 const APP_HEADERS = {
   'HTTP-Referer': 'https://github.com/MikiDevStudio/yt-reply-ai',
-  'X-Title': 'Reply AI for YouTube',
+  'X-Title': APP_NAME,
 };
 
 export interface CompletionOptions {

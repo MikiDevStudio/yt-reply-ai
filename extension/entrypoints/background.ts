@@ -355,9 +355,14 @@ async function describeFor(error: unknown, model?: string): Promise<FailurePaylo
   }
 
   if (failure.kind === 'rate_limited') {
+    const source = failure.limitSource ?? 'unknown';
     payload.rateLimit = {
       modelIsFree: await isFreeModel(model ?? (await settings.model.getValue())),
-      hasPaid: await hasEverPaid(),
+      // Which daily cap applies is only worth a request when the daily cap is
+      // what refused. Asking on a per-minute or an upstream limit would spend a
+      // round trip to print a number that has nothing to do with the failure.
+      hasPaid: source === 'per-day' || source === 'unknown' ? await hasEverPaid() : null,
+      source,
     };
   }
 

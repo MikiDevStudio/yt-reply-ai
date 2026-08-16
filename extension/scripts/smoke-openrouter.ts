@@ -71,8 +71,12 @@ console.log();
 // 3. Streaming — the interesting one. Verifies that comment lines and the
 // [DONE] sentinel are handled, deltas arrive incrementally, and usage lands in
 // the final chunk when `usage: { include: true }` is sent.
-const model = free[0]?.id ?? models[0]?.id;
-if (!model) throw new Error('No models available to test against');
+//
+// Through our own free preset rather than whatever the catalogue lists first:
+// that id is what a user without credits is handed, and a free variant can be
+// throttled upstream to the point of answering nothing at all. When this fails
+// with `rate_limited`, the preset needs replacing.
+const model = MODEL_PRESETS.free;
 console.log(`  Streaming from ${model}...`);
 
 const stream = streamCompletion({
@@ -133,15 +137,59 @@ try {
   check('abort surfaces as aborted', kind === 'aborted', `kind=${kind}`);
 }
 
-// 6. Failure mapping and copy — no network. A 429 or a mid-stream provider
-// error cannot be provoked on demand, so the paths that handle them are checked
-// against their inputs instead of waiting for the API to misbehave.
+// 6. Failure mapping and copy. A 429 cannot be provoked politely — the account
+// limit takes 20 requests in a minute to reach — so the two shapes below are
+// bodies captured from the live API, replayed through the same parser. The
+// timestamps are refreshed so the "try again in" arithmetic stays checkable.
+const providerLimit = JSON.stringify({
+  error: {
+    message: 'Provider returned error',
+    code: 429,
+    metadata: {
+      raw: 'google/gemma-4-31b-it:free is temporarily rate-limited upstream.',
+      provider_name: 'Google AI Studio',
+      is_byok: false,
+      provider_error_code: '429',
+      limit_source: 'upstream_provider_shared_pool',
+    },
+  },
+});
+
+const accountLimit = JSON.stringify({
+  error: {
+    message: 'Rate limit exceeded: free-models-per-min. ',
+    code: 429,
+    metadata: {
+      headers: {
+        'X-RateLimit-Limit': '20',
+        'X-RateLimit-Remaining': '0',
+        'X-RateLimit-Reset': String(Date.now() + 45_000),
+      },
+      limit_source: 'openrouter_free_tier_per_minute',
+      provider_name: null,
+    },
+  },
+});
+
+const upstream = OpenRouterError.fromResponse(429, providerLimit);
+check('an upstream 429 is recognised as the provider’s', upstream.limitSource === 'provider');
+
+const account = OpenRouterError.fromResponse(429, accountLimit);
+check('an account 429 is recognised as the per-minute cap', account.limitSource === 'per-minute');
+check(
+  'the reset is read from the body, where a 429 actually carries it',
+  account.retryAfterSeconds !== undefined && Math.abs(account.retryAfterSeconds - 45) <= 1,
+  `${account.retryAfterSeconds}s`,
+);
+
 const midStream = OpenRouterError.fromStreamError({ code: 429, message: 'Rate limit exceeded' });
 check('a 429 inside the stream keeps its kind', midStream.kind === 'rate_limited', midStream.kind);
 
 const codeless = OpenRouterError.fromStreamError({ message: 'provider went away' });
 check('a stream error with no code falls back to upstream', codeless.kind === 'upstream');
 
+// The HTTP headers are the fallback path: the API sent none on a real 429, but
+// the reference documents them and a gateway in front may add them back.
 check('retry-after is used as given', secondsUntilRetry(new Headers({ 'retry-after': '30' })) === 30);
 check(
   'a reset in plain seconds is taken as a delay',
@@ -155,15 +203,6 @@ check(
   'a reset as epoch seconds becomes a delay',
   inTwoMinutes !== undefined && Math.abs(inTwoMinutes - 120) <= 1,
   `${inTwoMinutes}s`,
-);
-
-const inOneMinute = secondsUntilRetry(
-  new Headers({ 'x-ratelimit-reset': String(Date.now() + 60_000) }),
-);
-check(
-  'a reset as epoch milliseconds becomes a delay',
-  inOneMinute !== undefined && Math.abs(inOneMinute - 60) <= 1,
-  `${inOneMinute}s`,
 );
 
 check(
@@ -195,7 +234,7 @@ for (const kind of KINDS) {
 
 const dayCap = describeFailure({
   kind: 'rate_limited',
-  rateLimit: { modelIsFree: true, hasPaid: false },
+  rateLimit: { modelIsFree: true, hasPaid: false, source: 'per-day' },
   retryAfterSeconds: 90,
 });
 check(
@@ -204,14 +243,28 @@ check(
   dayCap.detail,
 );
 
-const paidModel = describeFailure({
+// The failure that started this: a model refusing from the shared pool used to
+// be reported as the account's own limit, which sent the user off to wait out a
+// day that had nothing to do with it.
+const throttled = describeFailure({
   kind: 'rate_limited',
-  rateLimit: { modelIsFree: false, hasPaid: true },
+  rateLimit: { modelIsFree: true, hasPaid: null, source: 'provider' },
 });
 check(
-  'a paid model is not quoted the free-tier limits',
-  !paidModel.detail?.includes('20 requests'),
-  paidModel.detail,
+  'an upstream refusal is not blamed on the account',
+  !throttled.detail?.includes('a day') && throttled.actions[0]?.kind === 'options',
+  throttled.detail,
+);
+
+const perMinute = describeFailure({
+  kind: 'rate_limited',
+  rateLimit: { modelIsFree: true, hasPaid: true, source: 'per-minute' },
+  retryAfterSeconds: 20,
+});
+check(
+  'the per-minute cap says to wait, not to switch models',
+  perMinute.actions.length === 1 && perMinute.actions[0]?.kind === 'retry',
+  perMinute.detail,
 );
 
 console.log(`\n${failures === 0 ? 'All checks passed.' : `${failures} check(s) failed.`}`);

@@ -1,4 +1,4 @@
-import { API_BASE } from './client';
+import { API_BASE, APP_NAME } from './client';
 import { OpenRouterError } from './errors';
 
 const AUTH_URL = 'https://openrouter.ai/auth';
@@ -37,6 +37,10 @@ export async function connectWithOAuth(): Promise<string> {
   url.searchParams.set('callback_url', redirectUri);
   url.searchParams.set('code_challenge', challenge);
   url.searchParams.set('code_challenge_method', 'S256');
+  // Without it the consent screen says "An app requests access to your account"
+  // and files the key under "An app" — no help at all to someone deciding
+  // whether to approve it, or later looking at a list of keys.
+  url.searchParams.set('key_label', APP_NAME);
 
   let responseUrl: string | undefined;
   try {

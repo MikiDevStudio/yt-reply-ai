@@ -1,4 +1,4 @@
-import type { OpenRouterErrorKind } from './openrouter/errors';
+import type { OpenRouterErrorKind, RateLimitSource } from './openrouter/errors';
 
 /**
  * What every failure says, and what the user can do about it — in one table.
@@ -30,10 +30,13 @@ export interface RateLimitFacts {
   modelIsFree: boolean;
   /**
    * `is_free_tier` from `GET /key`, inverted: whether the account has ever
-   * bought credits. `null` when the key could not be read — the copy then names
-   * both daily caps rather than guessing which one bit.
+   * bought credits. `null` when the key could not be read, or when the limit
+   * was not the account's to begin with — the copy then names both daily caps
+   * rather than guessing which one bit.
    */
   hasPaid: boolean | null;
+  /** Which limit refused, as the 429 itself reported it. */
+  source: RateLimitSource;
 }
 
 export interface FailureFacts {
@@ -171,13 +174,7 @@ export function describeFailure(facts: FailureFacts): Failure {
     };
   }
 
-  if (facts.kind === 'rate_limited') {
-    return {
-      ...base,
-      detail: rateLimitDetail(facts),
-      actions: rateLimitActions(facts),
-    };
-  }
+  if (facts.kind === 'rate_limited') return rateLimited(facts);
 
   // Half an answer is still worth something — it can be edited into a reply —
   // so the words have to account for it being on screen rather than pretend the
@@ -202,65 +199,86 @@ export function describeFailure(facts: FailureFacts): Failure {
 }
 
 /**
- * Name the limit that was actually hit.
+ * Name the limit that actually refused, and offer what fixes that one.
  *
- * The free-model caps are OpenRouter's and are documented as 20 requests per
- * minute always, plus a daily cap that depends on lifetime spend: 50 below $10
- * of credits ever bought, 1000 at or above it. A 429 on a paid model is a
- * different animal — it comes from the provider's own throttling, and quoting
- * the free-tier numbers there would be a lie.
+ * Three different situations arrive as the same 429, and their remedies do not
+ * overlap. OpenRouter's own caps on free models are 20 requests a minute and,
+ * per day, 50 below $10 of lifetime credit or 1,000 at or above it — a minute
+ * is waited out, a day is not. An upstream refusal is neither: the model's
+ * provider is turning requests away, the account is untouched, and another
+ * model answers immediately. Which one it was comes from the response's
+ * `limit_source`, so this is reading rather than guessing.
  *
- * No Pro line here, deliberately. This limit belongs to the user's own key, and
- * Pro would not lift it — see `docs/plans/2026-08-16-pro-offer-decisions.md`.
+ * No Pro line in any of them, deliberately. These limits belong to the user's
+ * own key and Pro would not lift them — see
+ * `docs/plans/2026-08-16-pro-offer-decisions.md`.
  */
-function rateLimitDetail(facts: FailureFacts): string {
-  const limit = facts.rateLimit;
+function rateLimited(facts: FailureFacts): Failure {
   const wait = facts.retryAfterSeconds
     ? ` Try again in ${formatDelay(facts.retryAfterSeconds)}.`
     : '';
+  const change: FailureAction = { kind: 'options', label: 'Try another model', section: '/models' };
+  const retry: FailureAction = { kind: 'retry', label: 'Try again' };
 
-  if (!limit?.modelIsFree) {
+  switch (facts.rateLimit?.source) {
+    case 'provider':
+      return {
+        title: 'This model is turning requests away',
+        detail:
+          'The provider serving it is refusing requests from the shared free pool right ' +
+          `now. Your account is untouched, and another free model usually answers at once.${wait}`,
+        actions: [change, retry],
+      };
+
+    case 'per-minute':
+      return {
+        title: 'Too many requests in a minute',
+        detail: `Free models take 20 requests a minute across your whole account.${wait}`,
+        actions: [retry],
+      };
+
+    case 'per-day':
+      return {
+        title: "Today's free requests are used up",
+        detail: `${dailyCap(facts.rateLimit.hasPaid)}${wait}`,
+        actions: [change, retry],
+      };
+
+    default:
+      return {
+        title: 'OpenRouter is rate limiting your key',
+        detail:
+          'Free models allow 20 requests a minute, and either 50 or 1,000 a day depending ' +
+          `on whether the account has ever bought $10 of credits.${wait}`,
+        actions: [retry, change],
+      };
+  }
+}
+
+/**
+ * `is_free_tier` answers "has this account ever paid", not "has it paid $10",
+ * so a paying account is told the rule rather than promised a number that a $5
+ * purchase would not have earned.
+ */
+function dailyCap(hasPaid: boolean | null): string {
+  if (hasPaid === false) {
     return (
-      'The provider behind this model is throttling requests. ' +
-      `It is not a limit on your credit.${wait}`
+      'Free models allow 50 a day on an account that has never bought credits — ' +
+      '$10 of credit once raises that to 1,000. A paid model has no daily cap.'
     );
   }
 
-  // `is_free_tier` answers "has this account ever paid", not "has it paid $10",
-  // so a paying account is told the rule rather than promised a number that a
-  // $5 purchase would not have earned.
-  if (limit.hasPaid === true) {
+  if (hasPaid === true) {
     return (
-      'Free models allow 20 requests a minute, and 1,000 a day once the account ' +
-      `has bought $10 of credits.${wait}`
-    );
-  }
-
-  if (limit.hasPaid === false) {
-    return (
-      'Free models allow 20 requests a minute and 50 a day on an account that has ' +
-      `never bought credits — $10 of credit once raises the daily cap to 1,000.${wait}`
+      'Free models allow 1,000 a day once the account has bought $10 of credits. ' +
+      'A paid model has no daily cap.'
     );
   }
 
   return (
-    'Free models allow 20 requests a minute, and either 50 or 1,000 a day depending ' +
-    `on whether the account has ever bought $10 of credits.${wait}`
+    'Free models allow 50 a day, or 1,000 once the account has bought $10 of ' +
+    'credits. A paid model has no daily cap.'
   );
-}
-
-/**
- * A daily cap is not waited out, so retrying is only the honest first action
- * when the limit is the per-minute one. On a free model the way past the day
- * cap is a different model, which is why that route is offered alongside.
- */
-function rateLimitActions(facts: FailureFacts): FailureAction[] {
-  if (!facts.rateLimit?.modelIsFree) return [{ kind: 'retry', label: 'Try again' }];
-
-  return [
-    { kind: 'retry', label: 'Try again' },
-    { kind: 'options', label: 'Use a paid model', section: '/models' },
-  ];
 }
 
 function formatDelay(seconds: number): string {

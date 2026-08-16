@@ -19,8 +19,16 @@ export const MODEL_PRESETS = {
   cheap: 'google/gemini-3.1-flash-lite',
   /**
    * Offered when a paid call fails for lack of credits, so a new account is
-   * never dead-ended. Free variants are capped at 20 requests/minute and
-   * 50/day by OpenRouter.
+   * never dead-ended. Free variants are capped at 20 requests a minute, and per
+   * day at 50 or 1,000 depending on the account's lifetime credit.
+   *
+   * Availability is the deciding property here, not quality: free variants run
+   * on a pool shared by every OpenRouter user, and a popular one answers a
+   * request with `upstream_provider_shared_pool` instead of an answer.
+   * `google/gemma-4-31b-it:free` held this slot until it started refusing every
+   * request outright — measured, not guessed, along with the replacement:
+   * 1–2 seconds against 8–16 for the alternatives, on both an English and a
+   * Russian comment. `npm run smoke` generates through this id for that reason.
    */
-  free: 'google/gemma-4-31b-it:free',
+  free: 'nvidia/nemotron-3-nano-30b-a3b:free',
 } as const;
