@@ -254,8 +254,14 @@ async function respond(request: Request): Promise<Response<unknown>> {
       return { ok: true, data: { connected: false } };
     }
 
-    case 'models:list':
-      return { ok: true, data: await fetchModels() };
+    case 'models:list': {
+      const cached = await settings.modelCatalogue.getValue();
+      if (cached && !request.refresh) return { ok: true, data: cached };
+
+      const catalogue = { models: await fetchModels(), fetchedAt: Date.now() };
+      await settings.modelCatalogue.setValue(catalogue);
+      return { ok: true, data: catalogue };
+    }
 
     case 'models:validate':
       // Same bargain as `auth:setKey` above: check it now, in the settings page

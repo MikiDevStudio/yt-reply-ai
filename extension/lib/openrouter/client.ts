@@ -159,8 +159,25 @@ export async function fetchKeyInfo(apiKey: string, signal?: AbortSignal): Promis
  * list is guaranteed to rot.
  */
 export async function fetchModels(signal?: AbortSignal): Promise<ModelInfo[]> {
-  const { data } = await getPublic('/models', signal);
-  return (data ?? []).map(toModelInfo);
+  // `most-popular` decides what the picker shows before anything is typed. The
+  // catalogue runs past 400 entries and its default order buries the models
+  // people recognise under ones they have never heard of.
+  //
+  // The limit is the endpoint's maximum. Its default of 500 is already close
+  // enough to the catalogue's size to start silently truncating it.
+  const { data } = await getPublic('/models?sort=most-popular&limit=1000', signal);
+  return (data ?? []).filter(writesText).map(toModelInfo);
+}
+
+/**
+ * Embedding and image-only models sit in the same catalogue and cannot write a
+ * reply. Offering them buys nothing but a failed generation.
+ */
+function writesText(model: any): boolean {
+  const modalities = model.architecture?.output_modalities;
+  // Absent means the catalogue did not say. Text is the safe assumption: it is
+  // what almost every entry does, and a wrong guess here only shows one extra row.
+  return !Array.isArray(modalities) || modalities.includes('text');
 }
 
 /** `author/slug`, with the optional `:free` or `:batch` style variant suffix. */

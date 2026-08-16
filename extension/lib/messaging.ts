@@ -83,7 +83,8 @@ export type Request =
   | { type: 'auth:connect' }
   | { type: 'auth:disconnect' }
   | { type: 'auth:setKey'; apiKey: string }
-  | { type: 'models:list' }
+  /** The catalogue, from cache unless `refresh` says to go and ask again. */
+  | { type: 'models:list'; refresh?: boolean }
   /** Check one id against the catalogue and return what it says about it. */
   | { type: 'models:validate'; id: string }
   | { type: 'usage:get' }

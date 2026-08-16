@@ -1,5 +1,6 @@
 import { storage } from '#imports';
-import type { ModelInfo } from './openrouter/types';
+import { MODEL_PRESETS } from './models';
+import type { ModelCatalogue, ModelInfo } from './openrouter/types';
 import type { SoulProfile } from './soul';
 
 /**
@@ -20,29 +21,6 @@ import type { SoulProfile } from './soul';
 export const apiKey = storage.defineItem<string | null>('local:openrouter.apiKey', {
   fallback: null,
 });
-
-/**
- * Curated starting points. The picker (#13) fetches the live catalogue — these
- * are only the defaults and the one-click alternatives, and every id here was
- * checked against that catalogue rather than remembered.
- *
- * Prices are per million tokens, as of the last check.
- */
-export const MODEL_PRESETS = {
-  /**
-   * Default. $1.50 in / $7.50 out, and it thinks before answering: measured at
-   * $0.0003 per reply with reasoning held to `minimal`, $0.0041 without.
-   */
-  balanced: 'google/gemini-3.6-flash',
-  /** $0.25 in / $1.50 out, no reasoning — measured at $0.00005 per reply. */
-  cheap: 'google/gemini-3.1-flash-lite',
-  /**
-   * Offered when a paid call fails for lack of credits, so a new account is
-   * never dead-ended. Free variants are capped at 20 requests/minute and
-   * 50/day by OpenRouter.
-   */
-  free: 'google/gemma-4-31b-it:free',
-} as const;
 
 /**
  * Model used for generating replies.
@@ -70,6 +48,21 @@ export const model = storage.defineItem<string>('local:openrouter.model', {
 export const customModel = storage.defineItem<ModelInfo | null>('local:openrouter.customModel', {
   fallback: null,
 });
+
+/**
+ * The last catalogue fetched, so the picker opens on a full list rather than a
+ * spinner, and keeps working with no network.
+ *
+ * Nothing expires it on a timer. A model is chosen once or twice in the life of
+ * an install, so a scheduled refresh would spend requests on a screen nobody is
+ * looking at and add a way to fail for no gain. It is fetched when there is
+ * nothing to show, and after that only when the user asks. A model withdrawn in
+ * the meantime is caught by `models:validate` when the settings page opens.
+ */
+export const modelCatalogue = storage.defineItem<ModelCatalogue | null>(
+  'local:openrouter.catalogue',
+  { fallback: null },
+);
 
 /**
  * Master switch for the injected UI.

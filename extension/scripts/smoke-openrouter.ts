@@ -15,6 +15,7 @@ import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { fetchKeyInfo, fetchModels, streamCompletion } from '../lib/openrouter/client';
 import { OpenRouterError } from '../lib/openrouter/errors';
+import { MODEL_PRESETS } from '../lib/models';
 
 const root = join(dirname(fileURLToPath(import.meta.url)), '..', '..');
 
@@ -48,6 +49,18 @@ const models = await fetchModels();
 const free = models.filter((m) => m.isFree);
 check('GET /models returns a list', models.length > 0, `${models.length} models`);
 check('free variants exist', free.length > 0, `${free.length} free`);
+
+// The picker shows this list in the order it arrives and prices our presets
+// from it. Both assumptions fail silently: a renamed sort parameter is ignored
+// rather than rejected, and a withdrawn preset leaves a row with no price.
+check(
+  'the list is not truncated by the default page size',
+  models.length !== 500,
+  `${models.length} back — 500 exactly would mean limit=1000 was ignored`,
+);
+for (const preset of Object.values(MODEL_PRESETS)) {
+  check(`preset ${preset} is still offered`, models.some((m) => m.id === preset));
+}
 console.log('\n  Free models (first 12):');
 for (const model of free.slice(0, 12)) {
   console.log(`    ${model.id}  (${model.contextLength} ctx)`);

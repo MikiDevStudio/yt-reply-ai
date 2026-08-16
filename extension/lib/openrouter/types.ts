@@ -33,6 +33,13 @@ export interface KeyInfo {
   isFreeTier: boolean;
 }
 
+/** The catalogue as the picker sees it: the models, and when they were fetched. */
+export interface ModelCatalogue {
+  models: ModelInfo[];
+  /** Epoch ms. Shown to the user; never used to expire anything. */
+  fetchedAt: number;
+}
+
 /** Subset of `GET /api/v1/models` and `GET /api/v1/model/{id}`, which agree. */
 export interface ModelInfo {
   id: string;
