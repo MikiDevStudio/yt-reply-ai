@@ -22,7 +22,7 @@ import type { OpenRouterErrorKind, RateLimitSource } from './openrouter/errors';
  * like a network failure and is not one — the request was fine, the browser
  * simply stopped listening.
  */
-export type FailureKind = OpenRouterErrorKind | 'interrupted';
+export type FailureKind = OpenRouterErrorKind | 'interrupted' | 'timeout';
 
 /** Which OpenRouter limit is in play, when one is. See `rateLimitDetail`. */
 export interface RateLimitFacts {
@@ -146,6 +146,29 @@ const COPY: Record<FailureKind, Failure> = {
     title: 'No internet connection',
     detail: 'Chrome reports the machine as offline. Nothing will go through until it is back.',
     actions: [{ kind: 'retry', label: 'Try again' }],
+  },
+
+  runaway: {
+    title: 'The model would not stop writing',
+    detail:
+      'It went far past the length of a reply, so it was cut off rather than left to ' +
+      'run up a bill. Smaller models do this at high creativity — another attempt ' +
+      'usually lands, and a different model almost always does.',
+    actions: [
+      { kind: 'retry', label: 'Try again' },
+      { kind: 'options', label: 'Change model', section: '/models' },
+    ],
+  },
+
+  timeout: {
+    title: 'The model is taking too long',
+    detail:
+      'It has been going long enough that typing the reply yourself would have been ' +
+      'quicker. This is usually a smaller model wandering at high creativity.',
+    actions: [
+      { kind: 'retry', label: 'Try again' },
+      { kind: 'options', label: 'Change model', section: '/models' },
+    ],
   },
 
   interrupted: {

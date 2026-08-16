@@ -434,12 +434,18 @@ export function ReplyPopover({
                 <Square className="size-4" />
               </button>
             ) : (
+              /*
+               * One condition decides both the shape and the contents. They
+               * used to be decided by two: the label appeared whenever no
+               * attempt had succeeded, but the wide shape only while the state
+               * was still `idle` — so after a failure the word "Generate" was
+               * put inside a fixed-size square and burst out of it, over the
+               * button beside it.
+               */
               <button
                 type="button"
                 className={`btn btn-sm text-sm ${
-                  state.status === 'idle' && attempts.length === 0
-                    ? 'btn-primary'
-                    : 'btn-ghost btn-square'
+                  attempts.length === 0 ? 'btn-primary' : 'btn-ghost btn-square'
                 }`}
                 aria-label={attempts.length === 0 ? undefined : 'Another attempt'}
                 title={attempts.length === 0 ? undefined : 'Another attempt'}

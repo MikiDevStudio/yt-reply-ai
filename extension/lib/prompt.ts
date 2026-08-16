@@ -26,6 +26,10 @@ export const STYLES: Record<string, string> = {
  *
  * The table is ours rather than a raw parameter exposed to the user, so a level
  * can be retuned without anyone relearning what "0.9" meant.
+ *
+ * The top of the table is more than a small model can hold: the background caps
+ * the temperature for free variants, which is why level 5 does not read the
+ * same everywhere. See `FREE_MODEL_MAX_TEMPERATURE` in `background.ts`.
  */
 export const CREATIVITY = [
   {

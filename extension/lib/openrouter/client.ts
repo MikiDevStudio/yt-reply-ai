@@ -102,12 +102,18 @@ export async function* streamCompletion(
       result.text += delta;
       yield delta;
 
-      // Checked while it streams rather than at the end, because the cost of a
-      // model stuck in a loop is paid per token: one free variant answered a
-      // three-sentence prompt with 32,829 tokens of `<pad>`, which on the
-      // default paid model would have been about a quarter of a dollar for
-      // nothing. Every 500 characters, so a normal reply is examined once.
+      // Two ways an answer stops being an answer, both caught while it streams
+      // rather than at the end, because the tokens are billed as they arrive.
+      // Measured, not imagined: one free variant replied to a three-sentence
+      // prompt with 32,829 tokens of `<pad>`, and another wrote 80,000
+      // characters of its own deliberation — on the default paid model those
+      // are a quarter of a dollar and most of a dollar respectively, for
+      // nothing. Checked every 500 characters, so a normal reply is examined
+      // once and a runaway one within a second of going wrong.
       if (result.text.length >= nextSanityCheck) {
+        if (result.text.length > MAX_REPLY_CHARS) {
+          throw new OpenRouterError('runaway', 'The model wrote far past the length of a reply');
+        }
         if (isDegenerate(result.text)) {
           throw new OpenRouterError('empty', 'The model repeated itself instead of answering');
         }
@@ -135,6 +141,16 @@ export async function* streamCompletion(
  * anything shorter than this cannot be long enough to have gone in circles.
  */
 const DEGENERATE_MIN_LENGTH = 500;
+
+/**
+ * Past this, whatever is arriving is not a comment reply.
+ *
+ * Roughly six hundred words — several times the longest reply a soul profile
+ * would ask for, so a verbose but genuine answer is never touched. What it
+ * catches is the model that starts narrating its own reasoning into the answer
+ * and does not stop.
+ */
+const MAX_REPLY_CHARS = 4_000;
 
 /** A run of special tokens — `<pad>`, `<unk>`, `<|endoftext|>` — and nothing else. */
 const SPECIAL_TOKEN_RUN = /^(?:<[^<>\s]{1,24}>\s*){20,}$/;

@@ -241,6 +241,8 @@ const KINDS: FailureKind[] = [
   'network',
   'offline',
   'empty',
+  'runaway',
+  'timeout',
   'interrupted',
 ];
 for (const kind of KINDS) {

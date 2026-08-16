@@ -65,12 +65,39 @@ function handleConnect(port: Browser.runtime.Port) {
  */
 const KEEPALIVE_MS = 15_000;
 
+/**
+ * How long one generation may run before it is called off.
+ *
+ * A reply is one to three sentences; the presets answer in one to five seconds.
+ * Past this the attempt has already lost to typing the reply by hand, and
+ * waiting longer only spends more of the user's credit — measured at 73 to 102
+ * seconds and up to 24,000 reasoning tokens when a small model wanders at the
+ * top of the creativity scale. The ceiling is deliberately several times the
+ * normal case, so a slow but working answer is never cut off.
+ */
+const GENERATION_TIMEOUT_MS = 45_000;
+
 async function generate(
   port: Browser.runtime.Port,
   request: Extract<GenerateClientMessage, { type: 'start' }>,
   signal: AbortSignal,
 ) {
   const keepalive = setInterval(() => post(port, { type: 'thinking' }), KEEPALIVE_MS);
+
+  // A deadline of our own, chained to the caller's cancellation. Both end the
+  // request the same way, so the flag is what tells them apart afterwards: one
+  // is the user's decision and stays silent, the other is a failure to report.
+  const deadline = new AbortController();
+  const relay = () => deadline.abort();
+  signal.addEventListener('abort', relay);
+  if (signal.aborted) deadline.abort();
+
+  let timedOut = false;
+  const timer = setTimeout(() => {
+    timedOut = true;
+    deadline.abort();
+  }, GENERATION_TIMEOUT_MS);
+
   // Read in the try below, reported in the catch: which model failed decides
   // what the rate-limit message is allowed to claim.
   let model: string | undefined;
@@ -111,6 +138,7 @@ async function generate(
     // gets a step more room than the last. The stored level is left where the
     // user put it — the bump belongs to this attempt, not to the setting.
     const preset = creativityPreset((request.creativity ?? savedCreativity) + attempt - 1);
+    const temperature = await temperatureFor(preset.temperature, model);
     const { language, isGuess } = resolveLanguage(request, profile);
 
     const messages = buildReplyPrompt({
@@ -133,8 +161,8 @@ async function generate(
       apiKey: key,
       model,
       messages,
-      signal,
-      temperature: preset.temperature,
+      signal: deadline.signal,
+      temperature,
       // The first reply is the one that decides whether any of this is worth
       // using, so it gets room to think rather than the cheapest setting that
       // works. `minimal` used to be first, on the argument that speed matters
@@ -160,9 +188,19 @@ async function generate(
       truncated: next.value.finishReason === 'length',
     });
   } catch (error) {
-    // A cancelled generation is a choice, not a failure. The port is usually
-    // already gone by this point anyway.
-    if (asOpenRouterError(error).kind === 'aborted') return;
+    if (asOpenRouterError(error).kind === 'aborted') {
+      // Our deadline and the user's cancel button arrive here identically.
+      // Cancelling is a choice and says nothing; the deadline is a failure the
+      // user has been staring at a spinner for.
+      if (timedOut) {
+        post(port, {
+          type: 'error',
+          kind: 'timeout',
+          message: `No reply after ${GENERATION_TIMEOUT_MS / 1000} seconds`,
+        });
+      }
+      return;
+    }
 
     // Everything is inside the try, including reading settings and building the
     // prompt. It used to start above it, so a failure there threw into nothing:
@@ -173,6 +211,8 @@ async function generate(
     post(port, { type: 'error', ...(await describeFor(error, model)) });
   } finally {
     clearInterval(keepalive);
+    clearTimeout(timer);
+    signal.removeEventListener('abort', relay);
   }
 }
 
@@ -398,6 +438,28 @@ async function describeFor(error: unknown, model?: string): Promise<FailurePaylo
   }
 
   return payload;
+}
+
+/**
+ * The hottest a free variant is allowed to run.
+ *
+ * The creativity table tops out at 1.3, which the third attempt always reaches.
+ * A capable model handles it: gemini-3.6-flash answered in 115 characters and
+ * 1.3 seconds. The free preset did not — at 1.3 it produced 68,000 and 12,700
+ * characters of its own deliberation in two runs, taking a minute and a half
+ * each, while at 1.1 the same prompt came back in under 200 characters. That is
+ * the difference between a bold reply and a model that has lost the thread, and
+ * it is the third attempt that people were watching hang.
+ *
+ * Capping by `isFree` is a proxy for "small", and an imperfect one — a 550B
+ * free variant is held back for nothing. The cost of being wrong that way is
+ * one notch of boldness; the cost of the other way is a minute of spinner and
+ * an answer nobody can use.
+ */
+const FREE_MODEL_MAX_TEMPERATURE = 1.1;
+
+async function temperatureFor(wanted: number, model: string): Promise<number> {
+  return (await isFreeModel(model)) ? Math.min(wanted, FREE_MODEL_MAX_TEMPERATURE) : wanted;
 }
 
 /** Free variants are the ones OpenRouter's per-day cap applies to. */

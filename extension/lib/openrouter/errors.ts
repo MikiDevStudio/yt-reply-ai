@@ -28,6 +28,15 @@ export type OpenRouterErrorKind =
   | 'offline'
   /** The request succeeded but produced no text — often a content filter. */
   | 'empty'
+  /**
+   * The model kept writing far past the length of a reply.
+   *
+   * Cut off deliberately rather than waited out: the tokens are billed as they
+   * arrive, and one observed run reached 80,000 characters — on the default
+   * paid model that would have been most of a dollar for an answer nobody could
+   * use.
+   */
+  | 'runaway'
   /** The caller cancelled. Not shown as an error. */
   | 'aborted';
 
