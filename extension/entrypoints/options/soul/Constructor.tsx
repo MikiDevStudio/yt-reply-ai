@@ -1,4 +1,6 @@
+import { X } from 'lucide-react';
 import { useState } from 'react';
+import { CHIP, CHIP_OFF, CHIP_ON, FIELD, FOCUS, SECONDARY } from '@/components/ui';
 import {
   type CommentKind,
   type EmojiUse,
@@ -45,7 +47,8 @@ export function Constructor({ profile, onChange }: ConstructorProps) {
               <button
                 key={tone}
                 type="button"
-                className={`btn btn-sm ${active ? 'btn-primary' : 'btn-outline'}`}
+                aria-pressed={active}
+                className={`${CHIP} ${active ? CHIP_ON : CHIP_OFF}`}
                 onClick={() =>
                   onChange({
                     tone: active
@@ -106,7 +109,7 @@ export function Constructor({ profile, onChange }: ConstructorProps) {
 
           <input
             type="text"
-            className="input input-sm w-40 text-sm"
+            className={`${FIELD} w-40`}
             placeholder="English"
             disabled={profile.language === null}
             value={profile.language ?? ''}
@@ -175,7 +178,8 @@ function Choice<T extends string>({ options, value, onSelect }: ChoiceProps<T>) 
         <button
           key={id}
           type="button"
-          className={`btn btn-sm ${value === id ? 'btn-primary' : 'btn-outline'}`}
+          aria-pressed={value === id}
+          className={`${CHIP} ${value === id ? CHIP_ON : CHIP_OFF}`}
           onClick={() => onSelect(id)}
         >
           {label}
@@ -208,7 +212,7 @@ function PhraseInput({ phrases, onChange }: PhraseInputProps) {
       <div className="flex gap-2">
         <input
           type="text"
-          className="input input-sm flex-1 text-sm"
+          className={`${FIELD} flex-1`}
           placeholder="Cheers — thanks for watching"
           value={draft}
           onChange={(event) => setDraft(event.target.value)}
@@ -219,7 +223,7 @@ function PhraseInput({ phrases, onChange }: PhraseInputProps) {
             }
           }}
         />
-        <button type="button" className="btn btn-sm" disabled={!draft.trim()} onClick={add}>
+        <button type="button" className={SECONDARY} disabled={!draft.trim()} onClick={add}>
           Add
         </button>
       </div>
@@ -227,14 +231,18 @@ function PhraseInput({ phrases, onChange }: PhraseInputProps) {
       {phrases.length > 0 && (
         <div className="flex flex-wrap gap-2">
           {phrases.map((phrase) => (
-            <span key={phrase} className="badge badge-soft gap-2 py-3">
+            <span
+              key={phrase}
+              className={`${CHIP} ${CHIP_OFF} flex items-center gap-1.5 hover:border-line`}
+            >
               {phrase}
               <button
                 type="button"
                 aria-label={`Remove ${phrase}`}
+                className={`text-base-content/45 transition-colors duration-150 hover:text-base-content ${FOCUS}`}
                 onClick={() => onChange(phrases.filter((value) => value !== phrase))}
               >
-                ✕
+                <X aria-hidden className="size-3" />
               </button>
             </span>
           ))}

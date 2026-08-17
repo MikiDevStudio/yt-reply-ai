@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 import { CoffeeMark } from '@/components/CoffeeMark';
 import { FailureNotice } from '@/components/FailureNotice';
-import { MICRO, MICRO_TYPE } from '@/components/ui';
+import { GHOST, MICRO, MICRO_TYPE, SOLID } from '@/components/ui';
 import type { FailureFacts } from '@/lib/failure';
 import { failureOf, sendRequest } from '@/lib/messaging';
 import type { KeyInfo } from '@/lib/openrouter/types';
@@ -102,13 +102,13 @@ export function App() {
             <dt className="text-base-content/60" title="Resets at midnight">
               Replies today
             </dt>
-            <dd className="font-medium">
-              {quota ? `${quota.used} of ${quota.limit}` : '…'}
-            </dd>
+            {/* Counts, credits and model ids are mono: they are numbers and
+                machine names, and the face says so (brand.md §2). */}
+            <dd className="font-mono">{quota ? `${quota.used} of ${quota.limit}` : '…'}</dd>
           </div>
           <div className="flex items-baseline justify-between gap-2">
             <dt className="text-base-content/60">Model</dt>
-            <dd className="truncate text-right font-medium">{model}</dd>
+            <dd className="truncate text-right font-mono text-[13px]">{model}</dd>
           </div>
           <div className="flex items-baseline justify-between gap-2">
             <dt className="text-base-content/60">Soul profile</dt>
@@ -120,12 +120,12 @@ export function App() {
             <>
               <div className="flex items-baseline justify-between gap-2">
                 <dt className="text-base-content/60">Spent</dt>
-                <dd className="font-medium">{usage.usage.toFixed(3)} credits</dd>
+                <dd className="font-mono">{usage.usage.toFixed(3)} credits</dd>
               </div>
               {usage.limitRemaining !== null && (
                 <div className="flex items-baseline justify-between gap-2">
                   <dt className="text-base-content/60">Left on this key</dt>
-                  <dd className="font-medium">{usage.limitRemaining.toFixed(3)}</dd>
+                  <dd className="font-mono">{usage.limitRemaining.toFixed(3)}</dd>
                 </div>
               )}
               {usage.isFreeTier && (
@@ -144,14 +144,18 @@ export function App() {
 
       <button
         type="button"
-        className="btn btn-primary btn-sm"
+        className={`${SOLID} justify-center`}
         onClick={() => openSettings('/account')}
       >
         {connected ? 'Settings' : 'Connect OpenRouter'}
       </button>
 
       {connected && hasSoul === false && (
-        <button type="button" className="btn btn-ghost btn-sm" onClick={() => openSettings('/soul')}>
+        <button
+          type="button"
+          className={`${GHOST} justify-center`}
+          onClick={() => openSettings('/soul')}
+        >
           Write your soul profile
         </button>
       )}

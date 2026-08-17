@@ -21,28 +21,28 @@ export function Generation() {
   // whether opening a comment should spend a request is decided while looking
   // at the comment, not on a settings page in another tab.
   return (
-    <>
-      <Section
-        title="Context sent with each comment"
-        description="More context means better replies and a bigger bill. The description is read once per video and reused for every comment on it."
-      >
-        <div className="flex flex-col gap-2">
-          {CONTEXT_LEVELS.map(({ level: value, label, hint }) => (
-            <label key={value} className="flex cursor-pointer items-center gap-3 text-sm">
-              <input
-                type="radio"
-                name="context-level"
-                className="radio radio-sm"
-                checked={level === value}
-                disabled={level === null}
-                onChange={() => setLevel(value)}
-              />
-              <span className="font-medium">{label}</span>
-              <span className="ml-auto text-xs text-base-content/50">{hint}</span>
-            </label>
-          ))}
-        </div>
-      </Section>
-    </>
+    <Section
+      n={1}
+      title="Context sent with each comment"
+      description="More context means better replies and a bigger bill. The description is read once per video and reused for every comment on it."
+    >
+      <div className="flex flex-col gap-2">
+        {CONTEXT_LEVELS.map(({ level: value, label, hint }) => (
+          <label key={value} className="flex cursor-pointer items-center gap-3 text-sm">
+            <input
+              type="radio"
+              name="context-level"
+              className="radio radio-sm"
+              checked={level === value}
+              disabled={level === null}
+              onChange={() => setLevel(value)}
+            />
+            <span className="font-medium">{label}</span>
+            {/* A token count is a number, and numbers are mono. */}
+            <span className="ml-auto font-mono text-[11px] text-base-content/50">{hint}</span>
+          </label>
+        ))}
+      </div>
+    </Section>
   );
 }

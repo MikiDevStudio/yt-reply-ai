@@ -1,5 +1,6 @@
 import { Undo2 } from 'lucide-react';
 import { useEffect, useState } from 'react';
+import { FIELD, GHOST, NOTE, SECONDARY } from '@/components/ui';
 import { soul, soulProfile } from '@/lib/settings';
 import { DEFAULT_PROFILE, type SoulProfile, type SoulType, matchType, renderSoul } from '@/lib/soul';
 import { useSetting } from '@/lib/use-setting';
@@ -48,7 +49,7 @@ export function Soul() {
 
   if (!profileLoaded || !markdownLoaded) {
     return (
-      <Section title="Soul profile">
+      <Section n={1} title="Soul profile">
         <span className="loading loading-dots loading-sm" />
       </Section>
     );
@@ -121,24 +122,29 @@ export function Soul() {
   return (
     <>
       <Section
+        n={1}
         title="Soul profile"
         description="Who you are and how you answer. This goes into every prompt, ahead of the comment itself."
       >
         {(handWritten || detached) && (
-          <div role="alert" className="alert alert-warning alert-soft text-sm">
-            {handWritten
-              ? 'This profile was written by hand. Answering below builds a new one and replaces it.'
-              : 'The markdown below was edited by hand, so it no longer matches the answers.'}
+          <div role="alert" className={NOTE}>
+            <span className="text-base-content/80">
+              {handWritten
+                ? 'This profile was written by hand. Answering below builds a new one and replaces it.'
+                : 'The markdown below was edited by hand, so it no longer matches the answers.'}
+            </span>
           </div>
         )}
 
         {pending && (
-          <div role="alert" className="alert alert-warning flex-col items-start gap-2 text-sm">
-            <span>Applying that answer rewrites the profile and loses your edits.</span>
+          <div role="alert" className={NOTE}>
+            <span className="font-medium text-warning">
+              Applying that answer rewrites the profile and loses your edits.
+            </span>
             <div className="flex gap-2">
               <button
                 type="button"
-                className="btn btn-sm"
+                className={SECONDARY}
                 onClick={() => {
                   apply(pending);
                   setPending(null);
@@ -146,11 +152,7 @@ export function Soul() {
               >
                 Rewrite it
               </button>
-              <button
-                type="button"
-                className="btn btn-ghost btn-sm"
-                onClick={() => setPending(null)}
-              >
+              <button type="button" className={GHOST} onClick={() => setPending(null)}>
                 Keep my text
               </button>
             </div>
@@ -168,7 +170,7 @@ export function Soul() {
             {previous && (
               <button
                 type="button"
-                className="btn btn-ghost btn-xs"
+                className={GHOST}
                 onClick={() => {
                   apply(previous);
                   setPrevious(null);
@@ -189,7 +191,7 @@ export function Soul() {
             One or two sentences. This is the only part the model cannot guess.
           </span>
           <textarea
-            className="textarea min-h-20 w-full text-sm"
+            className={`${FIELD} min-h-20`}
             placeholder="I make woodworking videos. I answer as myself, not as a brand."
             value={profile.about}
             onChange={(event) => update({ about: event.target.value })}
@@ -198,6 +200,7 @@ export function Soul() {
       </Section>
 
       <Fold
+        n={2}
         title="Configure in detail"
         description="Tone, length, language, and how each kind of comment gets handled."
         // A custom profile opens: folding away settings that matched no type
@@ -208,6 +211,7 @@ export function Soul() {
       </Fold>
 
       <Fold
+        n={3}
         title="What actually gets sent"
         description="The markdown the constructor produces. Edit it directly if you would rather write your own."
         // A hand-written profile opens here instead: that text is the profile,

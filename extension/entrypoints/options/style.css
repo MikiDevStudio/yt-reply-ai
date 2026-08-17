@@ -1,6 +1,8 @@
 /* Options page stylesheet. Scoped source detection: see content/style.css. */
 @import 'tailwindcss' source(none);
 @import '../../assets/theme.css';
+/* Our own page, so it carries the face itself. See assets/fonts.css. */
+@import '../../assets/fonts.css';
 
 @source '.';
 /* Shared components, scanned here too. See content/style.css. */

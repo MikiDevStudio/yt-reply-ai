@@ -1,3 +1,4 @@
+import { SECONDARY } from '@/components/ui';
 import { Section } from '../Section';
 
 const { version, name } = browser.runtime.getManifest();
@@ -5,7 +6,7 @@ const { version, name } = browser.runtime.getManifest();
 export function About() {
   return (
     <>
-      <Section title="About">
+      <Section n={1} title="About">
         <dl className="flex flex-col gap-2 text-sm">
           <div className="flex items-baseline justify-between gap-2">
             <dt className="text-base-content/60">Extension</dt>
@@ -13,12 +14,12 @@ export function About() {
           </div>
           <div className="flex items-baseline justify-between gap-2">
             <dt className="text-base-content/60">Version</dt>
-            <dd className="font-medium">{version}</dd>
+            <dd className="font-mono">{version}</dd>
           </div>
         </dl>
       </Section>
 
-      <Section title="What leaves your browser">
+      <Section n={2} title="What leaves your browser">
         <ul className="flex list-disc flex-col gap-2 pl-5 text-sm text-base-content/70">
           <li>
             The comment you are answering, your soul profile, and — depending on the context
@@ -35,9 +36,9 @@ export function About() {
           </li>
         </ul>
 
-        <div className="card-actions">
+        <div className="flex flex-wrap gap-2">
           <a
-            className="btn btn-sm"
+            className={SECONDARY}
             href="https://openrouter.ai/settings/keys"
             target="_blank"
             rel="noreferrer"

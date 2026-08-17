@@ -167,12 +167,17 @@ fonts, so a bundled `woff2` would need `web_accessible_resources` and an absolut
 `chrome-extension://` URL, because injected CSS text resolves relative `url()` against
 the host page. That plumbing buys nothing here — the face is already on the page.
 
-Our own pages have no such donor, and until the `woff2` ships they fall through the stack
-to Arial, which is the one place the interface looks visibly worse. Roboto and JetBrains
-Mono ship there as local `woff2` with a Cyrillic subset — the UI is localised EN + RU, and
-Geist, which the source uses, has no Cyrillic at all. (In caveman.so's CSS the Geist
-variables are already aliased to Inter and JetBrains Mono; the names are template
-leftovers.)
+Our own pages have no such donor, so they carry the face themselves: Roboto and JetBrains
+Mono as local `woff2`, latin and cyrillic subsets each, declared in `assets/fonts.css` and
+imported by the popup and the settings page only. Cyrillic because the UI is localised
+EN + RU — Geist, which the source uses, has no Cyrillic at all. (In caveman.so's CSS the
+Geist variables are aliased to Inter and JetBrains Mono; the names are template leftovers.)
+
+Both are the **variable** cuts. The scale below asks for 600 three times and static Roboto
+ships 500 and 700 with nothing between, so every heading on our own pages would have been
+rounded to the wrong weight or synthesised by the browser. One file per subset covers
+100–900 instead. Four files, 119 kB in the package, and they load on two pages that open
+by intent — not on every YouTube page.
 
 Mono is not just for code. It carries the engineering register: section numbers, labels,
 statuses, attempt counters, model ids, token costs.
@@ -358,7 +363,13 @@ Sidebar 224px: `bg:--surface`, right border `--line`, product name in `--ink` wi
 `--accent` with an `--accent` left rule 2px and `bg:--accent-soft`.
 
 Content column `max-width: 42rem`, `p-8`, cards stacked at `gap-6`. Each card opens with
-its micro-label: `01 ACCOUNT`, `02 SOUL PROFILE`, `03 GENERATION`, `04 MODELS`, `05 ABOUT`.
+its micro-label, and the label is the card's title — there is no second, larger heading
+repeating the same words underneath it.
+
+The numbers count the cards down the column and restart on each section, because a
+section is rarely one card: Soul reads `01 SOUL PROFILE`, `02 CONFIGURE IN DETAIL`,
+`03 WHAT ACTUALLY GETS SENT`. Numbering by nav item instead would print `02` three times
+on that page and leave the eye nothing to follow.
 
 ### Popup
 
@@ -476,7 +487,7 @@ descriptions, 28% for disabled. A single orange accent #FF8A3D used only in thin
 lines, 6px dots, small labels and selection outlines — never as a filled button or
 badge; a lavender #9D9BEA marks model ids and prompt text. Exactly one solid button
 per screen, light #E9E9EC with near-black #0B0B0B text; every other button is
-outlined or text-only. Typography: Inter for UI and headings with tight negative
+outlined or text-only. Typography: Roboto for UI and headings with tight negative
 letter spacing, JetBrains Mono for micro-labels, numbers, model ids and statuses —
 10px, uppercase, wide 0.16em letter spacing, 40% white. Every section starts
 with a two-digit orange number, a 40px hairline rule and an uppercase mono label.

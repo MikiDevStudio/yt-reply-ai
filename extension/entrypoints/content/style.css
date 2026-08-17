@@ -17,3 +17,21 @@
  * sentences running into each other and a button outside the box.
  */
 @source '../../components';
+
+/*
+ * The face, set on the theme wrapper rather than left to preflight.
+ *
+ * WXT prepends `:host { all: initial !important }` to this stylesheet, and that
+ * `!important` outranks preflight's own `html, :host { font-family: … }`. The
+ * host therefore keeps the browser's default — a serif on Windows — and every
+ * child inherits it, which is why the popover read as Times New Roman beside
+ * YouTube's Roboto instead of matching it.
+ *
+ * The wrapper carrying `data-theme` sits inside the shadow root, out of the
+ * reset's reach. Unlayered on purpose: preflight lives in `@layer base`, and an
+ * unlayered rule outranks anything layered.
+ */
+[data-theme] {
+  font-family: var(--font-sans);
+  line-height: 1.5;
+}

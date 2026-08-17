@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react';
+import { NOTE } from '@/components/ui';
 import { sendRequest } from '@/lib/messaging';
 import type { ModelInfo } from '@/lib/openrouter/types';
 import { customModel as customModelSetting, model as modelSetting } from '@/lib/settings';
@@ -64,14 +65,17 @@ export function Models() {
 
   return (
     <Section
+      n={1}
       title="Model"
       description="Every request goes to your own OpenRouter account, so these prices are what you pay, with no markup from us."
     >
       <Picker selected={model} custom={custom} onPreset={pickPreset} onModel={pickModel} />
 
       {withdrawn && (
-        <div role="alert" className="alert alert-warning alert-soft text-sm">
-          {withdrawn} — pick another model before the next reply.
+        <div role="alert" className={NOTE}>
+          <span className="text-base-content/80">
+            {withdrawn} — pick another model before the next reply.
+          </span>
         </div>
       )}
     </Section>

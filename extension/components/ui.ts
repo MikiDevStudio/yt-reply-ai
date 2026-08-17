@@ -39,6 +39,40 @@ export const SECONDARY =
   `disabled:pointer-events-none disabled:opacity-40 ${FOCUS}`;
 
 /**
+ * A choice, not an action: tone, reply length, emoji, the rule for a kind of
+ * comment. Selected is drawn with a line and a wash, never a filled orange
+ * button — the accent is a line everywhere in this interface.
+ */
+export const CHIP = `border px-2.5 py-1 text-[12px] transition-colors duration-150 ${FOCUS}`;
+export const CHIP_OFF =
+  'border-line text-base-content/70 hover:border-line-hi hover:text-base-content';
+export const CHIP_ON = 'border-accent-line bg-accent-soft text-accent';
+
+/** Text only. An action that is neither *the* action nor an icon on its own. */
+export const GHOST =
+  'flex items-center gap-1.5 px-2 py-1.5 text-[13px] font-medium text-base-content/55 ' +
+  `transition-colors duration-150 hover:text-base-content disabled:pointer-events-none disabled:opacity-40 ${FOCUS}`;
+
+/**
+ * Text inputs and textareas. Sharp, quiet, and lit by the border rather than a
+ * fill — the accent is a line here as everywhere else.
+ *
+ * The focus ring rides along with the border change on purpose: a 1px border in
+ * a colour is not a focus indicator anyone can find with a keyboard.
+ */
+export const FIELD =
+  'w-full border border-line-input bg-base-100 px-3 py-2 text-[13px] text-base-content ' +
+  `placeholder:text-base-content/28 transition-colors duration-150 focus:border-accent-line ${FOCUS}`;
+
+/**
+ * An inline note about the state of what is on screen — hand-written profile,
+ * withdrawn model. Same frame as the failure card's warning tone, because they
+ * say the same kind of thing.
+ */
+export const NOTE =
+  'flex w-full flex-col items-start gap-2 border border-warning/25 bg-warning/10 p-3 text-[13px]';
+
+/**
  * The type half of our signature label — mono, uppercase, wide — with no colour
  * of its own. For the handful of labels that carry a status colour instead of
  * sitting at the bottom of the ink ladder.

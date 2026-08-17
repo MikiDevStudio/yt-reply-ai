@@ -1,6 +1,7 @@
 import { Check, ChevronDown, RotateCw, Search } from 'lucide-react';
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { FailureNotice } from '@/components/FailureNotice';
+import { FIELD, FOCUS } from '@/components/ui';
 import type { FailureFacts } from '@/lib/failure';
 import { failureOf, sendRequest } from '@/lib/messaging';
 import type { ModelInfo } from '@/lib/openrouter/types';
@@ -205,7 +206,7 @@ export function Picker({ selected, custom, onPreset, onModel }: PickerProps) {
     <div ref={container} className="relative">
       <button
         type="button"
-        className="btn btn-block justify-start font-normal"
+        className={`${FIELD} flex items-center gap-3 text-left hover:border-line-hi disabled:opacity-40`}
         aria-haspopup="listbox"
         aria-expanded={open}
         disabled={selected === null}
@@ -236,7 +237,14 @@ export function Picker({ selected, custom, onPreset, onModel }: PickerProps) {
             />
           </label>
 
-          <div ref={list} role="listbox" className="max-h-80 overflow-y-auto">
+          {/* The signature grid (brand.md §3): rows sit flush on a `--line`
+              backing and the 1px gap is the divider. Every row therefore has to
+              carry its own opaque background, or the backing shows through. */}
+          <div
+            ref={list}
+            role="listbox"
+            className="flex max-h-80 flex-col gap-px overflow-y-auto bg-line"
+          >
             {rows.presets.length > 0 && (
               <>
                 <Heading>Recommended</Heading>
@@ -264,9 +272,11 @@ export function Picker({ selected, custom, onPreset, onModel }: PickerProps) {
               {snapshot && (
                 <span className="ml-auto flex items-center gap-2 font-normal normal-case">
                   <span>from {fetchedLabel(snapshot.fetchedAt)}</span>
+                  {/* Sized to the heading it sits in rather than to the page's
+                      buttons: a 13px control on a 10px row reads as a mistake. */}
                   <button
                     type="button"
-                    className="btn btn-ghost btn-xs"
+                    className={`flex items-center gap-1 text-base-content/45 transition-colors duration-150 hover:text-base-content disabled:pointer-events-none disabled:opacity-40 ${FOCUS}`}
                     disabled={loading}
                     onClick={() => refresh()}
                   >
@@ -278,14 +288,14 @@ export function Picker({ selected, custom, onPreset, onModel }: PickerProps) {
             </Heading>
 
             {loading && !snapshot && (
-              <p className="flex items-center gap-2 px-3 py-4 text-sm text-base-content/50">
+              <p className="flex items-center gap-2 bg-overlay px-3 py-4 text-sm text-base-content/50">
                 <span className="loading loading-dots loading-xs" />
                 Fetching the catalogue…
               </p>
             )}
 
             {failure && !snapshot && (
-              <div className="px-3 py-3">
+              <div className="bg-overlay px-3 py-3">
                 <FailureNotice facts={failure} onRetry={() => refresh()} at="/models" />
                 <p className="pt-2 text-xs text-base-content/50">
                   The models above still work — they need no catalogue.
@@ -314,7 +324,7 @@ export function Picker({ selected, custom, onPreset, onModel }: PickerProps) {
             })}
 
             {hidden > 0 && (
-              <p className="px-3 py-2 text-xs text-base-content/50">
+              <p className="bg-overlay px-3 py-2 text-xs text-base-content/50">
                 +{hidden.toLocaleString('en-US')} more — type to search
               </p>
             )}
@@ -335,7 +345,7 @@ export function Picker({ selected, custom, onPreset, onModel }: PickerProps) {
             )}
 
             {snapshot && !useAnyway && options.length === 0 && (
-              <p className="px-3 py-4 text-sm text-base-content/50">
+              <p className="bg-overlay px-3 py-4 text-sm text-base-content/50">
                 Nothing matches “{query.trim()}”.
               </p>
             )}
@@ -356,7 +366,7 @@ export function Picker({ selected, custom, onPreset, onModel }: PickerProps) {
 
 function Heading({ children }: { children: React.ReactNode }) {
   return (
-    <div className="flex items-center gap-2 bg-line-soft px-3 py-1 font-mono text-[10px] font-medium uppercase tracking-[0.16em] text-base-content/40">
+    <div className="flex items-center gap-2 bg-surface-hi px-3 py-1.5 font-mono text-[10px] font-medium uppercase tracking-[0.16em] text-base-content/40">
       {children}
     </div>
   );
@@ -379,7 +389,7 @@ function Option({ index, highlighted, selected, onPick, onHover, children }: Opt
       role="option"
       aria-selected={selected}
       className={`flex w-full items-center gap-3 px-3 py-2 text-left text-sm ${
-        highlighted ? 'bg-line-soft' : ''
+        highlighted ? 'bg-surface-hi' : 'bg-overlay'
       }`}
       onClick={onPick}
       onMouseMove={onHover}

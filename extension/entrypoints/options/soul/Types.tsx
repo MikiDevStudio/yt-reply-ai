@@ -47,7 +47,7 @@ export function Types({ selected, onPick }: TypesProps) {
               }`}
               onClick={() => onPick(type)}
             >
-              <Icon aria-hidden className={`size-5 ${active ? 'text-primary' : ''}`} />
+              <Icon aria-hidden className={`size-5 ${active ? 'text-accent' : ''}`} />
               <span className="text-sm font-medium">{type.name}</span>
               <span className="text-xs text-base-content/60">{type.description}</span>
             </button>

@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { FailureNotice } from '@/components/FailureNotice';
+import { FIELD, GHOST, SECONDARY } from '@/components/ui';
 import type { FailureFacts } from '@/lib/failure';
 import { failureOf, sendRequest } from '@/lib/messaging';
 
@@ -45,7 +46,7 @@ export function Import({ onApply }: ImportProps) {
   return (
     <div className="flex flex-col gap-3">
       <textarea
-        className="textarea min-h-32 w-full text-sm"
+        className={`${FIELD} min-h-32`}
         placeholder="Paste a persona description, a style guide, or your notes."
         value={text}
         disabled={busy}
@@ -54,15 +55,17 @@ export function Import({ onApply }: ImportProps) {
 
       {failure && <FailureNotice facts={failure} onRetry={() => void convert()} />}
 
-      <div className="card-actions items-center justify-between">
+      <div className="flex flex-wrap items-center justify-between gap-3">
         <span className="text-xs text-base-content/50">
           Replaces the current profile. The markdown above stays editable afterwards.
         </span>
 
+        {/* Both outlined, neither solid: the card's one fill belongs to Save
+            above, and importing is an alternative road in, not the errand. */}
         <div className="flex gap-2">
           <button
             type="button"
-            className="btn btn-ghost btn-sm"
+            className={GHOST}
             disabled={busy || text.trim().length === 0}
             onClick={() => {
               onApply(text.trim());
@@ -74,7 +77,7 @@ export function Import({ onApply }: ImportProps) {
 
           <button
             type="button"
-            className="btn btn-primary btn-sm"
+            className={SECONDARY}
             disabled={busy || text.trim().length === 0}
             onClick={() => void convert()}
           >

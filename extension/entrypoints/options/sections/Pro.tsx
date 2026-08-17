@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { SOLID } from '@/components/ui';
 import { PRO_FEATURES, type ProFeatureId, waitlistUrl } from '@/lib/pro';
 import { useQuota } from '@/lib/use-quota';
 import { Section } from '../Section';
@@ -29,11 +30,14 @@ export function Pro() {
   return (
     <>
       <Section
+        n={1}
         title="Today's replies"
         description="The free tier covers 50 replies a day. A comment costs one the first time it is answered; regenerating that same comment costs nothing, however many attempts it takes."
       >
         <div className="flex items-baseline gap-3">
-          <span className="font-medium text-2xl">
+          {/* The count is the fact of this card, so it is mono and large — the
+              one place on the page where a number is the headline. */}
+          <span className="font-mono text-2xl">
             {quota ? quota.used : '…'}
             <span className="text-base text-base-content/50"> of {quota?.limit ?? 50}</span>
           </span>
@@ -47,6 +51,7 @@ export function Pro() {
       </Section>
 
       <Section
+        n={2}
         title="Pro"
         description="Pro does not exist yet. Tick what you would actually pay for — nothing here is for sale today, and what you tick decides what gets built first."
       >
@@ -74,9 +79,9 @@ export function Pro() {
           different products, and only you can say which one you would take.
         </p>
 
-        <div className="card-actions">
+        <div className="flex flex-wrap gap-2">
           <a
-            className="btn btn-primary btn-sm"
+            className={SOLID}
             href={waitlistUrl('settings', want)}
             target="_blank"
             rel="noreferrer"

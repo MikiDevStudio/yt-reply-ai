@@ -310,10 +310,15 @@
  * WXT applies `all: initial` to the shadow root, which also drops the inherited
  * font. Restore YouTube's stack so injected UI reads as part of the page.
  *
- * Injected UI gets Roboto and the system mono on purpose (brand.md §2): Roboto
- * is already loaded on every YouTube page, so the popover costs no font bytes
- * and never flashes. Inter and JetBrains Mono belong to our own pages and are
- * not shipped yet.
+ * Injected UI gets the host's Roboto and the system mono on purpose (brand.md
+ * §2): Roboto is already loaded on every YouTube page, so the popover costs no
+ * font bytes and never flashes. `--font-mono` is left at Tailwind's default
+ * stack for the same reason — the popover's micro-labels are short enough that
+ * a system mono reads as intended, and a bundled face there would need
+ * `web_accessible_resources`.
+ *
+ * Our own pages ship the same face as a variable woff2 and override both
+ * variables after this file. See assets/fonts.css.
  */
 @theme {
   --font-sans: 'Roboto', 'Arial', system-ui, sans-serif;

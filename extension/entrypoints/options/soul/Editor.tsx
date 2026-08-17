@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { FailureNotice } from '@/components/FailureNotice';
+import { FIELD, GHOST, SECONDARY, SOLID } from '@/components/ui';
 import type { FailureFacts } from '@/lib/failure';
 import { failureOf, sendRequest } from '@/lib/messaging';
 import { SOUL_LIMIT } from '@/lib/prompt';
@@ -51,7 +52,7 @@ export function Editor({ markdown, draft, onDraftChange, onSave }: EditorProps) 
   return (
     <div className="flex flex-col gap-3">
       <textarea
-        className="textarea min-h-64 w-full font-mono text-sm"
+        className={`${FIELD} min-h-64 font-mono`}
         placeholder="Answer a few questions above, or write your profile here."
         value={draft}
         disabled={busy}
@@ -61,12 +62,12 @@ export function Editor({ markdown, draft, onDraftChange, onSave }: EditorProps) 
 
       {failure && <FailureNotice facts={failure} onRetry={() => void improve()} />}
 
-      <div className="card-actions items-center justify-between">
+      <div className="flex flex-wrap items-center justify-between gap-3">
         {/* The cap is stated rather than enforced quietly: a profile trimmed
             behind the user's back would change how every reply sounds with
             nothing on screen to explain it. */}
         <span
-          className={`text-xs ${
+          className={`font-mono text-[11px] ${
             markdown.length > SOUL_LIMIT ? 'text-warning' : 'text-base-content/50'
           }`}
         >
@@ -81,7 +82,7 @@ export function Editor({ markdown, draft, onDraftChange, onSave }: EditorProps) 
           {before !== null && (
             <button
               type="button"
-              className="btn btn-ghost btn-sm"
+              className={GHOST}
               onClick={() => {
                 onDraftChange(before);
                 setBefore(null);
@@ -93,7 +94,7 @@ export function Editor({ markdown, draft, onDraftChange, onSave }: EditorProps) 
 
           <button
             type="button"
-            className="btn btn-sm"
+            className={SECONDARY}
             disabled={busy || draft.trim().length === 0}
             onClick={() => void improve()}
           >
@@ -107,7 +108,9 @@ export function Editor({ markdown, draft, onDraftChange, onSave }: EditorProps) 
             )}
           </button>
 
-          <button type="button" className="btn btn-primary btn-sm" disabled={!dirty} onClick={onSave}>
+          {/* The card's one solid button: saving is what the user came here to
+              do, and the rewrite beside it is an offer, not the errand. */}
+          <button type="button" className={SOLID} disabled={!dirty} onClick={onSave}>
             Save
           </button>
         </div>

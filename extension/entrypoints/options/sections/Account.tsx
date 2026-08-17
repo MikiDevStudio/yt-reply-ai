@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
 import { FailureNotice } from '@/components/FailureNotice';
+import { FIELD, GHOST, MICRO_TYPE, SECONDARY, SOLID } from '@/components/ui';
 import type { FailureFacts } from '@/lib/failure';
 import { failureOf, type Response, sendRequest } from '@/lib/messaging';
 import type { KeyInfo } from '@/lib/openrouter/types';
@@ -56,26 +57,36 @@ export function Account() {
   }
 
   return (
-    <Section title="OpenRouter account">
+    <Section n={1} title="OpenRouter account">
       {connected === null ? (
         <span className="loading loading-dots loading-sm" />
       ) : connected ? (
         <>
           <div className="flex flex-wrap items-center gap-3 text-sm">
-            <span className="badge badge-success badge-soft">Connected</span>
+            {/* A dot and a mono label, not a filled badge — the same status this
+                key gets in the popup, said the same way. */}
+            <span className="flex items-center gap-1.5">
+              <span aria-hidden className="size-1.5 rounded-full bg-connected" />
+              <span className={`${MICRO_TYPE} text-connected`}>connected</span>
+            </span>
             {usage && (
               <span className="text-base-content/60">
-                {usage.usage.toFixed(3)} credits used
-                {usage.limitRemaining !== null &&
-                  ` · ${usage.limitRemaining.toFixed(3)} left on this key`}
+                <span className="font-mono">{usage.usage.toFixed(3)}</span> credits used
+                {usage.limitRemaining !== null && (
+                  <>
+                    {' · '}
+                    <span className="font-mono">{usage.limitRemaining.toFixed(3)}</span> left on
+                    this key
+                  </>
+                )}
                 {usage.isFreeTier && ' · no credits bought — free models capped at 50/day'}
               </span>
             )}
           </div>
-          <div className="card-actions">
+          <div className="flex flex-wrap gap-2">
             <button
               type="button"
-              className="btn btn-sm"
+              className={SECONDARY}
               disabled={busy}
               onClick={() => run(() => sendRequest({ type: 'auth:disconnect' }))}
             >
@@ -90,10 +101,10 @@ export function Account() {
             You can cap its spend and expiry on OpenRouter's screen.
           </p>
 
-          <div className="card-actions items-center gap-3">
+          <div className="flex flex-wrap items-center gap-2">
             <button
               type="button"
-              className="btn btn-primary btn-sm"
+              className={SOLID}
               disabled={busy}
               onClick={() => run(() => sendRequest({ type: 'auth:connect' }))}
             >
@@ -101,7 +112,7 @@ export function Account() {
             </button>
             <button
               type="button"
-              className="btn btn-ghost btn-sm"
+              className={GHOST}
               onClick={() => setShowManual((value) => !value)}
             >
               Already have a key?
@@ -112,14 +123,14 @@ export function Account() {
             <div className="flex gap-2">
               <input
                 type="password"
-                className="input input-sm flex-1"
+                className={`${FIELD} flex-1 font-mono`}
                 placeholder="sk-or-v1-…"
                 value={manualKey}
                 onChange={(event) => setManualKey(event.target.value)}
               />
               <button
                 type="button"
-                className="btn btn-sm"
+                className={SECONDARY}
                 disabled={busy || manualKey.trim().length === 0}
                 onClick={() =>
                   run(() => sendRequest({ type: 'auth:setKey', apiKey: manualKey.trim() }))
