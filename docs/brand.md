@@ -121,6 +121,18 @@ YouTube's own accent is red. Two rules keep us out of its way:
   root and track the user's theme for free. It is YouTube's furniture; everything that
   opens from it is ours.
 
+### Someone else's furniture
+
+The rule the injected button follows generalises, and it is the only way a colour from
+outside this document may appear: **a third party's own mark keeps that party's colours.**
+The Buy Me a Coffee cup is yellow because it is theirs — not because we have taken a
+third accent. It is never restyled to fit us, never used as a fill, and never larger than
+the icon beside it.
+
+The one thing we do adjust is legibility: their asset outlines the cup in white, which is
+invisible on our light theme, so the light copy takes that flat white to `--ink`. The
+brand colour itself is untouched. Two files, swapped by `theme-dark:` / `theme-light:`.
+
 ### Data and charts
 
 Dark: `#FF8A3D` → `#9D9BEA` → `#0BC2DA` → `#5FD39A` → `#9097A2`

@@ -1,7 +1,6 @@
 import {
   ChevronLeft,
   ChevronRight,
-  Coffee,
   Copy,
   CornerDownLeft,
   RefreshCw,
@@ -10,6 +9,7 @@ import {
   X,
 } from 'lucide-react';
 import { useEffect, useRef, useState } from 'react';
+import { CoffeeMark } from '@/components/CoffeeMark';
 import { FailureNotice } from '@/components/FailureNotice';
 import { FOCUS, ICON, MICRO, MICRO_TYPE, SECONDARY, SOLID } from '@/components/ui';
 import { detectLanguage } from '@/lib/language';
@@ -543,8 +543,9 @@ export function ReplyPopover({
 
           <div className="flex shrink-0 items-center gap-2">
             {/* A link, not a button, and the only thing on this row that does
-                not act on the reply. It stays a ghost icon: the book allows one
-                fill per surface and that fill is spoken for. */}
+                not act on the reply. Their mark rather than a lucide cup: it
+                points at their service, and a stranger's logo is more honest
+                about where the click goes than a drawing of a coffee cup. */}
             <a
               className={ICON}
               href={SUPPORT_URL}
@@ -553,7 +554,7 @@ export function ReplyPopover({
               aria-label="Buy me a coffee"
               title="Buy me a coffee"
             >
-              <Coffee className="size-4" />
+              <CoffeeMark className="h-4" />
             </a>
 
             {busy ? (

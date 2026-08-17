@@ -1,5 +1,5 @@
-import { Coffee } from 'lucide-react';
 import { useEffect, useState } from 'react';
+import { CoffeeMark } from '@/components/CoffeeMark';
 import { FailureNotice } from '@/components/FailureNotice';
 import { MICRO, MICRO_TYPE } from '@/components/ui';
 import type { FailureFacts } from '@/lib/failure';
@@ -181,7 +181,7 @@ export function App() {
         target="_blank"
         rel="noreferrer"
       >
-        <Coffee aria-hidden className="size-3.5" />
+        <CoffeeMark className="h-3.5" />
         Buy me a coffee
       </a>
     </div>

@@ -235,6 +235,44 @@
 }
 
 /*
+ * `theme-dark:` / `theme-light:` — for the rare thing that cannot be expressed
+ * as a token, and has to be swapped outright between themes. A raster logo is
+ * the case that forced these into existence.
+ *
+ * Two selectors each, because our two kinds of surface pick a theme by
+ * different means: our own pages follow the OS, injected UI carries
+ * `data-theme` inside a shadow root where `:root` matches nothing. Reach for a
+ * token first — a rule written against `--line` needs no variant at all.
+ */
+@custom-variant theme-dark {
+  &:where([data-theme='replyai-dark'], [data-theme='replyai-dark'] *) {
+    @slot;
+  }
+  /*
+   * The OS half has to exclude anything standing under the *other* theme's
+   * attribute, or it overrides the branch above: a page in OS light holding a
+   * `replyai-dark` wrapper would match both variants at once and show both
+   * sides of a swap. Caught by rendering the harness with one of each.
+   */
+  @media (prefers-color-scheme: dark) {
+    &:not([data-theme='replyai-light'], [data-theme='replyai-light'] *) {
+      @slot;
+    }
+  }
+}
+
+@custom-variant theme-light {
+  &:where([data-theme='replyai-light'], [data-theme='replyai-light'] *) {
+    @slot;
+  }
+  @media not all and (prefers-color-scheme: dark) {
+    &:not([data-theme='replyai-dark'], [data-theme='replyai-dark'] *) {
+      @slot;
+    }
+  }
+}
+
+/*
  * Motion (brand.md §5). Both are opacity-first and short on purpose: a tool
  * that opens over a comment the user is already reading has to be there
  * immediately, and the entrance exists only to say *this appeared*.
