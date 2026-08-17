@@ -2,6 +2,7 @@ import { type FailureFacts, describeFailure } from '@/lib/failure';
 import { sendRequest } from '@/lib/messaging';
 import { MODEL_PRESETS } from '@/lib/models';
 import { model as modelSetting } from '@/lib/settings';
+import { SECONDARY } from './ui';
 
 interface FailureNoticeProps {
   facts: FailureFacts;
@@ -74,7 +75,7 @@ export function FailureNotice({ facts, onRetry, at, className = '' }: FailureNot
     // this shape is three utilities; fighting the component was more.
     <div
       role="alert"
-      className={`flex w-full min-w-0 flex-col items-start gap-2 rounded-box border p-3 text-left text-sm ${frame} ${className}`}
+      className={`flex w-full min-w-0 flex-col items-start gap-2 border p-3 text-left text-[13px] ${frame} ${className}`}
     >
       <span className={`font-medium ${notice ? 'text-warning' : 'text-error'}`}>
         {failure.title}
@@ -88,7 +89,9 @@ export function FailureNotice({ facts, onRetry, at, className = '' }: FailureNot
           never the first thing to read. `break-words` because a provider can
           answer with an unbroken URL or a stack of ids. */}
       {failure.raw && (
-        <span className="break-words text-xs text-base-content/50">{failure.raw}</span>
+        <span className="break-words font-mono text-[11px] text-base-content/45">
+          {failure.raw}
+        </span>
       )}
 
       {actions.length > 0 && (
@@ -96,7 +99,7 @@ export function FailureNotice({ facts, onRetry, at, className = '' }: FailureNot
           {actions.map((action) => {
             if (action.kind === 'retry') {
               return onRetry ? (
-                <button key="retry" type="button" className="btn btn-sm text-sm" onClick={onRetry}>
+                <button key="retry" type="button" className={SECONDARY} onClick={onRetry}>
                   {action.label}
                 </button>
               ) : null;
@@ -107,7 +110,7 @@ export function FailureNotice({ facts, onRetry, at, className = '' }: FailureNot
                 <button
                   key="free-model"
                   type="button"
-                  className="btn btn-sm text-sm"
+                  className={SECONDARY}
                   onClick={() => void useFreeModel()}
                 >
                   {action.label}
@@ -121,7 +124,7 @@ export function FailureNotice({ facts, onRetry, at, className = '' }: FailureNot
                 : () => void sendRequest({ type: 'ui:openUrl', url: action.url });
 
             return (
-              <button key={action.label} type="button" className="btn btn-sm text-sm" onClick={open}>
+              <button key={action.label} type="button" className={SECONDARY} onClick={open}>
                 {action.label}
               </button>
             );

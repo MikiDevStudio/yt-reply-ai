@@ -136,6 +136,10 @@
 @theme {
   --color-overlay: #ffffff;
   --color-surface-hi: #f4f4f5;
+  /* Hover of the one solid button: "full white / full black" (brand.md §4).
+     `base-content` is not it — the light ink stops at #262626, so hovering
+     would lighten the button instead of deepening it. */
+  --color-solid-hi: #000000;
 
   --color-line: rgb(0 0 0 / 0.1);
   --color-line-soft: rgb(0 0 0 / 0.07);
@@ -172,6 +176,7 @@
   :root {
     --color-overlay: #161718;
     --color-surface-hi: #0e0f10;
+    --color-solid-hi: #ffffff;
 
     --color-line: rgb(255 255 255 / 0.08);
     --color-line-soft: rgb(255 255 255 / 0.06);
@@ -189,6 +194,7 @@
 [data-theme='replyai-light'] {
   --color-overlay: #ffffff;
   --color-surface-hi: #f4f4f5;
+  --color-solid-hi: #000000;
 
   --color-line: rgb(0 0 0 / 0.1);
   --color-line-soft: rgb(0 0 0 / 0.07);
@@ -205,6 +211,7 @@
 [data-theme='replyai-dark'] {
   --color-overlay: #161718;
   --color-surface-hi: #0e0f10;
+  --color-solid-hi: #ffffff;
 
   --color-line: rgb(255 255 255 / 0.08);
   --color-line-soft: rgb(255 255 255 / 0.06);
@@ -216,6 +223,40 @@
   --color-accent-bright: #ff7a18;
 
   --shadow-elevated: 0 1px 0 0 rgb(255 255 255 / 0.05), 0 2px 4px 0 rgb(0 0 0 / 0.4);
+}
+
+/*
+ * Motion (brand.md §5). Both are opacity-first and short on purpose: a tool
+ * that opens over a comment the user is already reading has to be there
+ * immediately, and the entrance exists only to say *this appeared*.
+ *
+ * Every use is written `motion-safe:`, so `prefers-reduced-motion` turns them
+ * off at the call site rather than here.
+ */
+@theme {
+  --animate-popover-in: popover-in 120ms cubic-bezier(0.23, 1, 0.32, 1);
+  --animate-dot-pulse: dot-pulse 1.2s ease-in-out infinite;
+
+  @keyframes popover-in {
+    from {
+      opacity: 0;
+      transform: translateY(4px);
+    }
+    to {
+      opacity: 1;
+      transform: translateY(0);
+    }
+  }
+
+  @keyframes dot-pulse {
+    0%,
+    100% {
+      opacity: 0.25;
+    }
+    50% {
+      opacity: 1;
+    }
+  }
 }
 
 /*

@@ -10,6 +10,7 @@ import {
 } from 'lucide-react';
 import { useEffect, useRef, useState } from 'react';
 import { FailureNotice } from '@/components/FailureNotice';
+import { FOCUS, ICON, MICRO, SECONDARY, SOLID } from '@/components/ui';
 import { detectLanguage } from '@/lib/language';
 import type { GenerationContext } from '@/lib/messaging';
 import { angleFor, CREATIVITY, STYLES } from '@/lib/prompt';
@@ -48,6 +49,20 @@ const MAX_LANGUAGE_LENGTH = 40;
  * than at it.
  */
 const QUOTA_WARNING_AT = 5;
+
+/**
+ * Where the reply stands, as a 6px dot and a mono label.
+ *
+ * The book also lists a `stopped` row. There is no state for it here: `cancel`
+ * drops back to idle and takes the partial text with it, so a stopped run is
+ * indistinguishable from one that never started.
+ */
+const STATUS = {
+  empty: { dot: 'bg-line-hi', label: 'empty' },
+  writing: { dot: 'bg-accent-bright motion-safe:animate-dot-pulse', label: 'writing' },
+  done: { dot: 'bg-primary', label: 'done' },
+  failed: { dot: 'bg-error', label: 'failed' },
+} as const;
 
 interface ReplyPopoverProps {
   /** Keys the attempt stack. See `commentKey` in youtube-dom.ts. */
@@ -216,7 +231,7 @@ export function ReplyPopover({
 
   /**
    * Switch who the reply speaks as, and regenerate if something is already on
-   * screen — the same bargain the tone buttons make.
+   * screen — the same bargain the tone chips make.
    */
   const chooseAudience = (next: Audience) => {
     if (next === audience) return;
@@ -264,12 +279,27 @@ export function ReplyPopover({
 
   const lowOnQuota = quota && quota.remaining <= QUOTA_WARNING_AT ? quota : null;
 
+  const status = busy
+    ? STATUS.writing
+    : failure
+      ? STATUS.failed
+      : text
+        ? STATUS.done
+        : STATUS.empty;
+
   return (
-    // Width in px, not rem: see the note in assets/theme.css.
-    <div className="card card-sm w-[420px] max-w-[90vw] border border-base-300 bg-base-100 text-base-content shadow-xl">
-      <div className="card-body gap-3">
+    // Width in px, not rem: see the note in assets/theme.css. The one shadow we
+    // allow ourselves lives here — this is the only thing we draw that floats
+    // over a page we do not own.
+    <div className="w-[420px] max-w-[90vw] border border-line-hi bg-overlay text-base-content shadow-elevated motion-safe:animate-popover-in">
+      <div className="flex flex-col gap-3 p-3 text-[13px] leading-[1.6]">
+        {/* 1 · Header. Title in full ink, everything beside it ghost. The two
+            halves of the name carry two weights of attention, which is how a
+            heading gets its hierarchy here — not from a second colour. */}
         <div className="flex items-center gap-2">
-          <h3 className="card-title shrink-0 text-base">AI reply</h3>
+          <h3 className="shrink-0 text-[15px] font-semibold leading-[1.2] tracking-[-0.01em]">
+            AI <span className="text-base-content/55">reply</span>
+          </h3>
 
           <div className="flex min-w-0 flex-1 items-center gap-1">
             <input
@@ -279,7 +309,7 @@ export function ReplyPopover({
               placeholder={detected ?? 'Comment language'}
               aria-label="Reply language"
               title="Language to reply in. Empty follows the comment."
-              className="input input-sm input-ghost min-w-0 flex-1 text-sm"
+              className="min-w-0 flex-1 border-b border-line bg-transparent px-1 py-0.5 text-[12px] text-base-content/70 transition-colors duration-150 placeholder:text-base-content/28 focus:border-accent-line focus:outline-none disabled:opacity-40"
               disabled={busy}
               onChange={(event) => setLanguage(event.target.value)}
               onBlur={(event) => applyLanguage(event.target.value)}
@@ -291,45 +321,60 @@ export function ReplyPopover({
             {overridden ? (
               <button
                 type="button"
-                className="btn btn-sm text-sm btn-ghost btn-square"
+                className={ICON}
                 aria-label="Back to the comment's language"
                 title="Back to the comment's language"
                 disabled={busy}
                 onClick={() => applyLanguage('')}
               >
-                <RotateCcw className="size-4" />
+                <RotateCcw className="size-3.5" />
               </button>
             ) : (
-              <span className="px-1 text-sm text-base-content/40" title="Detected from the comment">
+              <span className={`${MICRO} shrink-0 px-1`} title="Detected from the comment">
                 auto
               </span>
             )}
           </div>
 
-          <button
-            type="button"
-            className="btn btn-sm text-sm btn-ghost btn-square"
-            onClick={onClose}
-            aria-label="Close"
-          >
+          <button type="button" className={ICON} onClick={onClose} aria-label="Close">
             <X className="size-4" />
           </button>
         </div>
 
-        <p className="line-clamp-2 rounded-box bg-base-200 px-3 py-2 text-sm text-base-content/60">
-          {context.commentAuthor && <span className="font-medium">{context.commentAuthor}: </span>}
-          {context.commentText || 'This comment has no text.'}
-        </p>
+        {/* 2 · The comment being answered. One of the two places in the popover
+            that is allowed a radius: it is a quoted block, not a panel.
 
+            The padding is on the wrapper, not on the clamped paragraph. A
+            `-webkit-box` clips at its padding edge, so a clamped element that
+            carries its own padding lets the first cut-off line render inside
+            it — two tidy lines, an ellipsis, and then the top of a third line
+            showing through underneath. */}
+        <div className="rounded-control bg-surface-hi px-2.5 py-2">
+          <p className="line-clamp-2 text-[12px] leading-[1.55] text-base-content/55">
+            {context.commentAuthor && (
+              <span className="font-medium text-base-content/70">{context.commentAuthor}: </span>
+            )}
+            {context.commentText || 'This comment has no text.'}
+          </p>
+        </div>
+
+        {/* 3 · Who is speaking, and whether the next popover starts by itself. */}
         <div className="flex items-center gap-2">
-          <div className="join" role="group" aria-label="Reply as">
-            {(['owner', 'viewer'] as const).map((role) => (
+          <div className="flex border border-line" role="group" aria-label="Reply as">
+            {(['owner', 'viewer'] as const).map((role, index) => (
               <button
                 key={role}
                 type="button"
-                className={`btn join-item btn-sm text-sm ${
-                  audience === role ? 'btn-primary' : 'btn-ghost'
-                }`}
+                // The top rule is on every segment, transparent until the
+                // segment is active: colouring an existing border cannot shift
+                // the label by a pixel the way adding one would.
+                className={`border-t px-2.5 py-1 font-mono text-[11px] uppercase tracking-[0.1em] transition-colors duration-150 ${
+                  index > 0 ? 'border-l border-l-line' : ''
+                } ${
+                  audience === role
+                    ? 'border-t-primary bg-accent-soft text-primary'
+                    : 'border-t-transparent text-base-content/55 hover:text-base-content'
+                } ${FOCUS}`}
                 title={
                   role === 'owner'
                     ? 'Answering as the channel owner'
@@ -339,36 +384,36 @@ export function ReplyPopover({
                 disabled={busy}
                 onClick={() => chooseAudience(role)}
               >
-                {role === 'owner' ? 'As owner' : 'As viewer'}
+                {role === 'owner' ? 'channel' : 'viewer'}
               </button>
             ))}
           </div>
 
           <label
-            className="ml-auto flex cursor-pointer items-center gap-2 text-sm text-base-content/60"
+            className="ml-auto flex cursor-pointer items-center gap-2"
             title="Start writing as soon as the popover opens"
           >
             <input
               type="checkbox"
-              className="toggle toggle-sm"
+              className="toggle toggle-xs"
               checked={autoOn}
               onChange={(event) => toggleAuto(event.target.checked)}
             />
-            Auto
+            <span className={MICRO}>auto</span>
           </label>
         </div>
 
-        {/*
-          `text-sm` rides on top of every size class in this popover: daisyUI
-          ties font size to button height, and the resulting 11–12px is smaller
-          than anything YouTube puts on the page — their comment UI sits at 14px.
-        */}
-        <div className="flex flex-wrap gap-1">
+        {/* 4 · Tone. Chips, never a filled orange one. */}
+        <div className="flex flex-wrap gap-2">
           {STYLE_ORDER.map((name) => (
             <button
               key={name}
               type="button"
-              className={`btn btn-sm text-sm ${style === name ? 'btn-primary' : 'btn-ghost'}`}
+              className={`px-2.5 py-1 text-[12px] transition-colors duration-150 ${
+                style === name
+                  ? 'border border-accent-line bg-accent-soft text-primary'
+                  : 'border border-line text-base-content/70 hover:border-line-hi hover:text-base-content'
+              } disabled:pointer-events-none disabled:opacity-40 ${FOCUS}`}
               title={STYLES[name]}
               disabled={busy}
               onClick={() => setStyle(name)}
@@ -379,13 +424,18 @@ export function ReplyPopover({
         </div>
 
         {/*
-          Optional, and empty by default: the note is what the user knows and the
-          page does not. It is read when Generate is pressed rather than on every
-          keystroke — a field that regenerated as you typed would spend a request
-          per word.
+          5 · Optional, and empty by default: the note is what the user knows and
+          the page does not. It is read when Generate is pressed rather than on
+          every keystroke — a field that regenerated as you typed would spend a
+          request per word.
+
+          `field-sizing-content` grows it from two rows to four and then stops,
+          which is the brand's rule for this field and costs no JavaScript. The
+          bounds are px because a `rem` written into an arbitrary value is the
+          one thing the build's rem-to-px pass cannot reach.
         */}
         <textarea
-          className="textarea textarea-sm w-full resize-none text-sm"
+          className="min-h-[57px] max-h-[96px] w-full resize-none border border-line-input bg-base-100 px-2.5 py-2 text-[13px] leading-[1.5] transition-colors duration-150 field-sizing-content placeholder:text-base-content/28 focus:border-accent-line focus:outline-none disabled:opacity-40"
           rows={2}
           value={note}
           disabled={busy}
@@ -394,53 +444,61 @@ export function ReplyPopover({
           onChange={(event) => changeNote(event.target.value)}
         />
 
-        {/* The box is dropped only when a failure left nothing to look at —
-            an empty frame above the message would be furniture. */}
+        {/* 6 · The reply. The box never collapses between states — an empty one,
+            a streaming one and a finished one are the same rectangle, so the
+            popover does not resize under the cursor while a reply arrives. */}
         {(text || !failure) && (
-          <div
-            ref={streamRef}
-            className="max-h-56 min-h-20 overflow-y-auto whitespace-pre-wrap rounded-box border border-base-300 p-3 text-sm"
-          >
-            {text ||
-              (state.status === 'idle' ? (
-                <span className="text-base-content/50">Pick a tone, then press Generate.</span>
-              ) : (
-                <span className="flex items-center gap-2 text-base-content/50">
-                  <span className="loading loading-dots loading-sm" />
-                  Writing…
-                </span>
-              ))}
+          <div className="flex flex-col gap-1.5">
+            <div className="flex items-center gap-2">
+              <span className={MICRO}>reply</span>
+              <span aria-hidden className="h-px flex-1 bg-line" />
+              <span aria-hidden className={`size-1.5 rounded-full ${status.dot}`} />
+              <span className={MICRO}>{status.label}</span>
+            </div>
+
+            <div
+              ref={streamRef}
+              className="max-h-56 min-h-20 overflow-y-auto whitespace-pre-wrap border border-line p-2.5 text-base-content/92"
+            >
+              {text}
+              {busy && <StreamingDots inline={text.length > 0} />}
+              {!text && !busy && (
+                <span className="text-base-content/45">Pick a tone, then press Generate.</span>
+              )}
+            </div>
           </div>
         )}
 
         {failure && <FailureNotice facts={failure} onRetry={() => start()} />}
 
-        <div className="card-actions items-center justify-between">
+        {/* 7 · Actions. What was asked on the left, what to do next on the right. */}
+        <div className="flex items-center justify-between gap-2">
           <div className="flex items-center gap-2">
             {attempts.length > 1 && (
-              <div className="join">
+              <div className="flex items-center">
                 <button
                   type="button"
-                  className="btn join-item btn-sm text-sm btn-ghost btn-square"
+                  className={ICON}
                   aria-label="Previous attempt"
                   title="Previous attempt"
                   disabled={busy || cursor === 0}
                   onClick={() => show(cursor - 1)}
                 >
-                  <ChevronLeft className="size-4" />
+                  <ChevronLeft className="size-3.5" />
                 </button>
-                <span className="join-item flex items-center px-1 text-sm text-base-content/50">
+                {/* Retries cost real money, so the count is stated, never hidden. */}
+                <span className="font-mono text-[12px] text-base-content/55">
                   {cursor + 1}/{attempts.length}
                 </span>
                 <button
                   type="button"
-                  className="btn join-item btn-sm text-sm btn-ghost btn-square"
+                  className={ICON}
                   aria-label="Next attempt"
                   title="Next attempt"
                   disabled={busy || cursor === attempts.length - 1}
                   onClick={() => show(cursor + 1)}
                 >
-                  <ChevronRight className="size-4" />
+                  <ChevronRight className="size-3.5" />
                 </button>
               </div>
             )}
@@ -448,16 +506,16 @@ export function ReplyPopover({
             <Creativity level={level} disabled={busy} onChange={setLevel} />
           </div>
 
-          <div className="flex gap-1">
+          <div className="flex items-center gap-2">
             {busy ? (
               <button
                 type="button"
-                className="btn btn-sm text-sm btn-ghost btn-square"
+                className={ICON}
                 aria-label="Stop"
                 title="Stop"
                 onClick={cancel}
               >
-                <Square className="size-4" />
+                <Square className="size-3.5" />
               </button>
             ) : (
               /*
@@ -470,20 +528,18 @@ export function ReplyPopover({
                */
               <button
                 type="button"
-                className={`btn btn-sm text-sm ${
-                  attempts.length === 0 ? 'btn-primary' : 'btn-ghost btn-square'
-                }`}
+                className={attempts.length === 0 ? SOLID : ICON}
                 aria-label={attempts.length === 0 ? undefined : 'Another attempt'}
                 title={attempts.length === 0 ? undefined : 'Another attempt'}
                 onClick={() => start()}
               >
-                {attempts.length === 0 ? 'Generate' : <RefreshCw className="size-4" />}
+                {attempts.length === 0 ? 'Generate' : <RefreshCw className="size-3.5" />}
               </button>
             )}
 
             <button
               type="button"
-              className="btn btn-sm text-sm btn-ghost btn-square"
+              className={ICON}
               aria-label={copied ? 'Copied' : 'Copy'}
               title={copied ? 'Copied' : 'Copy'}
               disabled={!text}
@@ -493,29 +549,31 @@ export function ReplyPopover({
                 setTimeout(() => setCopied(false), 1500);
               }}
             >
-              <Copy className="size-4" />
+              <Copy className="size-3.5" />
             </button>
 
+            {/* Solid only once there is something to insert: before that the
+                fill belongs to Generate, and one surface gets one fill. */}
             <button
               type="button"
-              className="btn btn-sm gap-1.5 text-sm btn-primary"
+              className={text && !busy ? SOLID : SECONDARY}
               disabled={!text || busy}
               onClick={() => onInsert(text)}
             >
-              <CornerDownLeft className="size-4" />
+              <CornerDownLeft className="size-3.5" />
               Insert
             </button>
           </div>
         </div>
 
         {/* Rendered only when one side has something to say: an always-present
-            line would cost 18px of popover height to display a space. */}
+            line would cost a row of popover height to display a space. */}
         {(attemptNote || lowOnQuota) && (
-          <div className="flex items-baseline justify-between gap-2 text-sm text-base-content/50">
+          <div className="flex items-baseline justify-between gap-2 text-[11px] text-base-content/40">
             <span>{attemptNote}</span>
             {lowOnQuota && (
               <span
-                className="shrink-0"
+                className="shrink-0 font-mono"
                 title="Free replies reset at midnight. Answering the same comment again is free."
               >
                 {lowOnQuota.remaining} {lowOnQuota.remaining === 1 ? 'reply' : 'replies'} left today
@@ -525,6 +583,29 @@ export function ReplyPopover({
         )}
       </div>
     </div>
+  );
+}
+
+/**
+ * Three dots that say a reply is on its way.
+ *
+ * Opacity only, and staggered — nothing moves or scales, which is the rule for
+ * every hover and every loop in this interface.
+ */
+function StreamingDots({ inline }: { inline: boolean }) {
+  return (
+    <span
+      aria-hidden
+      className={`inline-flex items-center gap-1 align-middle ${inline ? 'ml-1.5' : ''}`}
+    >
+      {[0, 150, 300].map((delay) => (
+        <span
+          key={delay}
+          className="size-1.5 rounded-full bg-accent-bright motion-safe:animate-dot-pulse"
+          style={{ animationDelay: `${delay}ms` }}
+        />
+      ))}
+    </span>
   );
 }
 
@@ -541,11 +622,13 @@ interface CreativityProps {
  * one click to change, and carry their meaning in a `title` instead of a label
  * that would need room this popover does not have. The chosen level is stored
  * globally, so this is set once and then ignored.
+ *
+ * Dots, not stars. A star is a rating widget from another product.
  */
 function Creativity({ level, disabled, onChange }: CreativityProps) {
   return (
     <div
-      className="rating rating-sm"
+      className="flex items-center gap-1"
       role="radiogroup"
       aria-label="How far the model may stray"
       title="How far the model may stray"
@@ -555,7 +638,9 @@ function Creativity({ level, disabled, onChange }: CreativityProps) {
           key={preset.level}
           type="radio"
           name="reply-ai-creativity"
-          className="mask mask-circle bg-primary"
+          className={`size-2 cursor-pointer appearance-none rounded-full transition-colors duration-150 disabled:cursor-default disabled:opacity-40 ${
+            preset.level === level ? 'bg-primary' : 'bg-line-hi'
+          } ${FOCUS}`}
           aria-label={`${preset.level} — ${preset.label}`}
           title={`${preset.label}. ${preset.instruction}`}
           checked={preset.level === level}
@@ -569,4 +654,3 @@ function Creativity({ level, disabled, onChange }: CreativityProps) {
     </div>
   );
 }
-
