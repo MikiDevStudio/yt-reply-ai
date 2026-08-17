@@ -115,11 +115,17 @@ YouTube's own accent is red. Two rules keep us out of its way:
 
 - The accent is **never** used on a filled pill, badge or button that could be mistaken
   for a YouTube control. Outline and text only.
-- The button we inject into a comment toolbar is the one element that does **not** use
-  our palette at all: it borrows YouTube's own CSS custom properties
+- The button we inject into a comment toolbar takes its **box** from YouTube: background
+  and label come from that site's own CSS custom properties
   (`--yt-spec-badge-chip-background`, `--yt-spec-text-primary`), which pierce the shadow
   root and track the user's theme for free. It is YouTube's furniture; everything that
   opens from it is ours.
+
+  The single exception is the spark, which is `--accent`. Sitting in a row of YouTube's
+  own controls in YouTube's own colours, the button was invisible — a month can pass
+  before someone notices they installed anything. A 16px mark is the largest claim the
+  accent may make here; the fill stays the host's, because a filled orange pill in
+  someone else's toolbar reads as an advert rather than a tool.
 
 ### Someone else's furniture
 
