@@ -1,0 +1,65 @@
+<!doctype html>
+<!--
+  A holding page, not the landing page. The real one — walkthrough video, the
+  case for BYOK, the install button — is #34 and gets built once the extension is
+  actually in the Store and the name is settled.
+
+  This exists because the privacy policy and the waitlist have to be served from
+  a real host, and a domain whose root is a 404 makes a reviewer wonder what else
+  is unfinished.
+-->
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Reply AI — YouTube comment assistant</title>
+    <meta
+      name="description"
+      content="Write replies to YouTube comments in your own voice, on your own OpenRouter key. No subscription, no server."
+    />
+    <link rel="stylesheet" href="/assets/site.css" />
+  </head>
+  <body>
+    <div class="page">
+      <header class="masthead">
+        <a class="wordmark" href="/">Reply AI <span>YouTube comment assistant</span></a>
+      </header>
+
+      <main>
+        <p class="label"><b>01</b><i></i><em>what it is</em></p>
+        <h1>Replies to your comments, <span class="quiet">in your own voice.</span></h1>
+
+        <p class="lede">
+          A Chrome extension that sits in YouTube's own comment toolbar. Press it on a comment, pick
+          a tone, and it drafts a reply from a profile you wrote about your channel — then you edit
+          it, or throw it away, and press Reply yourself.
+        </p>
+
+        <div class="card">
+          <p class="label"><b>02</b><i></i><em>how it is paid for</em></p>
+          <p>
+            You bring your own <a href="https://openrouter.ai" rel="noreferrer">OpenRouter</a> key
+            and pay the models at cost — a few dollars lasts months, and the free models cost nothing
+            at all. There is no subscription to us, no account, and no server in between: the key
+            stays on your machine with whatever spending cap you set on it.
+          </p>
+          <p class="secondary" style="margin-bottom: 0">
+            Fifty replies a day are free. What a paid tier might add is on the
+            <a href="/pro">waitlist page</a>, unbuilt, waiting for a vote.
+          </p>
+        </div>
+
+        <p class="secondary">
+          Not in the Chrome Web Store yet — the listing is being prepared. The code is public in the
+          meantime, and it can be loaded unpacked from
+          <a href="https://github.com/MikiDevStudio/yt-reply-ai" rel="noreferrer">the repository</a>.
+        </p>
+      </main>
+
+      <footer class="foot">
+        <a href="/pro">Pro waitlist</a> · <a href="/privacy">Privacy policy</a> ·
+        <a href="https://github.com/MikiDevStudio/yt-reply-ai" rel="noreferrer">Source</a>
+      </footer>
+    </div>
+  </body>
+</html>

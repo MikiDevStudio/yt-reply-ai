@@ -1,0 +1,338 @@
+<!doctype html>
+<!--
+  The waitlist page. This is the whole demand measurement for Pro (#32).
+
+  The ids in the ballot below are the ids in `extension/lib/pro.ts`, and the
+  wording is the same wording the extension shows. Both have to stay in step: the
+  id is what a vote is counted under, and the sentence is what the person was
+  agreeing to when they ticked it.
+
+  The extension never posts anything — it links here with `?from=…&want=…`, so
+  what arrives is a page load the user pressed, not telemetry. The form is the
+  first moment any address exists.
+-->
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Pro waitlist — Reply AI</title>
+    <meta
+      name="description"
+      content="Pro is not built yet. Vote for the parts worth building and we will tell you when they exist."
+    />
+    <!-- Nothing here is worth ranking, and the votes are in the URL. -->
+    <meta name="robots" content="noindex" />
+    <link rel="stylesheet" href="/assets/site.css" />
+  </head>
+  <body>
+    <div class="page page--wide">
+      <header class="masthead">
+        <a class="wordmark" href="/">Reply AI <span>YouTube comment assistant</span></a>
+      </header>
+
+      <main>
+        <p class="label"><b>01</b><i></i><em>pro waitlist</em></p>
+        <h1>Pro does not exist yet. <span class="quiet">Tell us which parts should.</span></h1>
+
+        <p class="lede">
+          Everything in the extension today is free and runs on your own OpenRouter key. The list
+          below is what a paid tier would contain — all of it unbuilt. Tick what you would actually
+          pay for, and it gets built in that order.
+        </p>
+
+        <p id="from-limit" class="secondary" hidden>
+          You got here from the daily limit, which is the one signal that counts double: you ran out
+          of replies in the middle of the work.
+        </p>
+
+        <form id="waitlist" novalidate>
+          <h2>What would you pay for?</h2>
+
+          <div class="ballot">
+            <label>
+              <input type="checkbox" name="want" value="cap" />
+              <span>
+                <span class="title">No daily cap</span>
+                <span class="detail">
+                  The 50 free replies a day become unlimited. Everything still runs on your own key.
+                </span>
+                <span class="tally" data-tally="cap" hidden></span>
+                <span class="bar" data-bar="cap" hidden><i style="width: 0"></i></span>
+              </span>
+            </label>
+
+            <label>
+              <input type="checkbox" name="want" value="scanner" />
+              <span>
+                <span class="title">Relevance scanner</span>
+                <span class="detail">
+                  Reads a comment section and points at the comments actually worth answering.
+                </span>
+                <span class="tally" data-tally="scanner" hidden></span>
+                <span class="bar" data-bar="scanner" hidden><i style="width: 0"></i></span>
+              </span>
+            </label>
+
+            <label>
+              <input type="checkbox" name="want" value="bulk" />
+              <span>
+                <span class="title">Bulk mode</span>
+                <span class="detail">
+                  Draft replies to a whole page of comments at once, then go through them one by one.
+                </span>
+                <span class="tally" data-tally="bulk" hidden></span>
+                <span class="bar" data-bar="bulk" hidden><i style="width: 0"></i></span>
+              </span>
+            </label>
+
+            <label>
+              <input type="checkbox" name="want" value="presets" />
+              <span>
+                <span class="title">Style presets</span>
+                <span class="detail">
+                  Saved voices to switch between — a channel, a client, a second language.
+                </span>
+                <span class="tally" data-tally="presets" hidden></span>
+                <span class="bar" data-bar="presets" hidden><i style="width: 0"></i></span>
+              </span>
+            </label>
+          </div>
+
+          <p id="tally-total" class="secondary mono" hidden></p>
+
+          <h2>And what shape should the price be?</h2>
+
+          <p class="secondary">
+            You already pay OpenRouter directly for the models, at cost. This is only about what, if
+            anything, you would pay us on top.
+          </p>
+
+          <div class="segmented">
+            <label>
+              <input type="radio" name="price" value="monthly" />
+              <span class="name">~$5 a month</span>
+              <span class="sub">Subscription, cancel whenever</span>
+            </label>
+            <label>
+              <input type="radio" name="price" value="lifetime" />
+              <span class="name">~$30 once</span>
+              <span class="sub">Lifetime licence, no renewal</span>
+            </label>
+            <label>
+              <input type="radio" name="price" value="neither" />
+              <span class="name">Neither</span>
+              <span class="sub">The free version is enough</span>
+            </label>
+          </div>
+
+          <h2>Anything the list is missing?</h2>
+
+          <div class="field">
+            <label for="wish">In your own words — optional, and read by a person</label>
+            <textarea
+              id="wish"
+              name="wish"
+              maxlength="1000"
+              placeholder="The thing that would actually save you time…"
+            ></textarea>
+            <p class="hint">
+              Write-ins that come up more than once get added to the list above, credited to nobody.
+            </p>
+          </div>
+
+          <h2>Where do we tell you?</h2>
+
+          <div class="field">
+            <label for="email">Email</label>
+            <input
+              id="email"
+              name="email"
+              type="email"
+              autocomplete="email"
+              required
+              placeholder="you@example.com"
+            />
+            <p class="hint">
+              One confirmation email now — you are on the list only once you click the link in it —
+              and then nothing until Pro exists. Unsubscribe in one click from any email. Details in
+              the <a href="/privacy">privacy policy</a>.
+            </p>
+          </div>
+
+          <!--
+            Honeypot. A real person never sees it, so anything filled in here came
+            from a bot and n8n drops the submission without answering.
+          -->
+          <div class="field" aria-hidden="true" style="position: absolute; left: -9999px">
+            <label for="nickname">Nickname</label>
+            <input id="nickname" name="nickname" type="text" tabindex="-1" autocomplete="off" />
+          </div>
+
+          <div class="actions">
+            <button id="submit" class="btn-primary" type="submit">Join the waitlist</button>
+            <span class="secondary">No vote required — the address alone is a vote.</span>
+          </div>
+
+          <div id="error" class="status status--bad" role="alert" hidden></div>
+        </form>
+
+        <div id="done" class="status status--ok" role="status" hidden>
+          <p><strong>Check your inbox.</strong></p>
+          <p class="secondary">
+            There is a confirmation link waiting there, and clicking it is what puts you on the list.
+            If it has not arrived in a few minutes, look in spam — and if it is not there either,
+            write to <a href="mailto:privacy@mikidev.app">privacy@mikidev.app</a> and you will be
+            added by hand.
+          </p>
+          <p class="secondary" style="margin-bottom: 0">Your votes were recorded either way.</p>
+        </div>
+
+        <hr />
+
+        <h2>Why a waitlist and not a buy button</h2>
+
+        <p>
+          Because a paid tier that nobody asked for is months of work spent on a guess. The extension
+          is finished and free; Pro gets built when this page says which parts are worth building,
+          and the parts nobody ticks never get built at all.
+        </p>
+
+        <p class="secondary">
+          If you would rather support the free version now, there is a
+          <a href="https://buymeacoffee.com/mikipirson" rel="noreferrer">coffee link</a> — no
+          account, no subscription, and it changes nothing about what the extension does.
+        </p>
+      </main>
+
+      <footer class="foot">
+        <a href="/">Reply AI</a> · <a href="/privacy">Privacy policy</a> ·
+        <a href="https://github.com/MikiDevStudio/yt-reply-ai" rel="noreferrer">Source</a>
+      </footer>
+    </div>
+
+    <script>
+      /*
+       * Two n8n webhooks, and no other network dependency on this page.
+       *
+       * n8n rather than Listmonk's own public endpoint because that endpoint
+       * accepts email, name and list uuids only — the votes cannot ride along
+       * with it, and something holding an admin token has to write them.
+       */
+      const SUBMIT_URL = 'https://n8n-coolify-personal.mikidev.app/webhook/waitlist';
+      const TALLY_URL = 'https://n8n-coolify-personal.mikidev.app/webhook/waitlist-tally';
+
+      /* Below this many confirmed addresses the tally is hidden rather than
+         shown honestly: "1 person wants this" argues against the product more
+         effectively than silence, and early visitors are the ones we can least
+         afford to talk out of it. */
+      const TALLY_FLOOR = 5;
+
+      const form = document.getElementById('waitlist');
+      const button = document.getElementById('submit');
+      const error = document.getElementById('error');
+      const done = document.getElementById('done');
+
+      const params = new URLSearchParams(location.search);
+
+      /* The extension's `from` and `want`. `want` is what the user already ticked
+         in settings, so the boxes arrive pre-ticked and only the address is left
+         to type — that is the entire reason the ballot exists in two places. */
+      const from = params.get('from') === 'limit' ? 'limit' : params.get('from') === 'settings' ? 'settings' : 'direct';
+      if (from === 'limit') document.getElementById('from-limit').hidden = false;
+
+      const wanted = new Set((params.get('want') || '').split(',').filter(Boolean));
+      for (const box of form.querySelectorAll('input[name="want"]')) {
+        if (wanted.has(box.value)) box.checked = true;
+      }
+
+      function showError(message) {
+        error.textContent = message;
+        error.hidden = false;
+      }
+
+      form.addEventListener('submit', async (event) => {
+        event.preventDefault();
+        error.hidden = true;
+
+        const email = form.email.value.trim();
+        /* Deliberately loose: the confirmation email is the real validation, and
+           a regex that rejects a valid address is worse than one that lets a
+           typo through. */
+        if (!/^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(email)) {
+          showError('That address does not look complete. Check it and try again.');
+          form.email.focus();
+          return;
+        }
+
+        button.disabled = true;
+        button.textContent = 'Sending…';
+
+        const payload = {
+          email,
+          from,
+          want: [...form.querySelectorAll('input[name="want"]:checked')].map((box) => box.value),
+          price: form.price.value || null,
+          wish: form.wish.value.trim() || null,
+          nickname: form.nickname.value,
+          /* The page's own language, which is the only hint we get about what
+             language to write the announcement in. Not an identifier. */
+          locale: navigator.language || null,
+        };
+
+        try {
+          const response = await fetch(SUBMIT_URL, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(payload),
+          });
+          if (!response.ok) throw new Error(`HTTP ${response.status}`);
+
+          form.hidden = true;
+          done.hidden = false;
+          done.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        } catch {
+          /* Never swallow this. A silent failure here loses the one thing the
+             page exists to collect, and the person has no way to tell. */
+          button.disabled = false;
+          button.textContent = 'Join the waitlist';
+          showError(
+            'That did not go through. Try once more — and if it still fails, send the address to privacy@mikidev.app and it will be added by hand.',
+          );
+        }
+      });
+
+      /* The public tally, best effort. It is social proof, not content: if the
+         endpoint is down the page stays exactly as useful, so a failure is
+         swallowed on purpose here — the one place on this page where that is
+         the right call. */
+      (async () => {
+        try {
+          const response = await fetch(TALLY_URL, { headers: { Accept: 'application/json' } });
+          if (!response.ok) return;
+
+          const tally = await response.json();
+          const total = Number(tally.total) || 0;
+          if (total < TALLY_FLOOR) return;
+
+          document.getElementById('tally-total').textContent =
+            `${total} people on the list so far · votes below`;
+          document.getElementById('tally-total').hidden = false;
+
+          for (const [id, count] of Object.entries(tally.votes || {})) {
+            const label = document.querySelector(`[data-tally="${id}"]`);
+            const bar = document.querySelector(`[data-bar="${id}"]`);
+            if (!label || !bar) continue;
+
+            const share = Math.round((Number(count) / total) * 100);
+            label.textContent = `${count} of ${total} · ${share}%`;
+            label.hidden = false;
+            bar.hidden = false;
+            bar.firstElementChild.style.width = `${Math.min(share, 100)}%`;
+          }
+        } catch {
+          /* Intentionally silent — see above. */
+        }
+      })();
+    </script>
+  </body>
+</html>

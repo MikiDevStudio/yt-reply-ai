@@ -1,0 +1,261 @@
+<!doctype html>
+<!--
+  The privacy policy the Chrome Web Store listing points at.
+
+  Two rules govern edits here. First, every sentence has to be checkable against
+  the source: the storage table is `lib/settings.ts`, `lib/quota.ts` and
+  `lib/video-cache.ts`, and the request list is `GenerationContext` in
+  `lib/messaging.ts` plus `APP_HEADERS` in `lib/openrouter/client.ts`. Second, it
+  has to agree with the Web Store data-disclosure form field by field — a policy
+  that says more than the form, or less, is a rejection.
+
+  TODO before submitting: privacy@mikidev.app has to actually deliver. A dead
+  contact address on this page is grounds for rejection on its own.
+-->
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Privacy policy — Reply AI</title>
+    <meta
+      name="description"
+      content="What Reply AI stores, what it sends to OpenRouter, and why there is nothing else to disclose."
+    />
+    <link rel="stylesheet" href="/assets/site.css" />
+  </head>
+  <body>
+    <div class="page">
+      <header class="masthead">
+        <a class="wordmark" href="/">Reply AI <span>YouTube comment assistant</span></a>
+      </header>
+
+      <main>
+        <p class="label"><b>01</b><i></i><em>privacy policy</em></p>
+        <h1>What this extension knows <span class="quiet">and what it never sends.</span></h1>
+
+        <p class="lede">
+          Reply AI has no server, no account and no analytics. It stores what it needs on your own
+          machine and makes exactly one kind of outbound request: to OpenRouter, on your own API
+          key, when you press Generate.
+        </p>
+
+        <p class="secondary mono">Last updated: 17 August 2026 · Applies to version 0.1.0 onward</p>
+
+        <h2>What we collect about you</h2>
+
+        <p>
+          Nothing. There is no server to collect it with. The extension sends us no usage data, no
+          error reports, no install ping and no identifier of any kind, and it has no way to know
+          that you exist.
+        </p>
+
+        <h2>What is stored on your device</h2>
+
+        <p>
+          All of it lives in the browser's own extension storage and is readable only by this
+          extension.
+        </p>
+
+        <table>
+          <thead>
+            <tr>
+              <th>What</th>
+              <th>Where</th>
+              <th>Why</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td>OpenRouter API key</td>
+              <td>Local, on this device</td>
+              <td>Authenticates your generation requests. Sent only to openrouter.ai</td>
+            </tr>
+            <tr>
+              <td>Soul profile</td>
+              <td>Local, on this device</td>
+              <td>The description of your channel and voice that you wrote yourself</td>
+            </tr>
+            <tr>
+              <td>Preferences</td>
+              <td>Local, on this device</td>
+              <td>Chosen model, tone, creativity, context depth, who the reply speaks as</td>
+            </tr>
+            <tr>
+              <td>Model list</td>
+              <td>Local, on this device</td>
+              <td>A cached copy of OpenRouter's public catalogue, so the settings page opens fast</td>
+            </tr>
+            <tr>
+              <td>Video descriptions</td>
+              <td>Session, cleared when the browser closes</td>
+              <td>Avoids re-reading the same page for every reply on it</td>
+            </tr>
+            <tr>
+              <td>Daily reply counter</td>
+              <td>Synced storage</td>
+              <td>Enforces the free daily limit. See the note below</td>
+            </tr>
+          </tbody>
+        </table>
+
+        <p>
+          The counter is the one item Chrome may copy off your device: it lives in synced extension
+          storage, so if you are signed into Chrome with sync on, Chrome carries it to your Google
+          account along with your other browser data. It holds today's date and a list of short
+          one-way fingerprints of the comments already answered — 32-bit numbers that cannot be
+          turned back into a comment, an author or a link. It exists so the day's count follows your
+          profile instead of resetting on every new machine. Nothing else is synced: your API key
+          and your soul profile stay on the device they were entered on.
+        </p>
+
+        <h2>What is sent when you press Generate</h2>
+
+        <p>
+          One HTTPS request to <code>openrouter.ai/api/v1/chat/completions</code>, containing only
+          what the model needs to write the reply:
+        </p>
+
+        <ul>
+          <li>the text of the comment you are replying to, and its author's public display name;</li>
+          <li>the comment that started the thread, when you reply inside one;</li>
+          <li>
+            the video's title, channel name and id — and, only at the deepest context setting, its
+            description;
+          </li>
+          <li>your soul profile and the settings for this reply;</li>
+          <li>anything you typed into the note field, and the earlier attempts when you regenerate;</li>
+          <li>your API key, as the authorisation header;</li>
+          <li>
+            two headers naming the application, so the request is attributable in your own
+            OpenRouter dashboard.
+          </li>
+        </ul>
+
+        <p>
+          That request goes from your browser straight to OpenRouter and never passes through us.
+          OpenRouter then routes it to whichever model provider you selected. Their handling of it is
+          governed by your agreement with them — see
+          <a href="https://openrouter.ai/privacy" rel="noreferrer">OpenRouter's privacy policy</a>,
+          and the prompt-logging controls in your OpenRouter account settings, which you own and we
+          cannot change.
+        </p>
+
+        <p>
+          Two things worth stating plainly. Nothing is sent unless you press a button — the
+          extension does not read comment sections in the background, and it never posts a reply for
+          you; inserting text into YouTube's reply box is the last thing it does, and pressing Reply
+          is yours. And the comment text belongs to the person who wrote it, not to us: it reaches
+          OpenRouter under your own account and no copy is kept anywhere else.
+        </p>
+
+        <h2>Signing in to OpenRouter</h2>
+
+        <p>
+          Connecting an account uses the browser's own identity API to open OpenRouter's consent
+          page in a normal browser window. Your OpenRouter password is typed on their site and never
+          reaches the extension; what comes back is an API key scoped to this extension, stored as
+          described above. You can revoke it at any time at
+          <a href="https://openrouter.ai/settings/keys" rel="noreferrer">openrouter.ai/settings/keys</a>,
+          which instantly stops the extension from being able to generate anything.
+        </p>
+
+        <h2>Permissions, and why each one exists</h2>
+
+        <table>
+          <thead>
+            <tr>
+              <th>Permission</th>
+              <th>What it is for</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td><code>storage</code></td>
+              <td>The table above. Without it there is nowhere to keep your key or your settings</td>
+            </tr>
+            <tr>
+              <td><code>identity</code></td>
+              <td>Opens OpenRouter's sign-in page and receives the key it issues</td>
+            </tr>
+            <tr>
+              <td><code>openrouter.ai</code></td>
+              <td>
+                The single host the extension may contact. It is not broadened to all sites, and the
+                extension cannot reach any other server
+              </td>
+            </tr>
+            <tr>
+              <td><code>www.youtube.com</code><br /><code>studio.youtube.com</code></td>
+              <td>
+                The two pages the interface is drawn on — the button in a comment's toolbar and the
+                panel that opens from it. Reading the page is how the comment gets into the panel
+              </td>
+            </tr>
+          </tbody>
+        </table>
+
+        <p>
+          The extension contains no remote code. Text a model returns is displayed and inserted as
+          text; it is never executed.
+        </p>
+
+        <h2>The Pro link</h2>
+
+        <p>
+          Pro does not exist yet, and the button for it is a link to a page on this website. If you
+          ticked features in settings before pressing it, they travel in the address bar — visible to
+          you, in the URL — so the page can pre-tick the same boxes. That is a page you chose to
+          open, not a report the extension filed: nothing is submitted from inside the extension, and
+          if you type an email address it happens on the website, under the terms in the next
+          section.
+        </p>
+
+        <h2>This website and the waitlist</h2>
+
+        <p>
+          These pages set no cookies and load no third-party scripts, fonts or images. If you submit
+          the waitlist form, your address is stored in our own self-hosted mailing tool on a server
+          we run, together with the features you voted for, your answer on price, anything you wrote
+          in the free-text field, and which entry point sent you.
+        </p>
+
+        <p>
+          You will receive a confirmation email and are on the list only if you click the link in it.
+          The address is used for one thing — telling you when Pro exists — and every email carries a
+          one-click unsubscribe that deletes you from the list. It is never sold, rented or shared,
+          and it is not used for any other mailing.
+        </p>
+
+        <h2>Deleting everything</h2>
+
+        <p>
+          Removing the extension removes its storage with it, including the synced counter. Settings
+          also lets you clear the stored key on its own. To leave the waitlist, use the unsubscribe
+          link in any email from us; to be certain nothing of yours remains, write to the address
+          below and it will be deleted.
+        </p>
+
+        <h2>Changes</h2>
+
+        <p>
+          If what the extension stores or sends ever changes, this page changes in the same release
+          and the date at the top moves. Material changes are also listed in the release notes on
+          <a href="https://github.com/MikiDevStudio/yt-reply-ai" rel="noreferrer">GitHub</a>, so the
+          history is public rather than a silent edit.
+        </p>
+
+        <h2>Contact</h2>
+
+        <p>
+          <a href="mailto:privacy@mikidev.app">privacy@mikidev.app</a> — for anything on this page,
+          including a request to delete data.
+        </p>
+      </main>
+
+      <footer class="foot">
+        <a href="/">Reply AI</a> · <a href="/pro">Pro waitlist</a> ·
+        <a href="https://github.com/MikiDevStudio/yt-reply-ai" rel="noreferrer">Source</a>
+      </footer>
+    </div>
+  </body>
+</html>

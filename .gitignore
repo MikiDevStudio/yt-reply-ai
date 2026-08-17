@@ -3,6 +3,9 @@
 .env.*
 !.env.example
 
+# MCP server config: it carries the n8n API key inline, in plain text
+.mcp.json
+
 # Extension signing key — losing it is survivable, leaking it is not
 .keys/
 
