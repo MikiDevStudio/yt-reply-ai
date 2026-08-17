@@ -149,23 +149,30 @@ Green survives here as a categorical hue only — it carries no meaning outside 
 
 | Role | Our own pages | Injected UI |
 |---|---|---|
-| Interface, headings | **Inter** | **Roboto** (YouTube's stack) |
+| Interface, headings | **Roboto** (local `woff2`) | **Roboto** (YouTube's own) |
 | Micro-labels, numbers, statuses, model ids | **JetBrains Mono** | system mono (`ui-monospace`, Menlo, Consolas) |
 
-The split is deliberate. Injected UI reads as part of the page it sits in, and Roboto is
-already loaded on every YouTube page — so the popover costs no font bytes and never
-flashes. Our own pages are ours, and get the real pair.
+One interface face across all three surfaces. This used to be a split — Inter for our
+pages, Roboto only where YouTube already paid for it — and the split was the wrong call
+for a product whose main surface is a panel inside YouTube: two grotesks that near-match
+read as a mistake rather than a distinction, and the popover is what people look at most.
+Same face everywhere, and the settings page is recognisably the same product as the panel.
+
+Injected UI still costs no font bytes: YouTube loads Roboto itself, and an `@font-face`
+declared in the host document reaches into our shadow root, so the popover inherits it and
+never flashes.
 
 Bundling a font into the content script is the thing we avoid: MV3's CSP blocks remote
 fonts, so a bundled `woff2` would need `web_accessible_resources` and an absolute
 `chrome-extension://` URL, because injected CSS text resolves relative `url()` against
-the host page. Not worth it for a mono micro-label whose job is the *role*, not the
-letterforms.
+the host page. That plumbing buys nothing here — the face is already on the page.
 
-On the settings page and popup, Inter and JetBrains Mono ship as local `woff2` with a
-Cyrillic subset — the UI is localised EN + RU, and Geist, which the source uses, has no
-Cyrillic at all. (In caveman.so's CSS the Geist variables are already aliased to Inter and
-JetBrains Mono; the names are template leftovers.)
+Our own pages have no such donor, and until the `woff2` ships they fall through the stack
+to Arial, which is the one place the interface looks visibly worse. Roboto and JetBrains
+Mono ship there as local `woff2` with a Cyrillic subset — the UI is localised EN + RU, and
+Geist, which the source uses, has no Cyrillic at all. (In caveman.so's CSS the Geist
+variables are already aliased to Inter and JetBrains Mono; the names are template
+leftovers.)
 
 Mono is not just for code. It carries the engineering register: section numbers, labels,
 statuses, attempt counters, model ids, token costs.
