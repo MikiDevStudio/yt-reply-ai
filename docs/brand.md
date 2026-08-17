@@ -90,6 +90,14 @@ voice._ One sentence, two weights of attention, no second colour.
 | `--danger` | `#EB5656` | `#B91C1C` | error, destructive action |
 | `--solid` | `#E9E9EC` | `#171717` | fill of the one primary button |
 | `--solid-ink` | `#0B0B0B` | `#FAFAFA` | text on `--solid` |
+| `--connected` | `#5FD39A` | `#15803D` | **the one exception below:** a live connection |
+
+`--connected` is the single green in the interface, and it exists for one thing:
+the popup's connection status. It is deliberately not the same signal as "done" —
+"done" is about a reply we just produced and stays the accent, while this is about
+a link to someone else's service being up, which every other tool in the world
+draws green. The values are the categorical green already in the chart ramp, so
+this adds a use, not a colour.
 
 `--accent-bright` is the more insistent version of the accent: brighter on dark, deeper
 on light. Same role either way.
@@ -417,8 +425,9 @@ accents map onto theme slots:
 
 Three consequences worth stating, because they are what the migration actually costs:
 
-- **Success is orange, not green.** "Done" and "Connected" are the accent — that is what
-  the accent means. There is no green in the interface outside a chart.
+- **Success is orange, not green.** "Done" is the accent — that is what the accent means.
+  The one green is `--connected`, and it is spent on the popup's connection status; see
+  §1. Nothing else in the interface is green outside a chart.
 - **`--radius-box: 0` also flattens dropdowns**, which daisyUI draws from the same slot.
   Menus and the quoted-comment block get `--radius-control` explicitly.
 - **`base-100` is the page and `base-200` the card**, which is the reverse of what the

@@ -150,6 +150,12 @@
   --color-accent-soft: rgb(176 89 12 / 0.08);
   --color-accent-bright: #8f4708;
 
+  /* The one green in the interface, and the one place it is allowed: a
+     connection that is live. Everywhere else "done" is the orange accent. The
+     values are the categorical green from the chart ramp, which is where this
+     hue already lived. See brand.md §1. */
+  --color-connected: #15803d;
+
   --radius-block: 0px;
   --radius-control: 8px;
 
@@ -186,6 +192,7 @@
     --color-accent-line: rgb(255 138 61 / 0.65);
     --color-accent-soft: rgb(255 138 61 / 0.1);
     --color-accent-bright: #ff7a18;
+    --color-connected: #5fd39a;
 
     --shadow-elevated: 0 1px 0 0 rgb(255 255 255 / 0.05), 0 2px 4px 0 rgb(0 0 0 / 0.4);
   }
@@ -204,6 +211,7 @@
   --color-accent-line: rgb(176 89 12 / 0.55);
   --color-accent-soft: rgb(176 89 12 / 0.08);
   --color-accent-bright: #8f4708;
+  --color-connected: #15803d;
 
   --shadow-elevated: 0 1px 0 0 rgb(0 0 0 / 0.04), 0 4px 16px 0 rgb(0 0 0 / 0.12);
 }
@@ -221,6 +229,7 @@
   --color-accent-line: rgb(255 138 61 / 0.65);
   --color-accent-soft: rgb(255 138 61 / 0.1);
   --color-accent-bright: #ff7a18;
+  --color-connected: #5fd39a;
 
   --shadow-elevated: 0 1px 0 0 rgb(255 255 255 / 0.05), 0 2px 4px 0 rgb(0 0 0 / 0.4);
 }

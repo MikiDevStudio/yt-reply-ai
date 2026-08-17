@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
 import { FailureNotice } from '@/components/FailureNotice';
+import { MICRO, MICRO_TYPE } from '@/components/ui';
 import type { FailureFacts } from '@/lib/failure';
 import { failureOf, sendRequest } from '@/lib/messaging';
 import type { KeyInfo } from '@/lib/openrouter/types';
@@ -55,14 +56,22 @@ export function App() {
 
   return (
     <div className="flex w-80 flex-col gap-4 bg-base-100 p-4 text-base-content">
-      <header className="flex items-center justify-between">
+      {/* A dot and a mono label, not a filled badge: a badge that size reads as
+          a control you can press, and this one only reports. */}
+      <header className="flex items-center justify-between gap-2">
         <span className="font-semibold">Reply AI</span>
         {connected === null ? (
-          <span className="loading loading-dots loading-xs" />
-        ) : connected ? (
-          <span className="badge badge-success badge-soft badge-sm">Connected</span>
+          <span className={MICRO}>checking</span>
         ) : (
-          <span className="badge badge-warning badge-soft badge-sm">Not connected</span>
+          <span className="flex items-center gap-1.5">
+            <span
+              aria-hidden
+              className={`size-1.5 rounded-full ${connected ? 'bg-connected' : 'bg-warning'}`}
+            />
+            <span className={`${MICRO_TYPE} ${connected ? 'text-connected' : 'text-warning'}`}>
+              {connected ? 'connected' : 'no key'}
+            </span>
+          </span>
         )}
       </header>
 
