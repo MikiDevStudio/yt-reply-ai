@@ -5,8 +5,8 @@ import { storage } from '#imports';
  *
  * With Pro unbuilt, the cap is what turns curiosity into a number: the people
  * who reach it are the ones answering comments as work, which is the audience
- * Pro would be sold to. See `docs/plans/2026-08-16-pro-offer-decisions.md` and
- * #31.
+ * Pro would be sold to. See #31 and the project decision log, which is kept
+ * outside this repository.
  *
  * It is trivially resettable by anyone who opens devtools, and that is
  * accepted — nothing shipped to the user's machine can be protected, and the

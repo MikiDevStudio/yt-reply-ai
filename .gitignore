@@ -6,6 +6,12 @@
 # MCP server config: it carries the n8n API key inline, in plain text
 .mcp.json
 
+# Decision log. Kept on disk, deliberately out of a public repository: it holds
+# revenue expectations, the pricing options still under discussion, and the
+# reasoning about what a shipped client cannot protect. Removed from the history
+# as well, so publishing the repo does not publish it retroactively.
+docs/plans/
+
 # Extension signing key — losing it is survivable, leaking it is not
 .keys/
 

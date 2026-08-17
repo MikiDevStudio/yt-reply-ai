@@ -57,8 +57,8 @@ one.
 
 Anyone with devtools can reset it. That is accepted, not overlooked: nothing
 shipped to the user's machine can be protected, and the cap exists to measure
-demand rather than to enforce anything. See
-`docs/plans/2026-08-16-pro-offer-decisions.md`.
+demand rather than to enforce anything. See the project decision log, which is
+kept outside this repository.
 
 ## Failure states
 

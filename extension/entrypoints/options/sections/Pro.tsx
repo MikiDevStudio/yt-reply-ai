@@ -7,7 +7,8 @@ import { Section } from '../Section';
 /**
  * The Pro placeholder: a page that says what Pro would be and leads to a
  * waitlist, because Pro is not built and will not be until the waitlist says it
- * should be. See `docs/plans/2026-08-16-pro-offer-decisions.md`.
+ * should be. Reasoned through in the project decision log, which is kept
+ * outside this repository.
  *
  * Deliberately not a purchase. There is nothing to buy, nothing is taken here,
  * and the copy has to leave the reader in no doubt about that — a page that

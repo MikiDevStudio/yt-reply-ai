@@ -260,8 +260,8 @@ export function describeFailure(facts: FailureFacts): Failure {
  * `limit_source`, so this is reading rather than guessing.
  *
  * No Pro line in any of them, deliberately. These limits belong to the user's
- * own key and Pro would not lift them — see
- * `docs/plans/2026-08-16-pro-offer-decisions.md`.
+ * own key and Pro would not lift them — see the project decision log, kept
+ * outside this repository.
  */
 function rateLimited(facts: FailureFacts): Failure {
   const wait = facts.retryAfterSeconds
@@ -315,7 +315,7 @@ function rateLimited(facts: FailureFacts): Failure {
  *
  * Written to read as a waitlist rather than a purchase that failed. Nothing is
  * for sale on the other side of that button, and saying so here is what keeps
- * the click honest: see `docs/plans/2026-08-16-pro-offer-decisions.md`.
+ * the click honest: see the project decision log, kept outside this repository.
  */
 function capReached(facts: FailureFacts): Failure {
   const count = facts.quota
