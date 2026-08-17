@@ -15,6 +15,12 @@ docs/plans/
 # Extension signing key — losing it is survivable, leaking it is not
 .keys/
 
+# Infrastructure notes: workflow definitions, host names, resource ids. No
+# secrets in them, but the repository is public and none of it is anyone else's
+# business. Kept on disk, and stripped from the history for the same reason as
+# the decision log.
+ops/
+
 # Legacy projects (reference only, not part of this repo)
 Reply-AI-YT/
 yt-reply-extension/
@@ -35,3 +41,12 @@ dist/
 .DS_Store
 Thumbs.db
 *.log
+
+# Screenshots, mockups and stray images. The extension's own icons are shipped
+# code, so they are exempt — without the exception a new icon size would be
+# skipped by `git add` in silence.
+*.png
+*.jpeg
+*.jpg
+!extension/public/icon/*.png
+
