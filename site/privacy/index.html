@@ -9,10 +9,10 @@
   has to agree with the Web Store data-disclosure form field by field — a policy
   that says more than the form, or less, is a rejection.
 
-  TODO before submitting: privacy@reply-ai.mikidev.app has to actually deliver.
-  A dead contact address on this page is grounds for rejection on its own. The
-  address sits on the subdomain rather than the root so that the product's mail
-  reputation, and any spam complaint against it, cannot touch mikidev.app.
+  The contact address is on the root domain because Cloudflare Email Routing
+  would not onboard the subdomain. That costs nothing: reputation is a property
+  of sending, and we still send only from reply-ai.mikidev.app. Receiving is
+  unrelated to it.
 -->
 <html lang="en">
   <head>
@@ -249,7 +249,7 @@
         <h2>Contact</h2>
 
         <p>
-          <a href="mailto:privacy@reply-ai.mikidev.app">privacy@reply-ai.mikidev.app</a> — for anything on this page,
+          <a href="mailto:privacy@mikidev.app">privacy@mikidev.app</a> — for anything on this page,
           including a request to delete data.
         </p>
       </main>
