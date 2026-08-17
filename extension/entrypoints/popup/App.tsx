@@ -1,3 +1,4 @@
+import { Coffee } from 'lucide-react';
 import { useEffect, useState } from 'react';
 import { FailureNotice } from '@/components/FailureNotice';
 import { MICRO, MICRO_TYPE } from '@/components/ui';
@@ -6,6 +7,7 @@ import { failureOf, sendRequest } from '@/lib/messaging';
 import type { KeyInfo } from '@/lib/openrouter/types';
 import { waitlistUrl } from '@/lib/pro';
 import { enabled as enabledSetting, model as modelSetting, soul as soulSetting } from '@/lib/settings';
+import { SUPPORT_URL } from '@/lib/support';
 import { useQuota } from '@/lib/use-quota';
 import { useSetting } from '@/lib/use-setting';
 
@@ -169,6 +171,18 @@ export function App() {
         rel="noreferrer"
       >
         What Pro would add, and how to ask for it
+      </a>
+
+      {/* Under Pro on purpose: one of these two asks for money for something
+          that does not exist yet, and the other asks for nothing at all. */}
+      <a
+        className="flex items-center gap-1.5 text-xs text-base-content/50 transition-colors duration-150 hover:text-base-content"
+        href={SUPPORT_URL}
+        target="_blank"
+        rel="noreferrer"
+      >
+        <Coffee aria-hidden className="size-3.5" />
+        Buy me a coffee
       </a>
     </div>
   );

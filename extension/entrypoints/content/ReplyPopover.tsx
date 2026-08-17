@@ -1,6 +1,7 @@
 import {
   ChevronLeft,
   ChevronRight,
+  Coffee,
   Copy,
   CornerDownLeft,
   RefreshCw,
@@ -20,6 +21,7 @@ import {
   creativity as creativitySetting,
   replyAs as replyAsSetting,
 } from '@/lib/settings';
+import { SUPPORT_URL } from '@/lib/support';
 import { useGeneration } from '@/lib/use-generation';
 import { useQuota } from '@/lib/use-quota';
 import {
@@ -308,13 +310,13 @@ export function ReplyPopover({
     // Width in px, not rem: see the note in assets/theme.css. The one shadow we
     // allow ourselves lives here — this is the only thing we draw that floats
     // over a page we do not own.
-    <div className="w-[420px] max-w-[90vw] border border-line-hi bg-overlay text-base-content shadow-elevated motion-safe:animate-popover-in">
-      <div className="flex flex-col gap-3 p-3 text-[13px] leading-[1.6]">
+    <div className="w-[460px] max-w-[90vw] border border-line-hi bg-overlay text-base-content shadow-elevated motion-safe:animate-popover-in">
+      <div className="flex flex-col gap-3 p-3 text-[14px] leading-[1.6]">
         {/* 1 · Header. Title in full ink, everything beside it ghost. The two
             halves of the name carry two weights of attention, which is how a
             heading gets its hierarchy here — not from a second colour. */}
         <div className="flex items-center gap-2">
-          <h3 className="shrink-0 text-[15px] font-semibold leading-[1.2] tracking-[-0.01em]">
+          <h3 className="shrink-0 text-[16px] font-semibold leading-[1.2] tracking-[-0.01em]">
             AI <span className="text-base-content/55">reply</span>
           </h3>
 
@@ -326,7 +328,7 @@ export function ReplyPopover({
               placeholder={detected ?? 'Comment language'}
               aria-label="Reply language"
               title="Language to reply in. Empty follows the comment."
-              className="min-w-0 flex-1 border-b border-line bg-transparent px-1 py-0.5 text-[12px] text-base-content/70 transition-colors duration-150 placeholder:text-base-content/28 focus:border-accent-line focus:outline-none disabled:opacity-40"
+              className="min-w-0 flex-1 border-b border-line bg-transparent px-1 py-0.5 text-[13px] text-base-content/70 transition-colors duration-150 placeholder:text-base-content/28 focus:border-accent-line focus:outline-none disabled:opacity-40"
               disabled={busy}
               onChange={(event) => setLanguage(event.target.value)}
               onBlur={(event) => applyLanguage(event.target.value)}
@@ -344,7 +346,7 @@ export function ReplyPopover({
                 disabled={busy}
                 onClick={() => applyLanguage('')}
               >
-                <RotateCcw className="size-3.5" />
+                <RotateCcw className="size-4" />
               </button>
             ) : (
               <span className={`${MICRO} shrink-0 px-1`} title="Detected from the comment">
@@ -367,8 +369,8 @@ export function ReplyPopover({
             wheel inside the box — without it, reaching the end of the quote
             hands the scroll to YouTube and the page moves out from under the
             popover. */}
-        <div className="max-h-[72px] overflow-y-auto overscroll-contain rounded-control bg-surface-hi px-2.5 py-2">
-          <p className="text-[12px] leading-[1.55] text-base-content/55">
+        <div className="max-h-[77px] overflow-y-auto overscroll-contain rounded-control bg-surface-hi px-2.5 py-2">
+          <p className="text-[13px] leading-[1.55] text-base-content/55">
             {context.commentAuthor && (
               <span className="font-medium text-base-content/70">{context.commentAuthor}: </span>
             )}
@@ -386,7 +388,7 @@ export function ReplyPopover({
                 // The top rule is on every segment, transparent until the
                 // segment is active: colouring an existing border cannot shift
                 // the label by a pixel the way adding one would.
-                className={`border-t px-2.5 py-1 font-mono text-[11px] uppercase tracking-[0.1em] transition-colors duration-150 ${
+                className={`border-t px-2.5 py-1 font-mono text-[12px] uppercase tracking-[0.1em] transition-colors duration-150 ${
                   index > 0 ? 'border-l border-l-line' : ''
                 } ${
                   audience === role
@@ -432,7 +434,7 @@ export function ReplyPopover({
             <button
               key={name}
               type="button"
-              className={`px-2.5 py-1 text-[12px] transition-colors duration-150 ${
+              className={`px-2.5 py-1 text-[13px] transition-colors duration-150 ${
                 style === name
                   ? 'border border-accent-line bg-accent-soft text-primary'
                   : 'border border-line text-base-content/70 hover:border-line-hi hover:text-base-content'
@@ -458,7 +460,7 @@ export function ReplyPopover({
           one thing the build's rem-to-px pass cannot reach.
         */}
         <textarea
-          className="min-h-[57px] max-h-[96px] w-full resize-none border border-line-input bg-base-100 px-2.5 py-2 text-[13px] leading-[1.5] transition-colors duration-150 field-sizing-content placeholder:text-base-content/28 focus:border-accent-line focus:outline-none disabled:opacity-40"
+          className="min-h-[60px] max-h-[102px] w-full resize-none border border-line-input bg-base-100 px-2.5 py-2 text-[14px] leading-[1.5] transition-colors duration-150 field-sizing-content placeholder:text-base-content/28 focus:border-accent-line focus:outline-none disabled:opacity-40"
           rows={2}
           value={note}
           disabled={busy}
@@ -510,10 +512,10 @@ export function ReplyPopover({
                   disabled={busy || cursor === 0}
                   onClick={() => show(cursor - 1)}
                 >
-                  <ChevronLeft className="size-3.5" />
+                  <ChevronLeft className="size-4" />
                 </button>
                 {/* Retries cost real money, so the count is stated, never hidden. */}
-                <span className="font-mono text-[12px] text-base-content/55">
+                <span className="font-mono text-[13px] text-base-content/55">
                   {cursor + 1}/{attempts.length}
                 </span>
                 <button
@@ -524,7 +526,7 @@ export function ReplyPopover({
                   disabled={busy || cursor === attempts.length - 1}
                   onClick={() => show(cursor + 1)}
                 >
-                  <ChevronRight className="size-3.5" />
+                  <ChevronRight className="size-4" />
                 </button>
               </div>
             )}
@@ -540,6 +542,20 @@ export function ReplyPopover({
           </div>
 
           <div className="flex shrink-0 items-center gap-2">
+            {/* A link, not a button, and the only thing on this row that does
+                not act on the reply. It stays a ghost icon: the book allows one
+                fill per surface and that fill is spoken for. */}
+            <a
+              className={ICON}
+              href={SUPPORT_URL}
+              target="_blank"
+              rel="noreferrer"
+              aria-label="Buy me a coffee"
+              title="Buy me a coffee"
+            >
+              <Coffee className="size-4" />
+            </a>
+
             {busy ? (
               <button
                 type="button"
@@ -548,7 +564,7 @@ export function ReplyPopover({
                 title="Stop"
                 onClick={cancel}
               >
-                <Square className="size-3.5" />
+                <Square className="size-4" />
               </button>
             ) : (
               /*
@@ -566,7 +582,7 @@ export function ReplyPopover({
                 title={attempts.length === 0 ? undefined : 'Another attempt'}
                 onClick={() => start()}
               >
-                {attempts.length === 0 ? 'Generate' : <RefreshCw className="size-3.5" />}
+                {attempts.length === 0 ? 'Generate' : <RefreshCw className="size-4" />}
               </button>
             )}
 
@@ -582,7 +598,7 @@ export function ReplyPopover({
                 setTimeout(() => setCopied(false), 1500);
               }}
             >
-              <Copy className="size-3.5" />
+              <Copy className="size-4" />
             </button>
 
             {/* Solid only once there is something to insert: before that the
@@ -593,7 +609,7 @@ export function ReplyPopover({
               disabled={!text || busy}
               onClick={() => onInsert(text)}
             >
-              <CornerDownLeft className="size-3.5" />
+              <CornerDownLeft className="size-4" />
               Insert
             </button>
           </div>
