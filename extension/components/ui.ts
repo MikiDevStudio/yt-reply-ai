@@ -38,6 +38,12 @@ export const SECONDARY =
   'transition-colors duration-150 hover:bg-base-content/5 hover:text-base-content ' +
   `disabled:pointer-events-none disabled:opacity-40 ${FOCUS}`;
 
-/** Our signature label: mono, uppercase, wide, quiet. */
-export const MICRO =
-  'font-mono text-[8.5px] font-medium uppercase tracking-[0.14em] text-base-content/40';
+/**
+ * The type half of our signature label — mono, uppercase, wide — with no colour
+ * of its own. For the handful of labels that carry a status colour instead of
+ * sitting at the bottom of the ink ladder.
+ */
+export const MICRO_TYPE = 'font-mono text-[8.5px] font-medium uppercase tracking-[0.14em]';
+
+/** The label as it usually appears: quiet, a service note beside real content. */
+export const MICRO = `${MICRO_TYPE} text-base-content/40`;

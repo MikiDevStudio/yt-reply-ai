@@ -10,7 +10,7 @@ import {
 } from 'lucide-react';
 import { useEffect, useRef, useState } from 'react';
 import { FailureNotice } from '@/components/FailureNotice';
-import { FOCUS, ICON, MICRO, SECONDARY, SOLID } from '@/components/ui';
+import { FOCUS, ICON, MICRO, MICRO_TYPE, SECONDARY, SOLID } from '@/components/ui';
 import { detectLanguage } from '@/lib/language';
 import type { GenerationContext } from '@/lib/messaging';
 import { angleFor, CREATIVITY, STYLES } from '@/lib/prompt';
@@ -50,19 +50,35 @@ const MAX_LANGUAGE_LENGTH = 40;
  */
 const QUOTA_WARNING_AT = 5;
 
+interface Status {
+  dot: string;
+  label: string;
+  /** Only where the label alone would leave the user guessing what to do. */
+  hint?: string;
+}
+
 /**
  * Where the reply stands, as a 6px dot and a mono label.
+ *
+ * `truncated` earns a row here rather than a sentence under the popover: it is
+ * a fact about this reply, it belongs where the other facts about this reply
+ * are, and the button that fixes it is already on screen.
  *
  * The book also lists a `stopped` row. There is no state for it here: `cancel`
  * drops back to idle and takes the partial text with it, so a stopped run is
  * indistinguishable from one that never started.
  */
-const STATUS = {
+const STATUS: Record<'empty' | 'writing' | 'done' | 'truncated' | 'failed', Status> = {
   empty: { dot: 'bg-line-hi', label: 'empty' },
   writing: { dot: 'bg-accent-bright motion-safe:animate-dot-pulse', label: 'writing' },
   done: { dot: 'bg-primary', label: 'done' },
+  truncated: {
+    dot: 'bg-warning',
+    label: 'cut short',
+    hint: 'The model stopped mid-reply. Press retry for another attempt.',
+  },
   failed: { dot: 'bg-error', label: 'failed' },
-} as const;
+};
 
 interface ReplyPopoverProps {
   /** Keys the attempt stack. See `commentKey` in youtube-dom.ts. */
@@ -266,16 +282,15 @@ export function ReplyPopover({
 
   const overridden = language.trim().length > 0 && language.trim() !== detected;
 
-  // What the last attempt cost, or why it ended early. One or the other — the
-  // truncation notice is the more urgent thing to read about the same reply.
-  const attemptNote =
-    state.status === 'done' && state.truncated
-      ? 'Cut short by the model — press again for another attempt'
-      : shown?.usage
-        ? `${shown.usage.totalTokens} tokens${
-            shown.creativity > level ? ` · creativity ${shown.creativity}` : ''
-          }`
-        : null;
+  // What the shown attempt cost. It rides in the reply block's own label row
+  // rather than under the popover: a line that appears only once an answer
+  // exists is a line that grows the popover the moment one arrives, which is
+  // exactly when the user is reading it.
+  const cost = shown?.usage
+    ? `${shown.usage.totalTokens} tokens${
+        shown.creativity > level ? ` · creativity ${shown.creativity}` : ''
+      }`
+    : null;
 
   const lowOnQuota = quota && quota.remaining <= QUOTA_WARNING_AT ? quota : null;
 
@@ -283,9 +298,11 @@ export function ReplyPopover({
     ? STATUS.writing
     : failure
       ? STATUS.failed
-      : text
-        ? STATUS.done
-        : STATUS.empty;
+      : state.status === 'done' && state.truncated
+        ? STATUS.truncated
+        : text
+          ? STATUS.done
+          : STATUS.empty;
 
   return (
     // Width in px, not rem: see the note in assets/theme.css. The one shadow we
@@ -344,13 +361,14 @@ export function ReplyPopover({
         {/* 2 · The comment being answered. One of the two places in the popover
             that is allowed a radius: it is a quoted block, not a panel.
 
-            The padding is on the wrapper, not on the clamped paragraph. A
-            `-webkit-box` clips at its padding edge, so a clamped element that
-            carries its own padding lets the first cut-off line render inside
-            it — two tidy lines, an ellipsis, and then the top of a third line
-            showing through underneath. */}
-        <div className="rounded-control bg-surface-hi px-2.5 py-2">
-          <p className="line-clamp-2 text-[12px] leading-[1.55] text-base-content/55">
+            Three lines at rest, and the rest of a long comment is a scroll
+            away. It used to be clamped, which read as tidy right up to the
+            comment that actually needed reading. `overscroll-contain` keeps the
+            wheel inside the box — without it, reaching the end of the quote
+            hands the scroll to YouTube and the page moves out from under the
+            popover. */}
+        <div className="max-h-[72px] overflow-y-auto overscroll-contain rounded-control bg-surface-hi px-2.5 py-2">
+          <p className="text-[12px] leading-[1.55] text-base-content/55">
             {context.commentAuthor && (
               <span className="font-medium text-base-content/70">{context.commentAuthor}: </span>
             )}
@@ -388,6 +406,11 @@ export function ReplyPopover({
               </button>
             ))}
           </div>
+
+          {/* Creativity sits with the other two rather than down in the action
+              row, because it is the same kind of thing they are: a choice made
+              before generating, not a control over what came back. */}
+          <Creativity level={level} disabled={busy} onChange={setLevel} />
 
           <label
             className="ml-auto flex cursor-pointer items-center gap-2"
@@ -449,11 +472,14 @@ export function ReplyPopover({
             popover does not resize under the cursor while a reply arrives. */}
         {(text || !failure) && (
           <div className="flex flex-col gap-1.5">
-            <div className="flex items-center gap-2">
+            <div className="flex items-center gap-2" title={status.hint}>
               <span className={MICRO}>reply</span>
               <span aria-hidden className="h-px flex-1 bg-line" />
+              {cost && <span className={MICRO}>{cost}</span>}
               <span aria-hidden className={`size-1.5 rounded-full ${status.dot}`} />
-              <span className={MICRO}>{status.label}</span>
+              <span className={status.hint ? `${MICRO_TYPE} text-warning` : MICRO}>
+                {status.label}
+              </span>
             </div>
 
             <div
@@ -471,9 +497,9 @@ export function ReplyPopover({
 
         {failure && <FailureNotice facts={failure} onRetry={() => start()} />}
 
-        {/* 7 · Actions. What was asked on the left, what to do next on the right. */}
+        {/* 7 · Actions. Counters on the left, what to do next on the right. */}
         <div className="flex items-center justify-between gap-2">
-          <div className="flex items-center gap-2">
+          <div className="flex min-w-0 items-center gap-2">
             {attempts.length > 1 && (
               <div className="flex items-center">
                 <button
@@ -503,10 +529,17 @@ export function ReplyPopover({
               </div>
             )}
 
-            <Creativity level={level} disabled={busy} onChange={setLevel} />
+            {lowOnQuota && (
+              <span
+                className={`${MICRO} truncate`}
+                title="Free replies reset at midnight. Answering the same comment again is free."
+              >
+                {lowOnQuota.remaining} {lowOnQuota.remaining === 1 ? 'reply' : 'replies'} left today
+              </span>
+            )}
           </div>
 
-          <div className="flex items-center gap-2">
+          <div className="flex shrink-0 items-center gap-2">
             {busy ? (
               <button
                 type="button"
@@ -566,21 +599,6 @@ export function ReplyPopover({
           </div>
         </div>
 
-        {/* Rendered only when one side has something to say: an always-present
-            line would cost a row of popover height to display a space. */}
-        {(attemptNote || lowOnQuota) && (
-          <div className="flex items-baseline justify-between gap-2 text-[11px] text-base-content/40">
-            <span>{attemptNote}</span>
-            {lowOnQuota && (
-              <span
-                className="shrink-0 font-mono"
-                title="Free replies reset at midnight. Answering the same comment again is free."
-              >
-                {lowOnQuota.remaining} {lowOnQuota.remaining === 1 ? 'reply' : 'replies'} left today
-              </span>
-            )}
-          </div>
-        )}
       </div>
     </div>
   );
@@ -618,39 +636,45 @@ interface CreativityProps {
 /**
  * How far the model may stray, as five dots.
  *
- * A rating rather than a slider or a select: five states read at a glance, take
- * one click to change, and carry their meaning in a `title` instead of a label
- * that would need room this popover does not have. The chosen level is stored
- * globally, so this is set once and then ignored.
+ * A rating rather than a slider or a select: five states read at a glance and
+ * take one click to change. The chosen level is stored globally, so this is set
+ * once and then mostly ignored — which is exactly why it needs the label. Five
+ * unexplained dots in the corner of a panel do not read as a control at all,
+ * and a `title` only helps someone who already suspected there was something
+ * to hover.
  *
  * Dots, not stars. A star is a rating widget from another product.
  */
 function Creativity({ level, disabled, onChange }: CreativityProps) {
   return (
-    <div
-      className="flex items-center gap-1"
-      role="radiogroup"
-      aria-label="How far the model may stray"
-      title="How far the model may stray"
-    >
-      {CREATIVITY.map((preset) => (
-        <input
-          key={preset.level}
-          type="radio"
-          name="reply-ai-creativity"
-          className={`size-2 cursor-pointer appearance-none rounded-full transition-colors duration-150 disabled:cursor-default disabled:opacity-40 ${
-            preset.level === level ? 'bg-primary' : 'bg-line-hi'
-          } ${FOCUS}`}
-          aria-label={`${preset.level} — ${preset.label}`}
-          title={`${preset.label}. ${preset.instruction}`}
-          checked={preset.level === level}
-          disabled={disabled}
-          onChange={() => {
-            onChange(preset.level);
-            void creativitySetting.setValue(preset.level);
-          }}
-        />
-      ))}
+    <div className="flex items-center gap-2" title="How far the model may stray from the comment">
+      <span className={`${MICRO} shrink-0`} aria-hidden>
+        creativity
+      </span>
+      <div
+        className="flex items-center gap-1.5"
+        role="radiogroup"
+        aria-label="How far the model may stray"
+      >
+        {CREATIVITY.map((preset) => (
+          <input
+            key={preset.level}
+            type="radio"
+            name="reply-ai-creativity"
+            className={`size-2.5 cursor-pointer appearance-none rounded-full transition-colors duration-150 disabled:cursor-default disabled:opacity-40 ${
+              preset.level === level ? 'bg-primary' : 'bg-line-hi hover:bg-base-content/30'
+            } ${FOCUS}`}
+            aria-label={`${preset.level} — ${preset.label}`}
+            title={`${preset.label}. ${preset.instruction}`}
+            checked={preset.level === level}
+            disabled={disabled}
+            onChange={() => {
+              onChange(preset.level);
+              void creativitySetting.setValue(preset.level);
+            }}
+          />
+        ))}
+      </div>
     </div>
   );
 }
