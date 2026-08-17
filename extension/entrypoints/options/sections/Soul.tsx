@@ -221,7 +221,7 @@ export function Soul() {
           onSave={() => draft !== null && draft !== text && setMarkdown(draft)}
         />
 
-        <div className="flex flex-col gap-2 border-t border-base-300 pt-4">
+        <div className="flex flex-col gap-2 border-t border-line pt-4">
           <span className="font-medium">Import a profile</span>
           <span className="text-sm text-base-content/70">
             Already have a persona written elsewhere? Bring it in instead of rebuilding it here.

@@ -219,9 +219,11 @@ export function Picker({ selected, custom, onPreset, onModel }: PickerProps) {
         </span>
       </button>
 
+      {/* A floating menu, so it asks for `rounded-control` by name: the box
+          radius is 0 by brand and daisyUI draws dropdowns from that slot. */}
       {open && (
-        <div className="absolute z-10 mt-1 w-full overflow-hidden rounded-box border border-base-300 bg-base-100 shadow-lg">
-          <label className="flex items-center gap-2 border-b border-base-300 px-3 py-2">
+        <div className="absolute z-10 mt-1 w-full overflow-hidden rounded-control border border-line-hi bg-overlay shadow-elevated">
+          <label className="flex items-center gap-2 border-b border-line px-3 py-2">
             <Search className="size-4 shrink-0 text-base-content/50" />
             <input
               ref={search}
@@ -340,7 +342,7 @@ export function Picker({ selected, custom, onPreset, onModel }: PickerProps) {
           </div>
 
           {pickFailure && (
-            <div className="border-t border-base-300 p-3">
+            <div className="border-t border-line p-3">
               <FailureNotice facts={pickFailure} at="/models" />
             </div>
           )}
@@ -354,7 +356,7 @@ export function Picker({ selected, custom, onPreset, onModel }: PickerProps) {
 
 function Heading({ children }: { children: React.ReactNode }) {
   return (
-    <div className="flex items-center gap-2 bg-base-200 px-3 py-1 text-xs font-semibold uppercase tracking-wide text-base-content/50">
+    <div className="flex items-center gap-2 bg-line-soft px-3 py-1 font-mono text-[10px] font-medium uppercase tracking-[0.16em] text-base-content/40">
       {children}
     </div>
   );
@@ -377,7 +379,7 @@ function Option({ index, highlighted, selected, onPick, onHover, children }: Opt
       role="option"
       aria-selected={selected}
       className={`flex w-full items-center gap-3 px-3 py-2 text-left text-sm ${
-        highlighted ? 'bg-base-200' : ''
+        highlighted ? 'bg-line-soft' : ''
       }`}
       onClick={onPick}
       onMouseMove={onHover}

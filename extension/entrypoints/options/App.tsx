@@ -17,8 +17,8 @@ const SECTIONS = [
  */
 export function App() {
   return (
-    <div className="flex min-h-screen bg-base-200 text-base-content">
-      <aside className="flex w-56 shrink-0 flex-col gap-4 border-r border-base-300 bg-base-100 p-4">
+    <div className="flex min-h-screen bg-base-100 text-base-content">
+      <aside className="flex w-56 shrink-0 flex-col gap-4 border-r border-line bg-base-200 p-4">
         <header>
           <h1 className="font-semibold">Reply AI</h1>
           <p className="text-xs text-base-content/60">YouTube comment assistant</p>

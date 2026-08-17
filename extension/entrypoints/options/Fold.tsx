@@ -26,7 +26,7 @@ export function Fold({ title, description, defaultOpen = false, children }: Fold
 
   return (
     <details
-      className="group card card-border bg-base-100"
+      className="group card border border-line bg-base-200"
       open={open}
       onToggle={(event) => setOpen(event.currentTarget.open)}
     >

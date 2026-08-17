@@ -1,5 +1,9 @@
 /*
- * daisyUI and the theme — shared by every entrypoint.
+ * daisyUI, the theme, and the brand tokens — shared by every entrypoint.
+ *
+ * The standard this file implements is docs/brand.md. Values are copied from
+ * its tables, not tuned here: a colour that disagrees with the book is a bug in
+ * one of the two, and the book wins.
  *
  * Tailwind itself is imported by each entrypoint's own stylesheet instead of
  * here, because that import is where source detection is configured: every
@@ -33,35 +37,46 @@
   exclude: rootcolor, rootscrolllock, rootscrollgutter;
 }
 
+/*
+ * The slot mapping is the table in brand.md §6. Three consequences of it are
+ * worth restating where they will be read:
+ *
+ * - `base-100` is the page and `base-200` the card, which is the reverse of
+ *   what daisyUI's own themes assume. Every surface in our markup follows it.
+ * - Success is the orange accent. There is no green in the interface outside a
+ *   chart — "done" and "connected" mean the accent, and the accent is orange.
+ * - `--radius-box: 0` flattens dropdowns too, since daisyUI draws them from the
+ *   same slot. Menus and quoted blocks ask for `rounded-control` explicitly.
+ */
 @plugin "daisyui/theme" {
   name: 'replyai-light';
   default: true;
   color-scheme: light;
 
   --color-base-100: oklch(100% 0 0);
-  --color-base-200: oklch(97% 0 0);
-  --color-base-300: oklch(93% 0 0);
-  --color-base-content: oklch(21% 0 0);
-  --color-primary: oklch(56% 0.2 285);
-  --color-primary-content: oklch(99% 0 0);
-  --color-secondary: oklch(65% 0.12 285);
-  --color-secondary-content: oklch(99% 0 0);
-  --color-accent: oklch(70% 0.15 195);
-  --color-accent-content: oklch(21% 0 0);
-  --color-neutral: oklch(35% 0 0);
+  --color-base-200: oklch(96.5% 0.001 285);
+  --color-base-300: oklch(91% 0.003 285);
+  --color-base-content: oklch(15% 0 0);
+  --color-primary: oklch(56% 0.137 53);
+  --color-primary-content: oklch(100% 0 0);
+  --color-secondary: oklch(51% 0.19 281);
+  --color-secondary-content: oklch(100% 0 0);
+  --color-accent: oklch(56% 0.137 53);
+  --color-accent-content: oklch(100% 0 0);
+  --color-neutral: oklch(20.5% 0 0);
   --color-neutral-content: oklch(98% 0 0);
-  --color-info: oklch(70% 0.13 235);
-  --color-info-content: oklch(21% 0 0);
-  --color-success: oklch(68% 0.16 155);
-  --color-success-content: oklch(21% 0 0);
-  --color-warning: oklch(80% 0.16 85);
-  --color-warning-content: oklch(21% 0 0);
-  --color-error: oklch(62% 0.22 25);
-  --color-error-content: oklch(99% 0 0);
+  --color-info: oklch(51% 0.19 281);
+  --color-info-content: oklch(100% 0 0);
+  --color-success: oklch(56% 0.137 53);
+  --color-success-content: oklch(100% 0 0);
+  --color-warning: oklch(55% 0.121 66);
+  --color-warning-content: oklch(100% 0 0);
+  --color-error: oklch(50.5% 0.19 27.5);
+  --color-error-content: oklch(100% 0 0);
 
-  --radius-selector: 1rem;
-  --radius-field: 0.5rem;
-  --radius-box: 0.75rem;
+  --radius-selector: 2rem;
+  --radius-field: 0;
+  --radius-box: 0;
   --size-selector: 0.25rem;
   --size-field: 0.25rem;
   --border: 1px;
@@ -74,31 +89,30 @@
   prefersdark: true;
   color-scheme: dark;
 
-  /* Tuned against YouTube's dark surfaces (#0f0f0f page, #272727 chips). */
-  --color-base-100: oklch(20% 0 0);
-  --color-base-200: oklch(26% 0 0);
-  --color-base-300: oklch(32% 0 0);
-  --color-base-content: oklch(95% 0 0);
-  --color-primary: oklch(70% 0.17 285);
-  --color-primary-content: oklch(17% 0 0);
-  --color-secondary: oklch(60% 0.1 285);
-  --color-secondary-content: oklch(98% 0 0);
-  --color-accent: oklch(75% 0.13 195);
-  --color-accent-content: oklch(17% 0 0);
-  --color-neutral: oklch(30% 0 0);
-  --color-neutral-content: oklch(95% 0 0);
-  --color-info: oklch(74% 0.12 235);
-  --color-info-content: oklch(17% 0 0);
-  --color-success: oklch(72% 0.15 155);
-  --color-success-content: oklch(17% 0 0);
-  --color-warning: oklch(82% 0.15 85);
-  --color-warning-content: oklch(17% 0 0);
-  --color-error: oklch(68% 0.2 25);
-  --color-error-content: oklch(17% 0 0);
+  --color-base-100: oklch(11.5% 0 0);
+  --color-base-200: oklch(14% 0.005 262);
+  --color-base-300: oklch(23% 0.004 266);
+  --color-base-content: oklch(100% 0 0);
+  --color-primary: oklch(75% 0.167 50);
+  --color-primary-content: oklch(15% 0 0);
+  --color-secondary: oklch(72% 0.114 284);
+  --color-secondary-content: oklch(15% 0 0);
+  --color-accent: oklch(75% 0.167 50);
+  --color-accent-content: oklch(15% 0 0);
+  --color-neutral: oklch(94% 0.004 285);
+  --color-neutral-content: oklch(15% 0 0);
+  --color-info: oklch(72% 0.114 284);
+  --color-info-content: oklch(15% 0 0);
+  --color-success: oklch(75% 0.167 50);
+  --color-success-content: oklch(15% 0 0);
+  --color-warning: oklch(85% 0.147 90);
+  --color-warning-content: oklch(15% 0 0);
+  --color-error: oklch(65% 0.185 24);
+  --color-error-content: oklch(15% 0 0);
 
-  --radius-selector: 1rem;
-  --radius-field: 0.5rem;
-  --radius-box: 0.75rem;
+  --radius-selector: 2rem;
+  --radius-field: 0;
+  --radius-box: 0;
   --size-selector: 0.25rem;
   --size-field: 0.25rem;
   --border: 1px;
@@ -107,8 +121,111 @@
 }
 
 /*
+ * Brand tokens daisyUI has no slot for (brand.md §6), declared here so Tailwind
+ * generates utilities for them: `bg-overlay`, `border-line-hi`, `text-accent`,
+ * `rounded-control`, `shadow-elevated`.
+ *
+ * The values here are the *light* ones, because `replyai-light` is the default
+ * theme and this block lands on `:root`. The dark values, and both sets under
+ * an explicit `data-theme`, follow below.
+ *
+ * The ink ladder is deliberately absent: `--ink-70` is `text-base-content/70`,
+ * so the whole hierarchy rides on daisyUI's opacity utilities and needs no
+ * tokens of its own.
+ */
+@theme {
+  --color-overlay: #ffffff;
+  --color-surface-hi: #f4f4f5;
+
+  --color-line: rgb(0 0 0 / 0.1);
+  --color-line-soft: rgb(0 0 0 / 0.07);
+  --color-line-hi: rgb(0 0 0 / 0.16);
+  --color-line-input: #d4d4d8;
+
+  --color-accent-line: rgb(176 89 12 / 0.55);
+  --color-accent-soft: rgb(176 89 12 / 0.08);
+  --color-accent-bright: #8f4708;
+
+  --radius-block: 0px;
+  --radius-control: 8px;
+
+  --shadow-elevated: 0 1px 0 0 rgb(0 0 0 / 0.04), 0 4px 16px 0 rgb(0 0 0 / 0.12);
+}
+
+/*
+ * The same tokens under each theme selector.
+ *
+ * Three blocks rather than one because the two surfaces pick their theme by
+ * different means, and both have to work:
+ *
+ * - Our own pages have no `data-theme` on `<html>`, so they follow the OS the
+ *   way daisyUI's `default` / `prefersdark` pair does. `:root` above is the
+ *   light half; the media query below is the dark one.
+ * - Injected UI carries `data-theme` inside the shadow root, where `:root`
+ *   matches nothing — so both themes are spelled out against the attribute too.
+ *
+ * The dark values therefore appear twice. That is the cost of one stylesheet
+ * serving a page and a shadow root; the alternative is a token that silently
+ * resolves to nothing in one of them.
+ */
+@media (prefers-color-scheme: dark) {
+  :root {
+    --color-overlay: #161718;
+    --color-surface-hi: #0e0f10;
+
+    --color-line: rgb(255 255 255 / 0.08);
+    --color-line-soft: rgb(255 255 255 / 0.06);
+    --color-line-hi: rgb(255 255 255 / 0.12);
+    --color-line-input: #2d3034;
+
+    --color-accent-line: rgb(255 138 61 / 0.65);
+    --color-accent-soft: rgb(255 138 61 / 0.1);
+    --color-accent-bright: #ff7a18;
+
+    --shadow-elevated: 0 1px 0 0 rgb(255 255 255 / 0.05), 0 2px 4px 0 rgb(0 0 0 / 0.4);
+  }
+}
+
+[data-theme='replyai-light'] {
+  --color-overlay: #ffffff;
+  --color-surface-hi: #f4f4f5;
+
+  --color-line: rgb(0 0 0 / 0.1);
+  --color-line-soft: rgb(0 0 0 / 0.07);
+  --color-line-hi: rgb(0 0 0 / 0.16);
+  --color-line-input: #d4d4d8;
+
+  --color-accent-line: rgb(176 89 12 / 0.55);
+  --color-accent-soft: rgb(176 89 12 / 0.08);
+  --color-accent-bright: #8f4708;
+
+  --shadow-elevated: 0 1px 0 0 rgb(0 0 0 / 0.04), 0 4px 16px 0 rgb(0 0 0 / 0.12);
+}
+
+[data-theme='replyai-dark'] {
+  --color-overlay: #161718;
+  --color-surface-hi: #0e0f10;
+
+  --color-line: rgb(255 255 255 / 0.08);
+  --color-line-soft: rgb(255 255 255 / 0.06);
+  --color-line-hi: rgb(255 255 255 / 0.12);
+  --color-line-input: #2d3034;
+
+  --color-accent-line: rgb(255 138 61 / 0.65);
+  --color-accent-soft: rgb(255 138 61 / 0.1);
+  --color-accent-bright: #ff7a18;
+
+  --shadow-elevated: 0 1px 0 0 rgb(255 255 255 / 0.05), 0 2px 4px 0 rgb(0 0 0 / 0.4);
+}
+
+/*
  * WXT applies `all: initial` to the shadow root, which also drops the inherited
  * font. Restore YouTube's stack so injected UI reads as part of the page.
+ *
+ * Injected UI gets Roboto and the system mono on purpose (brand.md §2): Roboto
+ * is already loaded on every YouTube page, so the popover costs no font bytes
+ * and never flashes. Inter and JetBrains Mono belong to our own pages and are
+ * not shipped yet.
  */
 @theme {
   --font-sans: 'Roboto', 'Arial', system-ui, sans-serif;

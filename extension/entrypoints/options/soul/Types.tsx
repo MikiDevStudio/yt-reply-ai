@@ -42,10 +42,8 @@ export function Types({ selected, onPick }: TypesProps) {
               key={type.id}
               type="button"
               aria-pressed={active}
-              className={`flex cursor-pointer flex-col items-center gap-1 rounded-box border p-3 text-center transition-colors ${
-                active
-                  ? 'border-primary bg-primary/10'
-                  : 'border-base-300 hover:border-base-content/30'
+              className={`flex cursor-pointer flex-col items-center gap-1 border p-3 text-center transition-colors ${
+                active ? 'border-accent-line bg-accent-soft' : 'border-line hover:border-line-hi'
               }`}
               onClick={() => onPick(type)}
             >
@@ -58,7 +56,7 @@ export function Types({ selected, onPick }: TypesProps) {
       </div>
 
       {sample && (
-        <p className="rounded-box bg-base-200 px-3 py-2 text-sm">
+        <p className="rounded-control bg-surface-hi px-3 py-2 text-sm">
           <span className="text-base-content/50">Sounds like: </span>
           {sample}
         </p>
