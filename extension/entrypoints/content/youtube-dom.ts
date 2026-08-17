@@ -10,10 +10,10 @@
  *
  * When YouTube does eventually change something, this is the only file to fix.
  */
+import { commentKey } from '@/lib/comment-key';
 import {
   type CommentData,
   type CommentSurface,
-  commentKey,
   INJECTED_ATTR,
   typeIntoEditable,
   type VideoContext,

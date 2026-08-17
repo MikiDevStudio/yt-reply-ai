@@ -1,4 +1,5 @@
 import type { OpenRouterErrorKind, RateLimitSource } from './openrouter/errors';
+import { waitlistUrl } from './pro';
 
 /**
  * What every failure says, and what the user can do about it — in one table.
@@ -21,8 +22,12 @@ import type { OpenRouterErrorKind, RateLimitSource } from './openrouter/errors';
  * Chrome tore the service worker down while the answer was streaming. It looks
  * like a network failure and is not one — the request was fine, the browser
  * simply stopped listening.
+ *
+ * `quota` is ours rather than OpenRouter's, and it is the only one that never
+ * reaches the network: the daily cap refuses before a request is made, so the
+ * user's own credit is not spent on a reply we were not going to deliver.
  */
-export type FailureKind = OpenRouterErrorKind | 'interrupted' | 'timeout';
+export type FailureKind = OpenRouterErrorKind | 'interrupted' | 'timeout' | 'quota';
 
 /** Which OpenRouter limit is in play, when one is. See `rateLimitDetail`. */
 export interface RateLimitFacts {
@@ -54,6 +59,8 @@ export interface FailureFacts {
   hadKey?: boolean;
   /** Text that arrived before the failure. Kept rather than thrown away. */
   partial?: string;
+  /** Present on `quota`, so the message can show the count that was reached. */
+  quota?: { used: number; limit: number };
 }
 
 /** Where a button leads. Rendered by `components/FailureNotice.tsx`. */
@@ -76,6 +83,15 @@ export interface Failure {
   raw?: string;
   /** Ordered; the first is the one we expect to be pressed. */
   actions: FailureAction[];
+  /**
+   * How loudly it is drawn. `error` unless said otherwise.
+   *
+   * The daily cap is the one state that is not a fault: nothing broke, the
+   * allowance simply ran out. Drawn in the same red as a revoked key it would
+   * read as a checkout that failed, which is precisely what the Pro placeholder
+   * must not look like.
+   */
+  tone?: 'error' | 'notice';
 }
 
 const CREDITS_URL = 'https://openrouter.ai/settings/credits';
@@ -177,6 +193,14 @@ const COPY: Record<FailureKind, Failure> = {
     actions: [{ kind: 'retry', label: 'Try again' }],
   },
 
+  // The counts are filled in by `capReached` below; this entry exists so the
+  // map stays total and the action is written once.
+  quota: {
+    title: "Today's replies are used up",
+    tone: 'notice',
+    actions: [{ kind: 'link', label: 'Join the Pro waitlist', url: waitlistUrl('limit') }],
+  },
+
   // Never rendered: cancelling is a decision, not a failure. It has an entry so
   // the map stays total and callers can filter it out by kind rather than by
   // remembering that this one case is special.
@@ -199,6 +223,8 @@ export function describeFailure(facts: FailureFacts): Failure {
   }
 
   if (facts.kind === 'rate_limited') return rateLimited(facts);
+
+  if (facts.kind === 'quota') return capReached(facts);
 
   // Half an answer is still worth something — it can be edited into a reply —
   // so the words have to account for it being on screen rather than pretend the
@@ -277,6 +303,32 @@ function rateLimited(facts: FailureFacts): Failure {
         actions: [retry, change],
       };
   }
+}
+
+/**
+ * Our own daily cap — the one state where a Pro line belongs.
+ *
+ * It belongs here and nowhere else because Pro is the actual remedy: the cap is
+ * ours, so lifting it is ours to sell. The OpenRouter 429 above carries no
+ * upsell for the mirror-image reason — that limit belongs to the user's own
+ * key and no tier of ours would move it.
+ *
+ * Written to read as a waitlist rather than a purchase that failed. Nothing is
+ * for sale on the other side of that button, and saying so here is what keeps
+ * the click honest: see `docs/plans/2026-08-16-pro-offer-decisions.md`.
+ */
+function capReached(facts: FailureFacts): Failure {
+  const count = facts.quota
+    ? `${facts.quota.used} of ${facts.quota.limit} used since midnight, and the count starts again at the next one. `
+    : 'The count resets at midnight. ';
+
+  return {
+    ...COPY.quota,
+    detail:
+      `${count}Comments you have already answered today can still be regenerated — ` +
+      'only a new comment counts. Lifting the cap is what Pro would do, and Pro is ' +
+      'not built yet: the waitlist is how it gets decided.',
+  };
 }
 
 /**

@@ -5,6 +5,7 @@ const SECTIONS = [
   { to: '/soul', label: 'Soul profile' },
   { to: '/generation', label: 'Generation' },
   { to: '/models', label: 'Models' },
+  { to: '/pro', label: 'Pro' },
   { to: '/about', label: 'About' },
 ] as const;
 

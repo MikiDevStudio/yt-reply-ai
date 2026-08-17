@@ -94,6 +94,8 @@ export interface FailurePayload {
   rateLimit?: RateLimitFacts;
   /** Present on `unauthorized`: false means no key was ever stored. */
   hadKey?: boolean;
+  /** Present on `quota`: our own daily cap, as it stood when it refused. */
+  quota?: { used: number; limit: number };
 }
 
 /** Background → content script, over the generate port. */

@@ -19,10 +19,10 @@
  * comments there belong to different videos, and reading the page for a single
  * "current video" would attach the wrong title to most of them.
  */
+import { commentKey } from '@/lib/comment-key';
 import {
   type CommentData,
   type CommentSurface,
-  commentKey,
   INJECTED_ATTR,
   typeIntoEditable,
   type VideoContext,

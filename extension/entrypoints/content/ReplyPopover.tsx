@@ -20,6 +20,7 @@ import {
   replyAs as replyAsSetting,
 } from '@/lib/settings';
 import { useGeneration } from '@/lib/use-generation';
+import { useQuota } from '@/lib/use-quota';
 import {
   type Attempt,
   moveCursor,
@@ -36,6 +37,17 @@ const STYLE_ORDER = ['auto', 'friendly', 'humorous', 'engaging', 'brief'] as con
 
 /** A language name is a word or two. Anything longer is someone writing instructions. */
 const MAX_LANGUAGE_LENGTH = 40;
+
+/**
+ * How many replies must be left before the popover mentions the daily cap.
+ *
+ * Silent above it, deliberately. The cap is generous enough that an ordinary
+ * channel owner never approaches it, and a counter on screen every day would
+ * advertise a limit to people who will never meet one. Someone with five left
+ * is working through a backlog and deserves the warning before the wall rather
+ * than at it.
+ */
+const QUOTA_WARNING_AT = 5;
 
 interface ReplyPopoverProps {
   /** Keys the attempt stack. See `commentKey` in youtube-dom.ts. */
@@ -56,6 +68,7 @@ export function ReplyPopover({
   onClose,
 }: ReplyPopoverProps) {
   const { state, generate, cancel } = useGeneration();
+  const quota = useQuota();
   const [style, setStyle] = useState<string>('auto');
   const [copied, setCopied] = useState(false);
   const streamRef = useRef<HTMLDivElement>(null);
@@ -237,6 +250,19 @@ export function ReplyPopover({
   };
 
   const overridden = language.trim().length > 0 && language.trim() !== detected;
+
+  // What the last attempt cost, or why it ended early. One or the other — the
+  // truncation notice is the more urgent thing to read about the same reply.
+  const attemptNote =
+    state.status === 'done' && state.truncated
+      ? 'Cut short by the model — press again for another attempt'
+      : shown?.usage
+        ? `${shown.usage.totalTokens} tokens${
+            shown.creativity > level ? ` · creativity ${shown.creativity}` : ''
+          }`
+        : null;
+
+  const lowOnQuota = quota && quota.remaining <= QUOTA_WARNING_AT ? quota : null;
 
   return (
     // Width in px, not rem: see the note in assets/theme.css.
@@ -482,19 +508,20 @@ export function ReplyPopover({
           </div>
         </div>
 
-        {/* Rendered only when it has something to say: an always-present line
-            would cost 18px of popover height to display a space. */}
-        {state.status === 'done' && state.truncated ? (
-          <span className="text-sm text-base-content/50">
-            Cut short by the model — press again for another attempt
-          </span>
-        ) : (
-          shown?.usage && (
-            <span className="text-sm text-base-content/50">
-              {shown.usage.totalTokens} tokens
-              {shown.creativity > level && ` · creativity ${shown.creativity}`}
-            </span>
-          )
+        {/* Rendered only when one side has something to say: an always-present
+            line would cost 18px of popover height to display a space. */}
+        {(attemptNote || lowOnQuota) && (
+          <div className="flex items-baseline justify-between gap-2 text-sm text-base-content/50">
+            <span>{attemptNote}</span>
+            {lowOnQuota && (
+              <span
+                className="shrink-0"
+                title="Free replies reset at midnight. Answering the same comment again is free."
+              >
+                {lowOnQuota.remaining} {lowOnQuota.remaining === 1 ? 'reply' : 'replies'} left today
+              </span>
+            )}
+          </div>
         )}
       </div>
     </div>

@@ -3,7 +3,9 @@ import { FailureNotice } from '@/components/FailureNotice';
 import type { FailureFacts } from '@/lib/failure';
 import { failureOf, sendRequest } from '@/lib/messaging';
 import type { KeyInfo } from '@/lib/openrouter/types';
+import { waitlistUrl } from '@/lib/pro';
 import { enabled as enabledSetting, model as modelSetting, soul as soulSetting } from '@/lib/settings';
+import { useQuota } from '@/lib/use-quota';
 import { useSetting } from '@/lib/use-setting';
 
 /**
@@ -20,6 +22,7 @@ export function App() {
   const [model, setModel] = useState('');
   const [hasSoul, setHasSoul] = useState<boolean | null>(null);
   const [on, setOn] = useSetting(enabledSetting);
+  const quota = useQuota();
 
   // A key that cannot be read is a key that will not generate either, so the
   // reason is shown here rather than swallowed — this panel is where someone
@@ -82,6 +85,16 @@ export function App() {
 
       {connected && (
         <dl className="flex flex-col gap-2 text-sm">
+          {/* Ours, and first: it is the number that decides whether the next
+              reply happens at all. Everything below it belongs to OpenRouter. */}
+          <div className="flex items-baseline justify-between gap-2">
+            <dt className="text-base-content/60" title="Resets at midnight">
+              Replies today
+            </dt>
+            <dd className="font-medium">
+              {quota ? `${quota.used} of ${quota.limit}` : '…'}
+            </dd>
+          </div>
           <div className="flex items-baseline justify-between gap-2">
             <dt className="text-base-content/60">Model</dt>
             <dd className="truncate text-right font-medium">{model}</dd>
@@ -136,6 +149,18 @@ export function App() {
         Open a YouTube video and press <span className="font-medium">AI reply</span> under any
         comment.
       </p>
+
+      {/* The curiosity entry point, tagged apart from the one behind the daily
+          cap: a click from here and a click from a blocked reply are different
+          claims and have to stay different numbers (#31). */}
+      <a
+        className="link text-xs text-base-content/50"
+        href={waitlistUrl('settings')}
+        target="_blank"
+        rel="noreferrer"
+      >
+        What Pro would add, and how to ask for it
+      </a>
     </div>
   );
 }

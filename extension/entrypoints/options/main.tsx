@@ -6,6 +6,7 @@ import { About } from './sections/About';
 import { Account } from './sections/Account';
 import { Generation } from './sections/Generation';
 import { Models } from './sections/Models';
+import { Pro } from './sections/Pro';
 import { Soul } from './sections/Soul';
 
 // Extension pages are our own documents, so the theme goes on <html> as usual —
@@ -31,6 +32,7 @@ ReactDOM.createRoot(document.getElementById('root')!).render(
         <Route path="/soul" element={<Soul />} />
         <Route path="/generation" element={<Generation />} />
         <Route path="/models" element={<Models />} />
+        <Route path="/pro" element={<Pro />} />
         <Route path="/about" element={<About />} />
         {/* A stale bookmark should land somewhere, not on a blank page. */}
         <Route path="*" element={<Navigate to="/account" replace />} />

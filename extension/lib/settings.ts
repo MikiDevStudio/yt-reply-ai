@@ -10,6 +10,10 @@ import type { SoulProfile } from './soul';
  * Google's servers and caps at 8 KB per item and 100 KB overall — a credential
  * has no business going there, and a soul profile would blow the quota on its
  * own. Small UI preferences may move to `sync` later; secrets never will.
+ *
+ * The one thing that does live in `sync` is the daily reply counter in
+ * `lib/quota.ts`: a few hundred bytes that are worth carrying between machines,
+ * and nothing sensitive in them.
  */
 
 /**

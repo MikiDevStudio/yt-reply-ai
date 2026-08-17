@@ -33,6 +33,33 @@ Everything is scraped from the rendered page. There is no YouTube Data API key
 and no quota to run out of; the cost is that `entrypoints/content/youtube-dom.ts`
 depends on YouTube's DOM, which is why every selector lives in that one file.
 
+## Daily quota
+
+The free tier covers 50 replies a day (`lib/quota.ts`). The unit is a comment,
+not a button press: the first generation against a comment spends one, every
+regeneration of that same comment is free. Comments are identified by
+`commentKey` — FNV-1a over author plus text — which the background derives
+itself from what the content script sent, so the two cannot disagree about what
+is being charged.
+
+A comment is charged after its reply arrives, never before it is asked for: a
+request that failed, timed out or came back empty produced nothing to charge
+for. The cap refuses before the network, so a blocked reply does not spend the
+user's own OpenRouter credit either.
+
+The record is `{ date, comments[] }` in `storage.sync`, where the list's length
+*is* the count. `sync` rides the Chrome profile, so the counter survives a
+reinstall and follows the user to a second machine, and degrades to local
+storage by itself when sync is off. The stored local date is what resets it —
+not a timer — so a service worker that slept through midnight, or a flight that
+moves the date either way, can only ever ignore a stale count, never resurrect
+one.
+
+Anyone with devtools can reset it. That is accepted, not overlooked: nothing
+shipped to the user's machine can be protected, and the cap exists to measure
+demand rather than to enforce anything. See
+`docs/plans/2026-08-16-pro-offer-decisions.md`.
+
 ## Failure states
 
 Every failure carries a message written for the user and at least one thing to
@@ -44,6 +71,25 @@ The split is deliberate. The background worker sends facts — the kind, whateve
 OpenRouter said, whether a key was stored, which rate limit applies — and the UI
 turns them into words, so the popover, the popup and the settings page cannot
 drift apart on the same 402. `components/FailureNotice.tsx` renders them all.
+
+One state is ours rather than OpenRouter's: `quota`, the daily cap above. It is
+also the only place a Pro line appears, because lifting our own cap is the only
+thing Pro would actually do about a limit — the OpenRouter 429 belongs to the
+user's own key and carries no upsell at all.
+
+Pro is unbuilt, so every entry point opens a waitlist page instead (`lib/pro.ts`).
+The URL is the whole contract with that page:
+
+| Parameter | Meaning |
+|---|---|
+| `from=settings` | Curiosity — the popup link or the Pro section |
+| `from=limit` | Someone stopped mid-work by the daily cap |
+| `want=cap,scanner,bulk,presets` | Features ticked in the Pro section, by `PRO_FEATURES` id |
+
+The ballot is filled in here and carried there, so the page arrives pre-ticked
+and only an email is left to type. Nothing is posted from the extension: the
+user presses a link, the choices are visible in the address bar, and the
+manifest stays free of any host but openrouter.ai.
 
 Two facts only the worker can supply, both gathered when the failure happens
 rather than in advance: whether the model in use is a free variant, and whether
