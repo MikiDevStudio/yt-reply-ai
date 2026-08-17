@@ -106,7 +106,7 @@ Rule: **orange is never poured over large areas.** It lives in 1px lines, 6px do
 text and outlines. The only large fill in the interface is the `--solid` button.
 
 Contrast on the ground it sits on: accent 8.6:1 dark / 4.9:1 light, `--accent-bright`
-7.7:1 dark, warning and danger above 4.5:1 in both themes. The 8.5px mono micro-label is
+7.7:1 dark, warning and danger above 4.5:1 in both themes. The 10px mono micro-label is
 the smallest type we set in accent, and it clears AA at these values.
 
 ### Living next to YouTube
@@ -164,29 +164,33 @@ statuses, attempt counters, model ids, token costs.
 |---|---|---|---|---|
 | Settings page title | 24–28px | 600 | 1.1 | −0.02em |
 | Section heading | 18–20px | 600 | 1.2 | −0.015em |
-| Popover title | 15px | 600 | 1.2 | −0.01em |
+| Popover title | 16px | 600 | 1.2 | −0.01em |
 | Block heading | 15px | 500 | 1.3 | 0 |
-| Body | 15px (pages) / 13px (popover) | 400 | 1.6 | 0 |
-| Secondary | 13px / 12px | 400 | 1.55 | 0 |
-| **Micro-label** | **8.5–10px** | **500, `mono`, UPPERCASE** | **1** | **0.14–0.2em** |
+| Body | 15px (pages) / 14px (popover) | 400 | 1.6 | 0 |
+| Secondary | 13px | 400 | 1.55 | 0 |
+| **Micro-label** | **10px** | **500, `mono`, UPPERCASE** | **1** | **0.14–0.2em** |
 
 The larger the text, the tighter the tracking; the smaller, the wider (up to +0.2em).
 That contrast is what separates a heading from a service label.
 
-The popover runs one step smaller than our own pages everywhere. It is a tool panel over
-a comment thread, not a page — it has to fit next to what the user is reading.
+The popover runs a step below our own pages and level with its host: 14px is exactly what
+YouTube sets its own comment text at. It used to run a step below that too, on the
+argument that a tool panel should defer to what the user is reading. Tried on a real
+comment thread, the result was a panel of fine print sitting beside comfortably sized
+comments — the deference read as an eye test. Matching the host is the better reading of
+the same principle, and the popover widened from 420px to 460px to pay for it.
 
 **Sizes inside the content script are written in px, never rem.** `rem` resolves against
 the host document root and YouTube sets `html { font-size: 62.5% }`. The build step
 (`build/rem-to-px.ts`) converts the generated content-script stylesheet, but an arbitrary
-value written in markup (`w-[26rem]`) is emitted verbatim — write `w-[420px]`.
+value written in markup (`w-[26rem]`) is emitted verbatim — write `w-[460px]`.
 
 ### The micro-label — our signature element
 
 ```html
 <span class="font-mono text-[10px] font-medium tracking-[0.2em] text-accent">01</span>
 <span aria-hidden class="h-px w-10 bg-accent"></span>
-<span class="font-mono text-[8.5px] uppercase tracking-[0.14em] text-base-content/40">soul profile</span>
+<span class="font-mono text-[10px] uppercase tracking-[0.14em] text-base-content/40">soul profile</span>
 ```
 
 Two-digit number in orange + a 40px hairline + an uppercase label. It marks settings
@@ -279,7 +283,7 @@ a put-away control never reads as a missing one.
 
 ### The popover
 
-Ground `--overlay`, border `--line-hi`, `--shadow-elevated`, sharp, `420px` wide,
+Ground `--overlay`, border `--line-hi`, `--shadow-elevated`, sharp, `460px` wide,
 `max-width: 90vw`. Blocks top to bottom, `gap-3`:
 
 1. **Header** — title, language field, reset, close. Title `--ink`, everything else ghost.
@@ -312,7 +316,7 @@ attempt on. Retries cost real money, so the count is stated, never hidden.
 
 ### Statuses
 
-A 6px dot + a `font-mono` 8.5px uppercase label:
+A 6px dot + a `font-mono` 10px uppercase label:
 
 | Status | Dot | Label |
 |---|---|---|
@@ -455,7 +459,7 @@ badge; a lavender #9D9BEA marks model ids and prompt text. Exactly one solid but
 per screen, light #E9E9EC with near-black #0B0B0B text; every other button is
 outlined or text-only. Typography: Inter for UI and headings with tight negative
 letter spacing, JetBrains Mono for micro-labels, numbers, model ids and statuses —
-8.5-10px, uppercase, wide 0.16em letter spacing, 40% white. Every section starts
+10px, uppercase, wide 0.16em letter spacing, 40% white. Every section starts
 with a two-digit orange number, a 40px hairline rule and an uppercase mono label.
 Card grids sit flush together separated by 1px hairlines. Calm, compact and
 technical: this is a tool panel over someone else's page, not a landing page.
