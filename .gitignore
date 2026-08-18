@@ -63,10 +63,16 @@ Thumbs.db
 # extension's icons, the marks bundled into its UI, and the landing page's own
 # assets. Without the exceptions a new icon size or a new site image would be
 # skipped by `git add` in silence.
+#
+# docs/store/ is exempt for the same reason one step removed: nothing there is
+# in the package, but every file in it is published on the Store listing, so a
+# public repository holds nothing the listing does not already show. Do not put
+# anything in there that is not going on the listing.
 *.png
 *.jpeg
 *.jpg
 !docs/brand/*.png
+!docs/store/*.png
 !extension/public/icon/*.png
 !extension/assets/*.png
 !landing/public/**/*.png

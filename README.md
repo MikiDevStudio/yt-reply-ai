@@ -1,4 +1,4 @@
-# Reply AI — YouTube Comment Assistant
+# Reply AI — AI replies for YouTube comments
 
 Chrome MV3 extension that generates replies to YouTube comments in the author's own voice.
 
