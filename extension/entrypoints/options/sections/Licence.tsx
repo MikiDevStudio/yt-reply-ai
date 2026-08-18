@@ -21,8 +21,10 @@ import { Section } from '../Section';
  * anybody searches for with a code in hand.
  *
  * Two things it must not do. It must not oversell: today a licence switches off
- * the thank-you card and nothing else, and multiple profiles (#12) and profile
- * export (#33) do not exist yet. And it must not read as a shop — a licence
+ * the coffee card and the glow on the popover's coffee button and nothing else, and
+ * multiple profiles (#12) and profile export (#33) do not exist yet. It
+ * deliberately does not touch the review block, which anybody dismisses for
+ * free. And it must not read as a shop — a licence
  * that could be bought would turn the coffee button into a checkout and bring
  * VAT, a Trader declaration and a right of withdrawal with it. Codes are gifts,
  * and the copy says so in the first paragraph rather than leaving it to be
@@ -97,10 +99,12 @@ export function Licence() {
           </dl>
 
           <p className="text-sm text-base-content/70">
-            The card that appeared every {NUDGE_EVERY} replies is switched off, here and on every
-            machine this Chrome profile syncs to. Multiple soul profiles and profile export are
-            what this will unlock next; they are not built yet, and this licence covers them when
-            they are.
+            The coffee card that appeared every {NUDGE_EVERY} replies is switched off, here and on
+            every machine this Chrome profile syncs to, and the glowing coffee button in the reply
+            popover goes back to being a quiet grey mark. The block that asks about a review is deliberately untouched — it is
+            dismissed for free with its own button, and a review attached to a gift is not one
+            worth having. Multiple soul profiles and profile export are what this will unlock next;
+            they are not built yet, and this licence covers them when they are.
           </p>
         </Section>
 
@@ -143,7 +147,7 @@ export function Licence() {
     <Section
       n={1}
       title="Licence code"
-      description={`If you were given one, it goes here — and the card that appears every ${NUDGE_EVERY} replies never appears again.`}
+      description={`If you were given one, it goes here — and the coffee card that appears every ${NUDGE_EVERY} replies never appears again.`}
     >
       {/* The sentence this screen exists to make unmissable. A licence that
           could be bought would make the coffee button a checkout, and with it

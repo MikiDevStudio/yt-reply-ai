@@ -25,8 +25,8 @@ import { type Entitlement, normaliseCode, verify } from './entitlement';
  *
  * The accepted consequence: it is a bearer token in the user's own storage and
  * can be shared. Nothing client-side is enforceable, this was decided in #39
- * rather than discovered, and what it guards is a thank-you card and — once
- * they exist — profile slots. The activation ceiling on the code is the only
+ * rather than discovered, and what it guards is a coffee card and — once they
+ * exist — profile slots. The activation ceiling on the code is the only
  * limit, and it is set to what an honest buyer needs.
  */
 

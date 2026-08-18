@@ -5,18 +5,23 @@ import Base from '../layouts/Base.astro';
 import { ISSUES_URL, IN_STORE, SOURCE_URL, STORE_REVIEW_URL } from '../lib/links';
 
 /**
- * Where the thank-you card's two buttons land.
+ * The two roads an opinion can take, side by side and both open.
  *
- * The card in the extension asks one question and both answers are a link the
- * user presses — nothing is counted, nothing is posted, and the extension keeps
- * talking to openrouter.ai alone. This page is the other end of that link, and
- * the `rating` in the query string is the whole mechanism: it decides which of
- * the two columns below is emphasised, in the address bar, where the person who
- * sent it can read it.
+ * This page used to be the far end of the extension's thank-you card: the card
+ * asked "is it working?", both answers were a link, and a `rating` in the query
+ * string lit one of the two columns below. #45 moved that ask into the
+ * extension itself — `components/ReviewAsk.tsx` now draws both roads where the
+ * question is asked, so nothing sends a rating here any more and the script
+ * that read one has gone with it.
  *
- * Both columns are rendered into the HTML and the script only sets which one is
- * lit. That way the page is complete without JavaScript, and someone arriving
- * with no query string at all gets a page that still makes sense.
+ * What is left is worth keeping as a plain page. It is linked from the footer,
+ * it is the address to hand anyone who says "how do I tell you something", and
+ * it makes the same point the block in the extension makes: both roads are
+ * always visible, because deciding who gets to see the review link on the
+ * strength of how they rated you is review gating, and the Web Store's
+ * rating-manipulation rules reach it.
+ *
+ * No script at all now, so it is complete as HTML.
  */
 ---
 
@@ -28,20 +33,20 @@ import { ISSUES_URL, IN_STORE, SOURCE_URL, STORE_REVIEW_URL } from '../lib/links
   <section class="mx-auto max-w-3xl px-5 pb-16 pt-14">
     <Micro n="01" label="feedback" />
 
-    <h1 id="heading" class="mt-6 text-[38px] font-semibold leading-[1.1] tracking-[-0.03em] sm:text-[46px]">
-      Thanks for pressing it. <span class="text-white/55">Here is where it goes.</span>
+    <h1 class="mt-6 text-[38px] font-semibold leading-[1.1] tracking-[-0.03em] sm:text-[46px]">
+      Two ways to say it. <span class="text-white/55">Both of them help.</span>
     </h1>
 
-    <p id="intro" class="mt-6 max-w-2xl border-l-2 border-accent pl-4 text-[16px] leading-[1.7] text-white/70">
-      Nothing was sent when you clicked — the extension reports nothing, ever. That button opened
-      this page and that is all it did. If you have thirty seconds, one of the two
-      below is worth more than any rating widget.
+    <p class="mt-6 max-w-2xl border-l-2 border-accent pl-4 text-[16px] leading-[1.7] text-white/70">
+      The extension reports nothing, ever — there is no rating widget inside it counting anything,
+      and nothing about you arrives here by itself. Whichever of the two below fits, thirty seconds
+      of it is worth more than any number we could have collected.
     </p>
   </section>
 
   <section class="mx-auto max-w-3xl px-5 pb-24">
     <div class="grid gap-px border border-line bg-line md:grid-cols-2">
-      <div id="card-good" class="flex flex-col gap-4 bg-surface p-7 transition-colors duration-200">
+      <div class="flex flex-col gap-4 bg-surface p-7 transition-colors duration-200">
         <span class="micro">it is working</span>
         <h2 class="text-[20px] font-semibold tracking-[-0.015em]">Say so where it counts</h2>
         <p class="text-[14px] leading-[1.65] text-white/70">
@@ -60,7 +65,7 @@ import { ISSUES_URL, IN_STORE, SOURCE_URL, STORE_REVIEW_URL } from '../lib/links
         </a>
       </div>
 
-      <div id="card-bad" class="flex flex-col gap-4 bg-surface p-7 transition-colors duration-200">
+      <div class="flex flex-col gap-4 bg-surface p-7 transition-colors duration-200">
         <span class="micro">it is not</span>
         <h2 class="text-[20px] font-semibold tracking-[-0.015em]">Tell me what went wrong</h2>
         <p class="text-[14px] leading-[1.65] text-white/70">
@@ -92,28 +97,3 @@ import { ISSUES_URL, IN_STORE, SOURCE_URL, STORE_REVIEW_URL } from '../lib/links
     </p>
   </section>
 </Base>
-
-<script>
-  /*
-   * Light the column that matches the answer, and say it back to them.
-   *
-   * Everything below is presentation: both cards are already in the HTML, so a
-   * visitor with no JavaScript, or no query string, sees a complete page. The
-   * rating is never stored, never sent, and never leaves this tab.
-   */
-  const rating = new URLSearchParams(location.search).get('rating');
-  if (rating === 'good' || rating === 'bad') {
-    const chosen = document.getElementById(rating === 'good' ? 'card-good' : 'card-bad');
-    const other = document.getElementById(rating === 'good' ? 'card-bad' : 'card-good');
-    chosen?.classList.add('bg-surface-hi', 'ring-1', 'ring-inset', 'ring-accent-line');
-    other?.classList.add('opacity-60');
-
-    const heading = document.getElementById('heading');
-    if (heading) {
-      heading.innerHTML =
-        rating === 'good'
-          ? 'Glad it is working. <span class="text-white/55">Here is where that helps most.</span>'
-          : 'Sorry it is not. <span class="text-white/55">Here is the shortest way to fix it.</span>';
-    }
-  }
-</script>

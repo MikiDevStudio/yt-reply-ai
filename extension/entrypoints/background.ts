@@ -14,7 +14,7 @@ import { fetchKeyInfo, fetchModel, fetchModels, streamCompletion } from '@/lib/o
 import { OpenRouterError } from '@/lib/openrouter/errors';
 import { licensed } from '@/lib/licence';
 import { angleFor, buildReplyPrompt, buildSoulPrompt, creativityPreset } from '@/lib/prompt';
-import { countReply, takeNudge } from '@/lib/replies';
+import { countReply, takeNudge, takeReview } from '@/lib/replies';
 import * as settings from '@/lib/settings';
 import type { SoulProfile } from '@/lib/soul';
 import {
@@ -233,6 +233,13 @@ async function generate(
     const quiet = (await licensed()) || !(await settings.supportNudges.getValue());
     const nudge = quiet ? null : await takeNudge();
 
+    // The review block is not what a licence buys. A coffee silences the coffee
+    // card, and deliberately nothing else: this block is dismissed for free
+    // with its own button, and a review that had to be paid off to stop being
+    // asked for is a review nobody should want. `nudge` is passed so the two
+    // never land on the same reply — see `takeReview`.
+    const review = await takeReview(nudge !== null);
+
     post(port, {
       type: 'done',
       text: next.value.text,
@@ -241,6 +248,7 @@ async function generate(
       // handing over a sentence that ends mid-word as if it were finished.
       truncated: next.value.finishReason === 'length',
       ...(nudge !== null ? { nudge } : {}),
+      ...(review ? { review: true } : {}),
     });
   } catch (error) {
     if (asOpenRouterError(error).kind === 'aborted') {

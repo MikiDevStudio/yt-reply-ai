@@ -47,7 +47,8 @@ derives itself from what the content script sent, so the two cannot disagree
 about what is being counted. A comment counts after its reply arrives, never
 before it is asked for.
 
-The record is `{ date, comments[], today, total, nudgedAt }` in `storage.sync`.
+The record is `{ date, comments[], today, total, nudgedAt, reviewedAt, reviewDone }`
+in `storage.sync`.
 `comments` is a bounded window of the last 200 keys — with no cap to bound it
 the list would otherwise grow past what a `sync` item may hold — so `today` and
 `total` are counters of their own rather than a list length. `sync` rides the
@@ -57,25 +58,44 @@ stored local date is what resets the daily figure — not a timer — so a servi
 worker that slept through midnight can only ignore a stale count, never
 resurrect one.
 
-`nudgedAt` is the whole of the counter's remaining job. Every `NUDGE_EVERY`
-(20) replies the background worker claims a milestone with `takeNudge()` and
-sends it on the `done` message; `ReplyPopover` hands it up and
-`entrypoints/content/support.tsx` raises the card over the popover, dimming the
-page, **as the reply arrives and before it is inserted**.
+The last three fields are the whole of the counter's remaining job, and they
+drive two separate asks (#45).
 
-That placement is deliberate. The extension is free, uncapped and unmetered, so
-the card is the entire price of it, and a note that waited politely until the
-work was finished is a note nobody reads. It holds nothing hostage: the reply is
-finished and sitting behind the card, and the close button, Escape and the
-backdrop all get out of the way.
+**The coffee card**, every `NUDGE_EVERY` (50) replies. The worker claims a
+milestone with `takeNudge()` and sends it on the `done` message; `ReplyPopover`
+renders `components/SupportCard.tsx` **at the foot of the popover**, under the
+finished reply and under the action row. It used to be a modal at every
+twentieth reply with the page dimmed behind it, which was right while the card
+was also the thing a licence switched off — the interruption was the price of a
+free, uncapped tool. #39 ended that: a coffee buys nothing, so the interruption
+bought nothing either. Rare *and* out of the way, because rare and modal is
+still modal.
 
-Claiming happens in the worker because that is the only single writer —
-`takeNudge()` asks and claims in one call, so two tabs finishing together cannot
-both raise one, and counting now runs *before* `done` is posted so the message
-can carry the milestone. There is no user-facing switch: `settings.supportNudges`
-is the flag a paid plan flips, read by the worker so a user who has it off never
-burns a milestone. Both feedback buttons are ordinary links the user presses —
-nothing is counted and nothing is sent.
+**The review block**, every `REVIEW_EVERY` (40) replies until it is answered.
+`takeReview()` claims it the same way and the `done` message carries `review:
+true`. `components/ReviewAsk.tsx` draws five stars and both roads out — the
+Store listing (a GitHub star until `IN_STORE` flips in `lib/feedback.ts`) and a
+bug report. The stars only decide which road is emphasised: routing four stars
+to the Store and two to a support form is review gating, which Play and the App
+Store ban outright and the Web Store's rating-manipulation policy reaches, and
+the cost of getting it wrong is the listing. Its two buttons — "I left one" and
+"not interested" — both set `reviewDone` and end it for good. That is
+self-reported and unverifiable on purpose: the Chrome Web Store exposes no
+signal for whether a review was left, unlike Play and the App Store, so
+"ask again only if they have not reviewed" cannot be built.
+
+`takeReview()` is passed whether a card is already going up, so the two never
+land on the same reply — with 40 and 50 they collide only at 200 anyway.
+
+Claiming happens in the worker because that is the only single writer — both
+functions ask and claim in one call, so two tabs finishing together cannot both
+raise one, and counting runs *before* `done` is posted so the message can carry
+the result. `settings.supportNudges` is the flag a paid plan flips, read by the
+worker so a user who has it off never burns a milestone; it governs the coffee
+card alone, and a licence deliberately does **not** silence the review block —
+a review attached to a gift is not one worth having. Every route out of either
+block is an ordinary link the user presses. Nothing is counted, no star is
+stored, and nothing is sent.
 
 ## Failure states
 
@@ -100,7 +120,7 @@ The URL is the whole contract with that page:
 |---|---|
 | `from=settings` | The ballot on the Pro section, cast after reading it |
 | `from=popup` | The one-line link in the toolbar popup, clicked in passing |
-| `from=nudge` | A click from the support card — the strongest of the three |
+| `from=nudge` | A click from the coffee card, once in fifty replies — the rarest of the three, and so the strongest |
 | `want=managed,scanner,bulk,presets` | Features ticked in the Pro section, by `PRO_FEATURES` id |
 
 The ballot is filled in here and carried there, so the page arrives pre-ticked

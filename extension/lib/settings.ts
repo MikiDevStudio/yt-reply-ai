@@ -80,11 +80,15 @@ export const enabled = storage.defineItem<boolean>('local:enabled', {
 });
 
 /**
- * Whether the support card may appear every twentieth reply.
+ * Whether the coffee card may appear every fiftieth reply.
  *
  * On, and deliberately with no control anywhere in the interface that turns it
- * off: the card is what the free version costs, and a tick box beside it would
- * be a tick box for paying nothing.
+ * off: it is the only thing this extension ever asks for, and a tick box beside
+ * it would be a tick box for paying nothing.
+ *
+ * It governs the coffee card alone. The review block has its own counter and
+ * its own two buttons, either of which ends it for good — see `takeReview` in
+ * lib/replies.ts — so it needs no flag here and is not covered by this one.
  *
  * It is **not** what a licence writes. A Supporter entitlement lives in `sync`
  * so it reaches the buyer's other machines, and the background worker asks

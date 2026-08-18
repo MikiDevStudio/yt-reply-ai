@@ -2,7 +2,7 @@ import { CoffeeButton } from '@/components/CoffeeButton';
 import { GHOST, SECONDARY } from '@/components/ui';
 import { CONTACT_URL, ISSUES_URL } from '@/lib/feedback';
 import { waitlistUrl } from '@/lib/pro';
-import { NUDGE_EVERY } from '@/lib/replies';
+import { NUDGE_EVERY, REVIEW_EVERY } from '@/lib/replies';
 import { useReplies } from '@/lib/use-replies';
 import { Section } from '../Section';
 
@@ -77,12 +77,18 @@ export function About() {
         <div className="flex flex-col gap-2 border-t border-line pt-4 text-sm">
           <span className="font-medium">Once every {NUDGE_EVERY} replies, a card appears</span>
           <p className="text-base-content/70">
-            Over the comment you are answering, as the reply lands: the count, one question, a
-            coffee button, and a way to tell me what is broken. It reports nothing and it closes
-            with Escape. It is the only thing this extension ever asks for — there is no cap to
-            lift, no metered anything, and no second ask anywhere else. A coffee does not switch it
-            off: nothing you can pay for changes anything here, which is exactly why the button
-            above is a thank-you and not a checkout.
+            At the foot of the reply popover, under the answer that just arrived: the count, a
+            sentence and a coffee button. It stands in nothing's way, it reports nothing, and it
+            closes with its own X. It is the only thing this extension ever asks money for — there
+            is no cap to lift, no metered anything, and no second ask anywhere else. A coffee does
+            not switch it off: nothing you can pay for changes anything here, which is exactly why
+            the button above is a thank-you and not a checkout.
+          </p>
+          <p className="text-base-content/70">
+            Separately, after {REVIEW_EVERY} replies, a block asks how it is going. That one has two
+            buttons — “I left one” and “not interested” — and either of them ends it permanently.
+            It is free to be rid of on purpose: a review that had to be paid off to stop being
+            asked for would be worth nothing to anybody.
           </p>
           <div className="flex flex-wrap items-center gap-4 pt-1">
             <a className={SECONDARY} href="#/licence">

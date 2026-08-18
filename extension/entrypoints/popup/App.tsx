@@ -254,7 +254,14 @@ export function App() {
           extension is free, unlimited and has no upsell in it any more, so this
           is the only place the product asks for anything — and an ask that has
           to be squinted at is not worth making. Their colours, per brand.md §1;
-          see components/CoffeeButton.tsx for why it is not their script. */}
+          see components/CoffeeButton.tsx for why it is not their script.
+
+          Their button, flat and in their yellow, and deliberately still that
+          here. The standing ask that lets the card be rare (#45) is the glowing
+          one in the reply popover — `components/CoffeeGlow.tsx` — which is in
+          front of somebody a hundred times more often than this panel is. Two
+          animated buttons would be one too many, and the mark itself has to
+          appear somewhere undisguised. */}
       <CoffeeButton className="w-full" />
     </div>
   );

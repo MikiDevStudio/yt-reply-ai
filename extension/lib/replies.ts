@@ -15,14 +15,38 @@ import { storage } from '#imports';
  */
 
 /**
- * How often the support dialog is offered — every twentieth reply.
+ * How often the coffee card is offered — every fiftieth reply.
  *
- * Twenty is roughly a session of comment answering, so the dialog lands on
- * someone who has just finished a batch rather than on someone still working
- * out what the button does. It is never shown twice for the same crossing:
- * `nudgedAt` records the count it was last shown at.
+ * It was twenty while the card was also the thing a licence switched off, so
+ * the interruption was the price of the free version and had to be felt. It is
+ * not that any more (#39): a coffee buys nothing, so the card buys nothing
+ * either, and at twenty it only spent goodwill on the people most likely to
+ * give some. Fifty is rare enough to read as a thank-you rather than a house
+ * advert — and rare is only affordable because the popover's action row now
+ * carries a standing coffee button, so nobody has to meet the card to learn
+ * there is one.
+ *
+ * It is never shown twice for the same crossing: `nudgedAt` records the count
+ * it was last shown at.
  */
-export const NUDGE_EVERY = 20;
+export const NUDGE_EVERY = 50;
+
+/**
+ * How often the review block is offered — every fortieth reply, until it is
+ * answered.
+ *
+ * Its own number rather than a share of `NUDGE_EVERY`, because it asks for a
+ * different thing and stops for a different reason: the coffee card recurs for
+ * as long as the extension is free, and this one is meant to be answered once
+ * and never seen again. Forty lands it before the first card at fifty, which
+ * is deliberate — the first ask this product makes should be the one that
+ * costs the reader nothing.
+ *
+ * Forty against fifty also means the two collide only at 200, and by then the
+ * block has almost certainly been dismissed. The worker refuses to raise both
+ * in the same reply anyway; see `takeReview`.
+ */
+export const REVIEW_EVERY = 40;
 
 /**
  * How many recent comment keys are remembered for the free-regeneration rule.
@@ -47,8 +71,31 @@ interface ReplyRecord {
   today: number;
   /** Replies written since the extension was installed. Never reset. */
   total: number;
-  /** What `total` stood at when the support dialog was last shown. */
+  /** What `total` stood at when the coffee card was last shown. */
   nudgedAt: number;
+  /**
+   * What `total` stood at when the review block was last shown.
+   *
+   * Optional, with `reviewDone`, because both were added to a key that already
+   * had records in it. A record written by an older build has neither, and
+   * reading them as "never shown, never answered" is exactly right.
+   */
+  reviewedAt?: number;
+  /**
+   * Whether either of the review block's two buttons has been pressed. Once it
+   * has, the block is gone for good.
+   *
+   * Self-reported and taken on trust, because there is nothing else to go on:
+   * the Chrome Web Store exposes no signal for whether a review was left — no
+   * API, unlike Google Play and the App Store — so "ask again only if they have
+   * not reviewed" is not a thing that can be built.
+   *
+   * It rides `sync` with the rest of the record rather than sitting in a local
+   * preference. Someone who has answered this on one machine has answered it;
+   * asking again on their second one is the same interruption wearing a
+   * different install id.
+   */
+  reviewDone?: boolean;
 }
 
 /**
@@ -130,6 +177,7 @@ export async function countReply(comment: string): Promise<void> {
   const comments = sameDay ? [...value.comments, comment].slice(-RECENT_LIMIT) : [comment];
 
   await record.setValue({
+    ...value,
     date: today,
     comments,
     today: sameDay ? value.today + 1 : 1,
@@ -139,10 +187,10 @@ export async function countReply(comment: string): Promise<void> {
 }
 
 /**
- * Whether the support dialog is due, claiming it if it is.
+ * Whether the coffee card is due, claiming it if it is.
  *
  * Claiming and asking are one call on purpose. Two tabs both crossing the
- * twentieth reply would otherwise both open a dialog, and the second one lands
+ * fiftieth reply would otherwise both raise a card, and the second one lands
  * on someone who has just dismissed the first — the fastest way to make a
  * thank-you read as an advert.
  *
@@ -158,4 +206,47 @@ export async function takeNudge(): Promise<number | null> {
   const milestone = Math.floor(value.total / NUDGE_EVERY) * NUDGE_EVERY;
   await record.setValue({ ...value, nudgedAt: milestone });
   return milestone;
+}
+
+/**
+ * Whether the review block is due, claiming it if it is.
+ *
+ * `claimed` says a card is already going up for this reply. One ask to a reply:
+ * the two counters are forty and fifty apart precisely so that they rarely
+ * meet, and on the reply where they do, the block waits for the next one rather
+ * than stacking a second panel under the first.
+ *
+ * Same claim-as-you-ask shape as `takeNudge`, for the same reason, and the same
+ * flooring: a burst that jumps from 39 to 43 marks the block shown at 40 and
+ * puts the next one at 80.
+ */
+export async function takeReview(claimed: boolean): Promise<boolean> {
+  const value = await record.getValue();
+  if (claimed || !value || value.reviewDone) return false;
+  if (value.total < (value.reviewedAt ?? 0) + REVIEW_EVERY) return false;
+
+  await record.setValue({
+    ...value,
+    reviewedAt: Math.floor(value.total / REVIEW_EVERY) * REVIEW_EVERY,
+  });
+  return true;
+}
+
+/**
+ * Answer the review block, whichever button was pressed, and never ask again.
+ *
+ * One function for both answers because they mean the same thing to us: the
+ * person has decided, and there is no signal on the other side to check it
+ * against. "I left one" and "not interested" differ in what they say and not in
+ * what they do, and a version of this that quietly kept asking the second group
+ * would be worth nothing to either.
+ *
+ * Written from the content script rather than the worker. It is a direct
+ * consequence of a click on a surface that is already open, and `storage.sync`
+ * is reachable from a content script by default.
+ */
+export async function silenceReview(): Promise<void> {
+  const value = await record.getValue();
+  if (!value) return;
+  await record.setValue({ ...value, reviewDone: true });
 }

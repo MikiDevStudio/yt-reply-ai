@@ -141,15 +141,19 @@ rather than the error one.
 | Trial | our own capped key, ~20 replies, no account | the Worker |
 | Free | OpenRouter OAuth, `:free` models (OpenRouter's own 50/day) | none |
 | BYOK | same OAuth, paid models, user pays OpenRouter directly | none |
-| Licence | a gift code: the thank-you card never appears again. Not for sale | the Worker, once |
+| Licence | a gift code: the coffee card never appears again. Not for sale | the Worker, once |
 | Pro | provisioned OpenRouter key with a spend limit, profile sync, bulk mode | minimal |
 
 **We impose no limit of our own.** A daily cap of 50 replies shipped and was
 removed: the only thing it measured was how many people it stopped. What is
-left is a counter (`extension/lib/replies.ts`) that gates nothing and, every
-twenty replies, offers a card saying thank you with a Buy Me a Coffee button and
-two feedback links. That card is the whole of the ask, and Supporter is the whole
-of what is for sale.
+left is a counter (`extension/lib/replies.ts`) that gates nothing and drives
+two asks at the foot of the reply popover, both of them out of the way of the
+reply itself: every fifty replies a card saying thank you with a Buy Me a Coffee
+button, and every forty a block asking how it is going — which anybody ends for
+good with its own button, whether or not they have paid anything. The popover's
+action row carries a small standing coffee button, which is what lets the card
+be rare. That is the whole of the ask, and Supporter is the whole of what is for
+sale.
 
 **Nothing is sold, and that is a design decision rather than a stage.** A coffee
 buys nothing: it unlocks no tier, silences no card and changes nothing about the
@@ -160,8 +164,10 @@ it. Three shapes that would have crossed that line were designed and dropped: a
 $12 tier, "any coffee returns a code", and "a coffee stops the card appearing".
 
 **Licence codes exist, and they are gifts.** They go out in giveaways under promo
-videos and by hand, at nobody's entitlement; a code switches the thank-you card
-off, and later unlocks multiple soul profiles (#12) and profile export (#33). The
+videos and by hand, at nobody's entitlement; a code switches the coffee card off
+and stops that button glowing, and later unlocks multiple soul profiles
+(#12) and profile export (#33). It deliberately does not silence the review
+block: a review attached to a gift is not one worth having. The
 three conditions that keep this a gift rather than a sale: it is offered nowhere,
 it is never guaranteed in exchange for money, and the extension behaves
 identically for everyone who has not been given one.

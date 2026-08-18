@@ -21,10 +21,10 @@ import { CONTACT_EMAIL, SOURCE_URL } from '../lib/links';
 const stored = [
   ['OpenRouter API key', 'Local, on this device', 'Authenticates your generation requests. Sent only to openrouter.ai'],
   ['Soul profile', 'Local, on this device', 'The description of your channel and voice that you wrote yourself'],
-  ['Preferences', 'Local, on this device', 'Chosen model, tone, creativity, context depth, who the reply speaks as, whether the thank-you card may appear'],
+  ['Preferences', 'Local, on this device', 'Chosen model, tone, creativity, context depth, who the reply speaks as, whether the coffee card may appear'],
   ['Model list', 'Local, on this device', "A cached copy of OpenRouter's public catalogue, so the settings page opens fast"],
   ['Video descriptions', 'Session, cleared when the browser closes', 'Avoids re-reading the same page for every reply on it'],
-  ['Reply counter', 'Synced storage', 'Counts what you have written. It gates nothing — see the note below'],
+  ['Reply counter', 'Synced storage', 'Counts what you have written, and remembers whether you have answered the question about a review. It gates nothing — see the note below'],
   ['Install id', 'Local, on this device', 'A random number this copy of the extension gives itself, used once to ask for a free trial key. Only created if you take the trial'],
   ['Supporter licence', 'Synced storage', 'The signed licence a code turns into, if you bought one. It names what was bought and when it expires, and nobody at all'],
 ];
@@ -218,16 +218,17 @@ const permissions = [
       <section class="flex flex-col gap-4">
         <h2 class="text-[22px] font-semibold tracking-[-0.015em] text-white">The links out of the extension</h2>
         <p>
-          Three buttons lead to a web page rather than doing something in the extension: the Pro
-          waitlist, the two feedback answers on the thank-you card, and Buy Me a Coffee. All three
-          are ordinary links you press.
+          A handful of buttons lead to a web page rather than doing something in the extension: the
+          Pro waitlist, the review, bug-report and contact links in the block that asks how it is
+          going, and Buy Me a Coffee. All of them are ordinary links you press.
         </p>
         <p>
           The Pro link carries the features you ticked in settings, in the address bar, visible to
-          you, so the waitlist page can pre-tick the same boxes. The feedback links carry which of
-          the two buttons you pressed, and nothing else — no identifier, no counter, no reply text.
-          Neither is a report the extension filed: nothing is submitted from inside it, and if you
-          type an email address it happens on the website, under the terms in the next section.
+          you, so the waitlist page can pre-tick the same boxes. The rest carry nothing at all —
+          no identifier, no counter, no reply text, and not the star you pressed, which is never
+          stored and never leaves the panel it was drawn in. None of them is a report the extension
+          filed: nothing is submitted from inside it, and if you type an email address it happens
+          on the website, under the terms in the next section.
         </p>
         <p>
           Buy Me a Coffee is a third-party site with its own privacy policy. Their button is

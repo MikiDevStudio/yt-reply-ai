@@ -264,10 +264,11 @@ const prices = [
 
     /* Which entry point sent them. `settings` is the ballot in the extension,
        `popup` the one-line link in the toolbar panel, and `nudge` a click from
-       the support card — the one place the product interrupts anybody, and so
-       the strongest of the three. Anything else is someone who found the page
-       by itself. The old `limit` value went with the daily cap and falls
-       through to `direct` if an old build still sends it. */
+       the coffee card at the foot of the reply popover — which appears once in
+       fifty replies, so it is the rarest of the three and the strongest signal.
+       Anything else is someone who found the page by itself. The old `limit`
+       value went with the daily cap and falls through to `direct` if an old
+       build still sends it. */
     const sent = params.get('from');
     const from =
       sent === 'settings' || sent === 'popup' || sent === 'nudge' ? sent : 'direct';
