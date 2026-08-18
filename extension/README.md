@@ -121,7 +121,7 @@ The URL is the whole contract with that page:
 | `from=settings` | The ballot on the Pro section, cast after reading it |
 | `from=popup` | The one-line link in the toolbar popup, clicked in passing |
 | `from=nudge` | A click from the coffee card, once in fifty replies — the rarest of the three, and so the strongest |
-| `want=managed,scanner,bulk,presets` | Features ticked in the Pro section, by `PRO_FEATURES` id |
+| `want=managed,scanner,bulk,profiles` | Features ticked in the Pro section, by `PRO_FEATURES` id |
 
 The ballot is filled in here and carried there, so the page arrives pre-ticked
 and only an email is left to type. Nothing is posted from the extension: the

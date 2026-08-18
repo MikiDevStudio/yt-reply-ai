@@ -18,13 +18,16 @@ import { FOCUS, ICON, MICRO, MICRO_TYPE, SECONDARY, SOLID } from '@/components/u
 import { detectLanguage } from '@/lib/language';
 import { licensed } from '@/lib/licence';
 import type { GenerationContext } from '@/lib/messaging';
-import { angleFor, CREATIVITY, STYLES } from '@/lib/prompt';
+import { AUTO, selectedPreset, visiblePresets } from '@/lib/presets';
+import { angleFor, CREATIVITY } from '@/lib/prompt';
 import {
   type Audience,
   autoGenerate as autoGenerateSetting,
   creativity as creativitySetting,
+  presets as presetsSetting,
   replyAs as replyAsSetting,
 } from '@/lib/settings';
+import { useSetting } from '@/lib/use-setting';
 import { SUPPORT_URL } from '@/lib/support';
 import { useGeneration } from '@/lib/use-generation';
 import {
@@ -37,9 +40,6 @@ import {
   writeLanguageOverride,
   writeNote,
 } from './session';
-
-/** Order shown in the picker. `auto` first because it is the default. */
-const STYLE_ORDER = ['auto', 'friendly', 'humorous', 'engaging', 'brief'] as const;
 
 /** A language name is a word or two. Anything longer is someone writing instructions. */
 const MAX_LANGUAGE_LENGTH = 40;
@@ -93,7 +93,20 @@ export function ReplyPopover({
   onClose,
 }: ReplyPopoverProps) {
   const { state, generate, cancel } = useGeneration();
-  const [style, setStyle] = useState<string>('auto');
+  const [style, setStyle] = useState<string>(AUTO);
+
+  /**
+   * The row itself, which the user owns (#6).
+   *
+   * Read here rather than passed in: the settings page can add, hide or reorder
+   * a preset while this popover is open, and `useSetting` follows storage, so
+   * the row redraws instead of holding a chip that no longer exists. `chosen`
+   * is `style` unless the preset it names has since gone, in which case it is
+   * `auto` — exactly one chip is lit either way.
+   */
+  const [overlay] = useSetting(presetsSetting);
+  const row = visiblePresets(overlay);
+  const chosen = selectedPreset(overlay, style);
   const [copied, setCopied] = useState(false);
   const streamRef = useRef<HTMLDivElement>(null);
 
@@ -452,20 +465,20 @@ export function ReplyPopover({
 
         {/* 4 · Tone. Chips, never a filled orange one. */}
         <div className="flex flex-wrap gap-2">
-          {STYLE_ORDER.map((name) => (
+          {row.map((preset) => (
             <button
-              key={name}
+              key={preset.id}
               type="button"
               className={`px-2.5 py-1 text-[13px] transition-colors duration-150 ${
-                style === name
+                chosen === preset.id
                   ? 'border border-accent-line bg-accent-soft text-primary'
                   : 'border border-line text-base-content/70 hover:border-line-hi hover:text-base-content'
               } disabled:pointer-events-none disabled:opacity-40 ${FOCUS}`}
-              title={STYLES[name]}
+              title={preset.text || 'Nothing is added to the prompt'}
               disabled={busy}
-              onClick={() => setStyle(name)}
+              onClick={() => setStyle(preset.id)}
             >
-              {name}
+              {preset.name}
             </button>
           ))}
         </div>
