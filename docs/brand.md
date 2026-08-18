@@ -102,6 +102,16 @@ this adds a use, not a colour.
 `--accent-bright` is the more insistent version of the accent: brighter on dark, deeper
 on light. Same role either way.
 
+`--accent-mark` (`#E2670F`, one value in both themes) is the exception that proves how
+the other two work. Every colour above is written per theme because we know the ground
+it will land on. The mark does not get that: one PNG has to hold up on the Web Store's
+white card, on a light Chrome toolbar and on a dark one, and neither accent value spans
+that — `#FF8A3D` is 2.35:1 on white, `#B0590C` is 2.92:1 on Chrome's dark toolbar. Each
+fails the ground the other was not written for. `#E2670F` sits between them and clears
+3:1 on all of them, so the icon needs no tile of its own and reads as a shape rather
+than a dark square. It is used **only** for the mark — nothing in the interface borrows
+it, the same way nothing borrows the Buy Me a Coffee yellow. See `brand/README.md`.
+
 Rule: **orange is never poured over large areas.** It lives in 1px lines, 6px dots, 10px
 text and outlines. The only large fill in the interface is the `--solid` button.
 
