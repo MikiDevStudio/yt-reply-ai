@@ -13,6 +13,7 @@ import { connectWithOAuth } from '@/lib/openrouter/auth';
 import { fetchKeyInfo, fetchModel, fetchModels, streamCompletion } from '@/lib/openrouter/client';
 import { OpenRouterError } from '@/lib/openrouter/errors';
 import { licensed } from '@/lib/licence';
+import { toneFor } from '@/lib/presets';
 import { angleFor, buildReplyPrompt, buildSoulPrompt, creativityPreset } from '@/lib/prompt';
 import { countReply, takeNudge, takeReview } from '@/lib/replies';
 import * as settings from '@/lib/settings';
@@ -139,17 +140,27 @@ async function generate(
   try {
     // Read state on every invocation. The worker is restarted freely, so nothing
     // may be cached in module scope.
-    const [key, chosen, soul, profile, savedStyle, savedLevel, savedCreativity, savedAudience] =
-      await Promise.all([
-        settings.apiKey.getValue(),
-        settings.model.getValue(),
-        settings.soul.getValue(),
-        settings.soulProfile.getValue(),
-        settings.style.getValue(),
-        settings.contextLevel.getValue(),
-        settings.creativity.getValue(),
-        settings.replyAs.getValue(),
-      ]);
+    const [
+      key,
+      chosen,
+      soul,
+      profile,
+      savedStyle,
+      overlay,
+      savedLevel,
+      savedCreativity,
+      savedAudience,
+    ] = await Promise.all([
+      settings.apiKey.getValue(),
+      settings.model.getValue(),
+      settings.soul.getValue(),
+      settings.soulProfile.getValue(),
+      settings.style.getValue(),
+      settings.presets.getValue(),
+      settings.contextLevel.getValue(),
+      settings.creativity.getValue(),
+      settings.replyAs.getValue(),
+    ]);
 
     model = chosen;
 
@@ -182,7 +193,10 @@ async function generate(
     const messages = buildReplyPrompt({
       context: level >= 2 ? await withCachedDescription(request.context) : request.context,
       soul,
-      style: request.style ?? savedStyle,
+      // The id is turned into its sentence here rather than in the prompt: the
+      // table behind the ids is the user's to edit, and an id whose preset was
+      // hidden or deleted resolves to no line at all.
+      tone: toneFor(overlay, request.style ?? savedStyle),
       level,
       audience: request.audience ?? savedAudience,
       note: request.note,

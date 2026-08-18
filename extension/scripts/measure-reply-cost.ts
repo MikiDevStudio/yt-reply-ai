@@ -19,6 +19,7 @@ import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { streamCompletion } from '../lib/openrouter/client';
 import { MODEL_PRESETS } from '../lib/models';
+import { toneFor } from '../lib/presets';
 import { angleFor, buildReplyPrompt } from '../lib/prompt';
 import { DEFAULT_PROFILE, renderSoul } from '../lib/soul';
 
@@ -61,7 +62,7 @@ for (const comment of comments) {
   const messages = buildReplyPrompt({
     context: { ...comment, isReply: false, video },
     soul,
-    style: 'auto',
+    tone: toneFor(null, 'auto'),
     level: 2,
     audience: 'owner',
     creativity: 3,

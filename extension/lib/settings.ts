@@ -1,19 +1,19 @@
 import { storage } from '#imports';
 import { MODEL_PRESETS } from './models';
 import type { ModelCatalogue, ModelInfo } from './openrouter/types';
+import type { PresetOverlay } from './presets';
 import type { SoulProfile } from './soul';
 
 /**
  * Persisted settings.
  *
- * Everything here uses the `local` area, never `sync`. `sync` uploads to
- * Google's servers and caps at 8 KB per item and 100 KB overall — a credential
- * has no business going there, and a soul profile would blow the quota on its
- * own. Small UI preferences may move to `sync` later; secrets never will.
+ * `local` unless there is a reason, and `sync` never for a secret. `sync`
+ * uploads to Google's servers and caps at 8 KB per item and 100 KB overall, so
+ * a credential has no business going there — that rule has no exceptions.
  *
- * The one thing that does live in `sync` is the reply counter in
- * `lib/replies.ts`: a couple of kilobytes that are worth carrying between
- * machines, and nothing sensitive in them.
+ * Two things do live in `sync`, both for the same reason: small, bounded, and
+ * worth carrying between a person's machines. The reply counter in
+ * `lib/replies.ts`, and `presets` below.
  */
 
 /**
@@ -114,9 +114,32 @@ export const contextLevel = storage.defineItem<ContextLevel>('local:generation.c
   fallback: 0,
 });
 
-/** Tone preset applied on top of the soul profile. */
+/**
+ * Which preset the row has selected, by id.
+ *
+ * `local` while the presets themselves are `sync`, and the split is deliberate:
+ * the row is a person's own vocabulary and belongs on every machine, but which
+ * chip is lit right now is a per-install preference like creativity. An id here
+ * can outlive the preset it names — see `selectedPreset` in `lib/presets.ts`.
+ */
 export const style = storage.defineItem<string>('local:generation.style', {
   fallback: 'auto',
+});
+
+/**
+ * What the user changed about the preset row. See `lib/presets.ts`.
+ *
+ * `null` means untouched, which is the five built-ins in the order they ship.
+ * Stored as an overlay rather than as the row itself so that restoring a
+ * built-in is deleting a key, and so a better sentence shipped later still
+ * reaches everyone who never edited that one.
+ *
+ * `sync` because this is the one generation preference somebody would be
+ * annoyed to retype on a second machine, and `LIMITS` in `presets.ts` caps it
+ * near 2 KB against sync's 8 KB per item.
+ */
+export const presets = storage.defineItem<PresetOverlay | null>('sync:generation.presets', {
+  fallback: null,
 });
 
 /**

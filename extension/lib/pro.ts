@@ -56,9 +56,16 @@ export const PRO_FEATURES = [
     detail: 'Draft replies to a whole page of comments at once, then go through them one by one.',
   },
   {
-    id: 'presets',
-    title: 'Style presets',
-    detail: 'Saved voices to switch between — a channel, a client, a second language.',
+    // Renamed from `presets` when the editable preset row shipped free (#6).
+    // The id is what a vote is counted under, and counting "I would pay for
+    // this" against something already given away makes the number a lie. What
+    // is unbuilt is the profile *around* a row: several souls, each with its
+    // own presets, for different channels or different jobs (#12).
+    id: 'profiles',
+    title: 'Multiple profiles',
+    detail:
+      'A soul profile per channel or per purpose, each carrying its own preset row — ' +
+      'switched in one press rather than rewritten.',
   },
 ] as const;
 

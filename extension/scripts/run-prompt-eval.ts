@@ -22,6 +22,7 @@ import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { streamCompletion } from '../lib/openrouter/client';
 import { MODEL_PRESETS } from '../lib/models';
+import { toneFor } from '../lib/presets';
 import { angleFor, buildReplyPrompt, creativityPreset } from '../lib/prompt';
 import { DEFAULT_PROFILE, renderSoul } from '../lib/soul';
 import type { ContextLevel } from '../lib/settings';
@@ -103,7 +104,7 @@ async function generate(pick: Pick, level: ContextLevel): Promise<string> {
       },
     },
     soul: soulFor(pick.channel),
-    style: DEFAULTS.style,
+    tone: toneFor(null, DEFAULTS.style),
     level,
     audience: DEFAULTS.audience,
     creativity: preset.level,

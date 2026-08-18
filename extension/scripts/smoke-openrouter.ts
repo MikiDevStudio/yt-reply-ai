@@ -17,6 +17,15 @@ import { describeFailure, type FailureKind } from '../lib/failure';
 import { fetchKeyInfo, fetchModels, isDegenerate, streamCompletion } from '../lib/openrouter/client';
 import { OpenRouterError, secondsUntilRetry } from '../lib/openrouter/errors';
 import { MODEL_PRESETS } from '../lib/models';
+import {
+  AUTO,
+  BUILT_IN,
+  LIMITS,
+  readPresets,
+  selectedPreset,
+  toneFor,
+  visiblePresets,
+} from '../lib/presets';
 import { angleFor, buildReplyPrompt } from '../lib/prompt';
 
 const root = join(dirname(fileURLToPath(import.meta.url)), '..', '..');
@@ -244,7 +253,7 @@ const stuffed = buildReplyPrompt({
     video: { videoId: 'abc12345678', title: flood, channel: flood, description: flood },
   },
   soul: flood,
-  style: 'auto',
+  tone: toneFor(null, 'auto'),
   level: 2,
   audience: 'owner',
   note: flood,
@@ -319,6 +328,81 @@ check(
   'the per-minute cap says to wait, not to switch models',
   perMinute.actions.length === 1 && perMinute.actions[0]?.kind === 'retry',
   perMinute.detail,
+);
+
+// The preset row is the user's to edit (#6), and three of its rules are load
+// bearing rather than cosmetic. TypeScript cannot express any of them.
+//
+// `auto` first: it is the row's off switch, and the line it used to send —
+// "match the tone of the comment" — measured as dead weight, changing neither
+// reply length nor how often a reply restated the comment. Nothing may give it
+// text back, and nothing may hide it, because a row with no chips has no way to
+// choose anything.
+check('auto adds nothing to the prompt', toneFor(null, AUTO) === '');
+check(
+  'auto cannot be given a line back',
+  toneFor({ edits: { [AUTO]: { text: 'Match the tone of the comment.' } } }, AUTO) === '',
+);
+check(
+  'auto cannot be hidden out of the row',
+  readPresets({ hidden: [AUTO] }).find((preset) => preset.id === AUTO)?.hidden === false,
+);
+
+// A selection outlives the preset it names — hidden on another machine, deleted
+// here while a popover was open. Both resolve to no tone and to a row with
+// exactly one chip lit, rather than to a dangling id nobody can see.
+check('a hidden preset sends nothing', toneFor({ hidden: ['friendly'] }, 'friendly') === '');
+check('a deleted selection falls back to auto', selectedPreset(null, 'gone') === AUTO);
+check(
+  'a hidden selection falls back to auto',
+  selectedPreset({ hidden: ['brief'] }, 'brief') === AUTO,
+);
+
+// The overlay stores deviations, so restoring a built-in is deleting a key —
+// and a preset edited back to its shipped wording stops offering a restore.
+const tweaked = readPresets({ edits: { brief: { text: 'One line, no more.' } } });
+check(
+  'an edit applies and can be restored',
+  tweaked.find((preset) => preset.id === 'brief')?.edited === true &&
+    tweaked.find((preset) => preset.id === 'friendly')?.edited === false,
+);
+
+// An order written by an older build must not swallow a preset a newer one
+// ships: unlisted ids follow the listed ones instead of disappearing.
+const partial = readPresets({ order: ['brief', AUTO] });
+check(
+  'an order from an older build still shows every preset',
+  partial.length === BUILT_IN.length && partial[0]?.id === 'brief',
+  partial.map((preset) => preset.id).join(','),
+);
+
+// Every preset line is billed on every reply it is used for, and the whole row
+// has to fit `chrome.storage.sync`'s 8 KB per item. The caps are what keep both
+// true, so they are checked against the budget rather than trusted.
+const maxed = {
+  edits: Object.fromEntries(
+    BUILT_IN.filter((preset) => preset.id !== AUTO).map((preset) => [
+      preset.id,
+      { name: 'n'.repeat(LIMITS.name), text: 't'.repeat(LIMITS.text) },
+    ]),
+  ),
+  custom: Array.from({ length: LIMITS.presets - BUILT_IN.length }, (_, index) => ({
+    id: `c${index}`,
+    name: 'n'.repeat(LIMITS.name),
+    text: 't'.repeat(LIMITS.text),
+  })),
+};
+const rowBytes = new TextEncoder().encode(JSON.stringify(maxed)).length;
+check('a row filled to every cap still fits sync', rowBytes < 8192, `${rowBytes} bytes`);
+check(
+  'the shipped presets stay inside the caps they set',
+  BUILT_IN.every(
+    (preset) => preset.text.length <= LIMITS.text && preset.name.length <= LIMITS.name,
+  ),
+);
+check(
+  'every visible preset has a label to press',
+  visiblePresets(null).every((preset) => preset.name.trim().length > 0),
 );
 
 // A trial key that has spent its allowance answers 403, the same status as a

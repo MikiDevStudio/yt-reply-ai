@@ -132,7 +132,15 @@
      containing block it is — the field escaped, and the surface it was drawn on
      grew by the width of the circles that had wandered off it. */
   position: relative;
-  display: block;
+  /* Flex rather than block, and it is the label's vertical position that needs
+     it. `.label` is inline-flex, so in a block wrapper it sat on a baseline and
+     the line box kept room under it for descenders it does not have — the cup
+     and the word ended up pressed against the top of the panel with a few
+     pixels of nothing beneath them. A flex parent has no line box, so the
+     centring is real. */
+  display: flex;
+  align-items: center;
+  justify-content: center;
   /* The mask is what keeps the circles inside the rounded corners. `overflow`
      alone clips the circles but not the blur reaching past them, which leaves a
      soft halo hanging outside the panel. */

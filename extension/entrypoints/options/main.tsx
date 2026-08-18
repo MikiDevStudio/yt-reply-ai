@@ -6,6 +6,7 @@ import { About } from './sections/About';
 import { Account } from './sections/Account';
 import { Generation } from './sections/Generation';
 import { Models } from './sections/Models';
+import { Presets } from './sections/Presets';
 import { Pro } from './sections/Pro';
 import { Soul } from './sections/Soul';
 import { Licence } from './sections/Licence';
@@ -31,6 +32,7 @@ ReactDOM.createRoot(document.getElementById('root')!).render(
         <Route index element={<Navigate to="/account" replace />} />
         <Route path="/account" element={<Account />} />
         <Route path="/soul" element={<Soul />} />
+        <Route path="/presets" element={<Presets />} />
         <Route path="/generation" element={<Generation />} />
         <Route path="/models" element={<Models />} />
         <Route path="/licence" element={<Licence />} />

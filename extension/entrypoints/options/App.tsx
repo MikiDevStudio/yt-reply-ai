@@ -4,6 +4,7 @@ import { FOCUS } from '@/components/ui';
 const SECTIONS = [
   { to: '/account', label: 'Account' },
   { to: '/soul', label: 'Soul profile' },
+  { to: '/presets', label: 'Reply presets' },
   { to: '/generation', label: 'Generation' },
   { to: '/models', label: 'Models' },
   { to: '/licence', label: 'Licence' },

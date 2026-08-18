@@ -3,18 +3,6 @@ import type { ChatMessage } from './openrouter/types';
 import type { Audience, ContextLevel } from './settings';
 
 /**
- * Tone presets, layered on top of the user's soul profile rather than replacing
- * it. The profile says who they are; the preset says how loud to be right now.
- */
-export const STYLES: Record<string, string> = {
-  auto: 'Match the tone of the comment you are answering.',
-  friendly: 'Be warm and welcoming.',
-  humorous: 'Be light-hearted. Land the joke without forcing it.',
-  engaging: 'Invite a reply. Ask something worth answering.',
-  brief: 'Answer in one short sentence.',
-};
-
-/**
  * How far the model may stray, as five presets of our own.
  *
  * Each level carries both an instruction and the temperature that goes with it,
@@ -213,7 +201,15 @@ function clip(text: string, limit: number): string {
 interface BuildOptions {
   context: GenerationContext;
   soul: string;
-  style: string;
+  /**
+   * The tone sentence for this reply, already resolved from the chosen preset.
+   *
+   * The sentence rather than the preset's id, because the table behind those
+   * ids is the user's to edit (#6) and this file has no business reading it.
+   * Empty means add nothing, which is what `auto`, a hidden preset and a
+   * deleted one all come to — see `toneFor` in `lib/presets.ts`.
+   */
+  tone: string;
   level: ContextLevel;
   /** Whether the reply speaks for the channel or for one viewer. */
   audience: Audience;
@@ -250,7 +246,7 @@ interface BuildOptions {
 export function buildReplyPrompt({
   context,
   soul,
-  style,
+  tone,
   level,
   audience,
   note,
@@ -319,14 +315,12 @@ export function buildReplyPrompt({
     system.push('', 'Voice and rules to follow:', clip(soul, LIMITS.soul));
   }
 
-  // `auto` is the default and says to match the tone of the comment, which is
-  // what the model does when nothing is said at all: removing the line moved
-  // neither the length of a reply nor how often it mirrored. So the default
-  // costs nothing, and the four named styles — which do change the output — are
-  // still spelled out.
-  const styleHint = STYLES[style];
-  const tone = styleHint && style !== 'auto' ? [`Tone for this reply: ${styleHint}`] : [];
-  system.push('', ...tone, `How far to stray: ${creativityPreset(creativity).instruction}`);
+  // No line at all when no preset is chosen. `auto` used to send "match the
+  // tone of the comment", which is what the model does when nothing is said:
+  // removing it moved neither the length of a reply nor how often it mirrored.
+  // That is why an empty tone is a silence here rather than a default sentence.
+  const toneLine = tone.trim() ? [`Tone for this reply: ${tone.trim()}`] : [];
+  system.push('', ...toneLine, `How far to stray: ${creativityPreset(creativity).instruction}`);
 
   // L1 and above add video context. It is constant per video, so it belongs in
   // the cacheable prefix rather than in the user turn.
