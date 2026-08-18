@@ -1,4 +1,5 @@
 import type { FailureFacts, FailureKind, RateLimitFacts } from './failure';
+import type { FilterFacts } from './openrouter/errors';
 import type { TokenUsage } from './openrouter/types';
 import type { Audience, ContextLevel } from './settings';
 
@@ -96,6 +97,8 @@ export interface FailurePayload {
   hadKey?: boolean;
   /** Present on `key_exhausted`: true means the key that ran out was the trial's. */
   keyIsOurs?: boolean;
+  /** Present on `filtered`: which side the filter refused, and why. */
+  filtered?: FilterFacts;
   /** Present when no key is stored: whether the free trial is still on offer. */
   trialAvailable?: boolean;
 }

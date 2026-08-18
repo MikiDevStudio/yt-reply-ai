@@ -273,6 +273,7 @@ const KINDS: FailureKind[] = [
   'network',
   'offline',
   'empty',
+  'filtered',
   'runaway',
   'timeout',
   'interrupted',
@@ -341,6 +342,59 @@ check(
   'a 403 that is not about a limit stays unauthorized',
   revoked.kind === 'unauthorized',
   revoked.kind,
+);
+
+// The third meaning of 403, and the one that used to arrive as the first: a
+// comment refused by moderation was reported as a revoked key, which sent
+// somebody to reconnect a key that had never stopped working.
+const moderated = OpenRouterError.fromResponse(
+  403,
+  JSON.stringify({
+    error: {
+      message: 'Input was flagged by moderation',
+      code: 403,
+      metadata: { reasons: ['harassment'], flagged_input: 'you are...', model_slug: 'openai/gpt' },
+    },
+  }),
+);
+check(
+  'a flagged comment is not read as a revoked key',
+  moderated.kind === 'filtered' && moderated.filter?.side === 'comment',
+  `${moderated.kind} / ${moderated.filter?.side}`,
+);
+
+// The two sides of a filter share a kind and nothing else. One is answered by
+// changing model; the other is answered by changing model and nothing at all
+// is answered by pressing retry, because the same comment is refused every
+// time it is sent.
+const inbound = describeFailure({
+  kind: 'filtered',
+  filtered: { side: 'comment', reasons: ['harassment'] },
+});
+const outbound = describeFailure({ kind: 'filtered', filtered: { side: 'reply' } });
+check(
+  'a comment stopped on the way in offers no retry',
+  !inbound.actions.some((action) => action.kind === 'retry'),
+  inbound.actions.map((a) => a.label).join(', '),
+);
+check(
+  'the category is named when moderation named one',
+  Boolean(inbound.detail?.includes('harassment')),
+  inbound.detail,
+);
+check(
+  'the two sides of a filter are not told as the same failure',
+  inbound.title !== outbound.title && outbound.actions.some((a) => a.kind === 'retry'),
+  outbound.title,
+);
+// The screen this replaced. `empty` is a model that produced nothing and had no
+// reason to; saying that about a filter blames the wrong thing and sends people
+// to retry a comment that will be refused again.
+const silent = describeFailure({ kind: 'empty' });
+check(
+  'a filter is not described as a model that went quiet',
+  silent.title !== outbound.title && !silent.detail?.includes('filter'),
+  silent.title,
 );
 
 // Whose key ran out decides the whole message: ours is the trial ending exactly
