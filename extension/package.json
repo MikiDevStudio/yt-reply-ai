@@ -14,6 +14,9 @@
     "compile": "tsc --noEmit",
     "smoke": "tsx scripts/smoke-openrouter.ts",
     "measure": "tsx scripts/measure-reply-cost.ts",
+    "comments": "tsx scripts/fetch-comments.ts",
+    "eval:set": "tsx scripts/build-eval-set.ts",
+    "eval": "tsx scripts/run-prompt-eval.ts",
     "postinstall": "wxt prepare"
   },
   "dependencies": {

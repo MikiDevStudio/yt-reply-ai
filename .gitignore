@@ -68,3 +68,7 @@ Thumbs.db
 !site/**/*.png
 !site/**/*.jpg
 
+# Reference comments pulled from YouTube to tune the reply prompt against. Real
+# people's writing, under their own display names, on a public repository: kept
+# on disk and not published, the same as the notes above.
+research/

@@ -85,6 +85,12 @@ export function creativityPreset(level: number): CreativityLevel {
  * best one — the deck exists for when it is not.
  */
 export const ANGLES = [
+  // Left deliberately bare. Adding "invite them back if it is natural" here
+  // took the invitation from 0% of first attempts to 79%, against 17% for real
+  // creators: a permission in the angle slot reads as an instruction, because
+  // the angle is the last thing the model sees before it writes. The move still
+  // exists — it has its own slot below, which is where a first attempt that
+  // missed can reach it.
   'Answer straight. No detour.',
   // This one used to ask for a detail from behind the scenes — how it was made,
   // what nearly went wrong. A model with no such detail available does not
@@ -92,7 +98,12 @@ export const ANGLES = [
   // with the same invented story about a render that nearly caught fire. The
   // move is still worth having, but only over material that exists.
   'Pick out something concrete the video or the voice profile above actually states, and answer through that. If they state nothing usable, answer straight instead.',
-  'Turn it around: answer, then ask them something specific that is worth answering.',
+  // Reshaped from "answer, then ask them something specific". A question mark
+  // is the tidy version of this move and the rarer one in the wild: creators
+  // hand the thread back with "let me know how it goes" far more often than
+  // they interrogate. Both forms are allowed; the invitation is named first
+  // because it is what people actually write.
+  'Hand the thread back: answer, then invite them to carry on — tell you how it went, say which one they picked. Ask outright only if there is something you genuinely need to know.',
   'Find the humour in it. A joke that lands, not a joke that tries.',
   'Take the less obvious side of it, politely. Say the thing the commenter did not expect to hear.',
 ] as const;
@@ -270,6 +281,34 @@ export function buildReplyPrompt({
   // they are short of material, which is exactly when they have none.
   system.push(
     'Never state anything about the video, the channel or how it was made that is not written below. If you do not know a detail, leave it out — do not invent it, and do not imply it.',
+  );
+
+  // The failure this catches was the single largest gap between what the model
+  // wrote and what people write. Measured over the eval set in `research/`,
+  // 74% of generated replies opened by agreeing with the comment and saying it
+  // again in other words; across 88 replies by real channel owners the figure
+  // was 17%. The model was not writing badly — it was writing a mirror, and a
+  // mirror is what makes a reply read as automated no matter how warm it
+  // sounds. The escape hatch matters as much as the rule: told only to add
+  // something, a model with nothing to add invents one.
+  system.push(
+    'Do not hand the comment back. Restating what they said in other words, however warmly, is not a reply.',
+    'Add something they did not say: an answer, a detail of your own, a limit of what you know, a disagreement. If you have nothing to add, say less rather than padding. A short acknowledgement is a real reply; a long one that only agrees is not.',
+    // A count, because the qualitative version did nothing. "About as long as
+    // the comment, one sentence longer at most" left the median at 110
+    // characters across two runs — the model kept writing single sentences that
+    // were simply long. Real creators write 54 characters, near enough ten
+    // words; twenty-five is that with room, and it is a number the model can
+    // actually check itself against.
+    'Stay under twenty-five words unless the comment genuinely needs more. Most replies are one short sentence.',
+  );
+
+  // Real creators used an em dash in none of those 88 replies; the model used
+  // one in 11% of the eval set. Nothing about the punctuation is wrong — it is
+  // simply not what a person types into a comment box, and readers have learnt
+  // what it signals.
+  system.push(
+    'Punctuate the way people type in a comment box: no em dashes or en dashes. A comma, a full stop or brackets instead.',
   );
 
   if (soul.trim()) {
