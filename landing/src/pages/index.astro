@@ -553,7 +553,7 @@ const faq = [
       Free, and <span class="text-white/55">not the kind that runs out.</span>
     </h2>
 
-    <div class="mx-auto mt-10 grid max-w-6xl gap-6 md:grid-cols-3">
+    <div class="mx-auto mt-10 grid max-w-4xl gap-6 md:grid-cols-2">
       <!-- The real product. It gets the solid button, because it is the one
            thing on this page anybody can have without paying. -->
       <div class="flex flex-col gap-5 border border-line-hi bg-surface p-7">
@@ -569,6 +569,8 @@ const faq = [
             [
               'Unlimited replies — no daily cap, no counter to watch',
               'Every tone, every model, every control in the panel',
+              'Presets you can rewrite, hide, reorder and add to',
+              'Nothing is held back behind a tier, and nothing here is a trial of anything',
               'Soul profile, retries, languages, YouTube Studio',
               'About twenty replies to start with, on our key, before any account exists',
               'After that, models billed by OpenRouter at cost — or free variants for nothing',
@@ -587,43 +589,6 @@ const faq = [
         >
           {IN_STORE ? 'Add to Chrome' : 'Get it on GitHub'}
         </a>
-      </div>
-
-      <!-- Support. A donation card, and the hardest one on the page to write:
-           it has to be worth pressing while promising nothing at all. The
-           moment it promises something, a coffee stops being a donation and
-           becomes a sale — with VAT, Trader status and a right of withdrawal
-           behind it. So the bullets say what the money pays for, never what the
-           payer receives. Its button is Buy Me a Coffee's own mark rather than a
-           second solid button of ours (brand.md §1). -->
-      <div class="flex flex-col gap-5 border border-line bg-surface p-7">
-        <div class="flex flex-col gap-1">
-          <h3 class="text-[24px] font-semibold tracking-[-0.02em]">Support</h3>
-          <span class="micro">a coffee, buying nothing</span>
-        </div>
-        <p class="font-mono text-[28px] leading-none">
-          a coffee<span class="text-[15px] text-white/45"> / if you feel like it</span>
-        </p>
-        <ul class="flex flex-col gap-3 text-[14px] text-white/70">
-          {
-            [
-              'Nothing changes in the extension. There is no tier here to unlock',
-              'It pays for the trial keys new installs run on — those are real cents, spent by us',
-              'And for the domain, the mail and the small service behind them',
-              'Once, never, or whenever. The product is the same either way',
-            ].map((line) => (
-              <li class="flex gap-3">
-                <span aria-hidden="true" class="mt-2 size-1.5 shrink-0 rounded-full bg-line-hi" />
-                {line}
-              </li>
-            ))
-          }
-        </ul>
-        <p class="text-[13px] leading-[1.6] text-white/45">
-          This is a thank-you, not a purchase — there is nothing here to buy, and pressing it buys
-          nothing. The free column above is the whole product.
-        </p>
-        <CoffeeButton class="mt-auto w-full justify-center" />
       </div>
 
       <!-- Pro. Outlined, never filled: nothing here is for sale and the card
@@ -659,6 +624,28 @@ const faq = [
       </div>
     </div>
 
+    <!-- The coffee, and deliberately not a column. As the middle card of a
+         three-up pricing grid it read as the middle tier however plainly its
+         words denied it: the layout claims a ladder and the eye believes the
+         layout over the copy. Out of the grid it is what it actually is — a
+         thank-you with nothing behind it. Its button stays Buy Me a Coffee's
+         own mark rather than a second solid button of ours (brand.md 1). -->
+    <div
+      class="mx-auto mt-6 flex max-w-4xl flex-col gap-5 border border-line bg-surface p-7 sm:flex-row sm:items-center sm:gap-8"
+    >
+      <div class="flex flex-col gap-2">
+        <span class="micro">if you feel like it</span>
+        <h3 class="text-[20px] font-semibold tracking-[-0.015em]">Buy me a coffee</h3>
+        <p class="text-[14px] leading-[1.7] text-white/70">
+          It unlocks nothing and there is no tier behind it — the free column is the whole
+          product, and pressing this changes nothing in the extension. What it pays for is the
+          trial keys new installs run on, which are real cents spent by us, and the domain and
+          the mail behind them. Once, never, or whenever.
+        </p>
+      </div>
+      <CoffeeButton class="shrink-0 sm:ml-auto" />
+    </div>
+
     <!-- The argument the columns cannot make on their own. Two sentences, and
          the number in the first is the one measured in the extension's own
          repository — see `npm run measure`. -->
@@ -676,9 +663,9 @@ const faq = [
         <span class="micro">what a reply actually costs</span>
         <p class="text-[15px] leading-[1.7] text-white/70">
           About <span class="font-mono text-white">$0.002</span> on the default model — measured,
-          not estimated — paid to OpenRouter at cost with nothing added by us. The first thirty or
+          not estimated — paid to OpenRouter at cost with nothing added by us. The first twenty or
           so are on our key and need no account at all, which makes the price of finding out
-          exactly nothing. Those thirty are what a coffee pays for, for somebody else.
+          exactly nothing. Those twenty are what a coffee pays for, for somebody else.
         </p>
       </div>
     </div>
