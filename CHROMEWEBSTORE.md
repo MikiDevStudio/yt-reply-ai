@@ -99,18 +99,21 @@ in a language the product does not speak is a complaint waiting to happen.
 
 ## Graphics & Assets
 
-Everything except the screenshots lives in `docs/store/`, which is exempt from
+Everything drawn for the listing lives in `docs/store/`, which is exempt from
 the repository's image rules because every file in it is published on the
-listing anyway.
+listing anyway. The screenshots and the recording are the exception: they stay
+on disk in `public/Screenshots/` and out of git, because they are large, they
+are remade rather than edited, and the store publishes them for us.
 
 | Asset | Dimensions | Status | Filename |
 |-------|-----------|--------|----------|
 | Store Icon [REQUIRED] | 128×128 PNG | ✅ Ready | `extension/public/icon/128.png` |
-| Screenshot 1 [REQUIRED] | 1280×800 | ⬜ Not created | |
-| Screenshot 2 [RECOMMENDED] | 1280×800 | ⬜ Not created | |
-| Screenshot 3 [RECOMMENDED] | 1280×800 | ⬜ Not created | |
-| Screenshot 4 | 1280×800 | ⬜ Not created | |
-| Screenshot 5 | 1280×800 | ⬜ Not created | |
+| Screenshot 1 [REQUIRED] | 1280×800 | ✅ Ready | `public/Screenshots/1.png` — the panel open under a real comment, with the settings beside it |
+| Screenshot 2 [RECOMMENDED] | 1280×800 | ✅ Ready | `public/Screenshots/2.png` — the three steps: pick a comment, generate, insert |
+| Screenshot 3 [RECOMMENDED] | 1280×800 | ✅ Ready | `public/Screenshots/3.png` — the soul profile and the tone presets |
+| Screenshot 4 | 1280×800 | ✅ Ready | `public/Screenshots/4.png` — the trial key, and connecting an account of your own |
+| Screenshot 5 | 1280×800 | — | Four is enough; the store shows five at most and the first is the one that matters |
+| Demo video | YouTube URL | 🟡 Recorded, not uploaded | `public/Screenshots/Generate and insert comment.mp4`, 10s. The dashboard field takes a YouTube link, not a file, so it has to go on a channel first |
 | Small Promo Tile [RECOMMENDED] | 440×280 | ✅ Ready | `docs/store/promo-tile-440x280.png` |
 | Marquee Promo Tile | 1400×560 | ⬜ Not created | Only used if Google features the item; skipped on purpose |
 
@@ -131,7 +134,10 @@ Order matters — the first one is what appears in search. What each should show
 
 Two constraints from policy: no fabricated ratings, install counts or "featured"
 badges in the images, and no other company's branding beyond YouTube's own UI as
-it appears in a normal screenshot.
+it appears in a normal screenshot. The shipped set keeps to the first; the one
+place to watch on the second is the red YouTube mark used as a chip icon on
+screenshot 1 — inside the browser mock it is a screenshot of their interface,
+in a badge of ours it is their logo in our promotional material.
 
 ## Permissions Justification
 

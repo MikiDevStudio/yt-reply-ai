@@ -71,6 +71,12 @@ Thumbs.db
 *.png
 *.jpeg
 *.jpg
+# Screen recordings, for the same reason and with no exception at all: the Store
+# takes a YouTube link rather than a file, so a video in here is a working copy
+# that would only ever cost the repository weight.
+*.mp4
+*.mov
+*.webm
 !docs/brand/*.png
 !docs/store/*.png
 !extension/public/icon/*.png
