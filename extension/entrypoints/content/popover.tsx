@@ -37,6 +37,14 @@ interface OpenOptions {
   /** Start generating on open, or wait for the user to press Generate. */
   autoStart: boolean;
   onInsert: (text: string) => void;
+  /**
+   * Run after this opening closes, however it closed — insert, Escape, the X.
+   *
+   * Deliberately not fired by `closePopover` itself: that is also how the
+   * master switch tears the injected UI down, and a user switching the
+   * extension off is not a user finishing a reply.
+   */
+  onClosed?: () => void;
 }
 
 export async function openPopover({
@@ -46,6 +54,7 @@ export async function openPopover({
   context,
   autoStart,
   onInsert,
+  onClosed,
 }: OpenOptions): Promise<void> {
   const { container, root } = await ensureHost(ctx);
 
@@ -78,7 +87,10 @@ export async function openPopover({
     detach = null;
   };
 
-  const close = () => closePopover();
+  const close = () => {
+    closePopover();
+    onClosed?.();
+  };
 
   container.style.display = 'block';
   // Nothing has been rendered yet, so there is nothing to measure and nowhere

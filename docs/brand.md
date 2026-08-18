@@ -132,12 +132,20 @@ YouTube's own accent is red. Two rules keep us out of its way:
 The rule the injected button follows generalises, and it is the only way a colour from
 outside this document may appear: **a third party's own mark keeps that party's colours.**
 The Buy Me a Coffee cup is yellow because it is theirs — not because we have taken a
-third accent. It is never restyled to fit us, never used as a fill, and never larger than
-the icon beside it.
+third accent. It is never restyled to fit us, and the yellow never leaves the mark or the
+button that mark belongs to: nothing else in the interface may borrow it.
 
 The one thing we do adjust is legibility: their asset outlines the cup in white, which is
 invisible on our light theme, so the light copy takes that flat white to `--ink`. The
 brand colour itself is untouched. Two files, swapped by `theme-dark:` / `theme-light:`.
+
+The same rule now covers their whole **button** — `#FFDD00`, black outline, black label,
+the cup in white — which is the one filled, rounded, coloured control in this interface
+and the only place any surface of ours asks for money. It is drawn from their published
+parameters rather than loaded from their CDN: MV3's CSP forbids remote code, and their
+script also pulls a display face from a font host, which is a request we do not make
+anywhere. Everything but that face is reproduced (`components/CoffeeButton.tsx`); the
+words are theirs to configure and currently read *Buy me a tea*.
 
 ### Data and charts
 
@@ -311,6 +319,21 @@ layer, transition `background-color 150ms ease-out`. A micro-label sits at the t
 card (number + rule + name). A card that folds away keeps the same frame when closed, so
 a put-away control never reads as a missing one.
 
+### The support dialog
+
+The one modal we draw, shown over YouTube every twentieth reply
+(`components/SupportCard.tsx`). Same materials as the popover — `--overlay`, `--line-hi`,
+`--shadow-elevated`, sharp — at `420px`, centred on a `black/55` backdrop, entering at
+200ms rather than the popover's 120ms: it arrives unbidden, and something that appears
+out of nowhere in 120ms reads as a glitch.
+
+Blocks top to bottom: the signature label carrying the count, a heading that states the
+number, one question with two outlined answers, the ask with their yellow button, the
+contact links, and a footer that says how often the card returns and offers the checkbox
+that stops it for good. No stars, no five-point scale, no second ask after an answer.
+
+Both answers are outbound links. Nothing about the rating is recorded, here or anywhere.
+
 ### The popover
 
 Ground `--overlay`, border `--line-hi`, `--shadow-elevated`, sharp, `460px` wide,
@@ -396,6 +419,7 @@ line only.
 | What | Value |
 |---|---|
 | Popover open | `opacity 0→1`, `translateY 4px→0`, `120ms cubic-bezier(.23,1,.32,1)` |
+| Support dialog open | `opacity 0→1`, `translateY 8px→0`, `200ms cubic-bezier(.23,1,.32,1)`; backdrop fades alone |
 | Settings card enter | `fade-up`: `opacity 0→1`, `translateY 16px→0`, `400ms cubic-bezier(.23,1,.32,1)` |
 | Cascade | delays `40ms`, `80ms`, `120ms` in element order |
 | Hover, colour | `150ms ease-out` |

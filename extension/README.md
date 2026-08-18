@@ -33,32 +33,37 @@ Everything is scraped from the rendered page. There is no YouTube Data API key
 and no quota to run out of; the cost is that `entrypoints/content/youtube-dom.ts`
 depends on YouTube's DOM, which is why every selector lives in that one file.
 
-## Daily quota
+## The reply counter
 
-The free tier covers 50 replies a day (`lib/quota.ts`). The unit is a comment,
-not a button press: the first generation against a comment spends one, every
-regeneration of that same comment is free. Comments are identified by
-`commentKey` — FNV-1a over author plus text — which the background derives
-itself from what the content script sent, so the two cannot disagree about what
-is being charged.
+**There is no cap.** There was one — 50 replies a day — and it was removed in
+full: it stopped people in the middle of a comment section, which is the one
+moment the tool is worth having, and what it measured was how many of them gave
+up. `lib/replies.ts` is what is left, and it refuses nothing.
 
-A comment is charged after its reply arrives, never before it is asked for: a
-request that failed, timed out or came back empty produced nothing to charge
-for. The cap refuses before the network, so a blocked reply does not spend the
-user's own OpenRouter credit either.
+The unit is still a comment, not a button press: the first generation against a
+comment counts, every regeneration of that same comment is free. Comments are
+identified by `commentKey` — FNV-1a over author plus text — which the background
+derives itself from what the content script sent, so the two cannot disagree
+about what is being counted. A comment counts after its reply arrives, never
+before it is asked for.
 
-The record is `{ date, comments[] }` in `storage.sync`, where the list's length
-*is* the count. `sync` rides the Chrome profile, so the counter survives a
-reinstall and follows the user to a second machine, and degrades to local
-storage by itself when sync is off. The stored local date is what resets it —
-not a timer — so a service worker that slept through midnight, or a flight that
-moves the date either way, can only ever ignore a stale count, never resurrect
-one.
+The record is `{ date, comments[], today, total, nudgedAt }` in `storage.sync`.
+`comments` is a bounded window of the last 200 keys — with no cap to bound it
+the list would otherwise grow past what a `sync` item may hold — so `today` and
+`total` are counters of their own rather than a list length. `sync` rides the
+Chrome profile, so the count survives a reinstall and follows the user to a
+second machine, and degrades to local storage by itself when sync is off. The
+stored local date is what resets the daily figure — not a timer — so a service
+worker that slept through midnight can only ignore a stale count, never
+resurrect one.
 
-Anyone with devtools can reset it. That is accepted, not overlooked: nothing
-shipped to the user's machine can be protected, and the cap exists to measure
-demand rather than to enforce anything. See the project decision log, which is
-kept outside this repository.
+`nudgedAt` is the whole of the counter's remaining job: every `NUDGE_EVERY`
+(20) replies, `takeNudge()` hands the content script a milestone exactly once,
+and `entrypoints/content/support.tsx` shows the thank-you card over YouTube
+after the popover has closed. Asking and claiming are one call, so two tabs
+finishing together cannot both open one. The card is switched off for good by
+its own checkbox (`settings.supportNudges`), and both of its feedback buttons
+are ordinary links the user presses — nothing is counted and nothing is sent.
 
 ## Failure states
 
@@ -72,19 +77,18 @@ OpenRouter said, whether a key was stored, which rate limit applies — and the 
 turns them into words, so the popover, the popup and the settings page cannot
 drift apart on the same 402. `components/FailureNotice.tsx` renders them all.
 
-One state is ours rather than OpenRouter's: `quota`, the daily cap above. It is
-also the only place a Pro line appears, because lifting our own cap is the only
-thing Pro would actually do about a limit — the OpenRouter 429 belongs to the
-user's own key and carries no upsell at all.
+Every state is OpenRouter's or the browser's. There used to be one of our own —
+`quota`, for the daily cap — and it was the only place a Pro line appeared;
+both went with the cap. No failure in this extension now advertises anything.
 
 Pro is unbuilt, so every entry point opens a waitlist page instead (`lib/pro.ts`).
 The URL is the whole contract with that page:
 
 | Parameter | Meaning |
 |---|---|
-| `from=settings` | Curiosity — the popup link or the Pro section |
-| `from=limit` | Someone stopped mid-work by the daily cap |
-| `want=cap,scanner,bulk,presets` | Features ticked in the Pro section, by `PRO_FEATURES` id |
+| `from=settings` | The ballot on the Pro section, cast after reading it |
+| `from=popup` | The one-line link in the toolbar popup, clicked in passing |
+| `want=managed,scanner,bulk,presets` | Features ticked in the Pro section, by `PRO_FEATURES` id |
 
 The ballot is filled in here and carried there, so the page arrives pre-ticked
 and only an email is left to type. Nothing is posted from the extension: the

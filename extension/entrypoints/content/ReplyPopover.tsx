@@ -23,7 +23,6 @@ import {
 } from '@/lib/settings';
 import { SUPPORT_URL } from '@/lib/support';
 import { useGeneration } from '@/lib/use-generation';
-import { useQuota } from '@/lib/use-quota';
 import {
   type Attempt,
   moveCursor,
@@ -40,17 +39,6 @@ const STYLE_ORDER = ['auto', 'friendly', 'humorous', 'engaging', 'brief'] as con
 
 /** A language name is a word or two. Anything longer is someone writing instructions. */
 const MAX_LANGUAGE_LENGTH = 40;
-
-/**
- * How many replies must be left before the popover mentions the daily cap.
- *
- * Silent above it, deliberately. The cap is generous enough that an ordinary
- * channel owner never approaches it, and a counter on screen every day would
- * advertise a limit to people who will never meet one. Someone with five left
- * is working through a backlog and deserves the warning before the wall rather
- * than at it.
- */
-const QUOTA_WARNING_AT = 5;
 
 interface Status {
   dot: string;
@@ -101,7 +89,6 @@ export function ReplyPopover({
   onClose,
 }: ReplyPopoverProps) {
   const { state, generate, cancel } = useGeneration();
-  const quota = useQuota();
   const [style, setStyle] = useState<string>('auto');
   const [copied, setCopied] = useState(false);
   const streamRef = useRef<HTMLDivElement>(null);
@@ -293,8 +280,6 @@ export function ReplyPopover({
         shown.creativity > level ? ` · creativity ${shown.creativity}` : ''
       }`
     : null;
-
-  const lowOnQuota = quota && quota.remaining <= QUOTA_WARNING_AT ? quota : null;
 
   const status = busy
     ? STATUS.writing
@@ -531,14 +516,6 @@ export function ReplyPopover({
               </div>
             )}
 
-            {lowOnQuota && (
-              <span
-                className={`${MICRO} truncate`}
-                title="Free replies reset at midnight. Answering the same comment again is free."
-              >
-                {lowOnQuota.remaining} {lowOnQuota.remaining === 1 ? 'reply' : 'replies'} left today
-              </span>
-            )}
           </div>
 
           <div className="flex shrink-0 items-center gap-2">

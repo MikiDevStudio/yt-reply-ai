@@ -11,9 +11,9 @@ import type { SoulProfile } from './soul';
  * has no business going there, and a soul profile would blow the quota on its
  * own. Small UI preferences may move to `sync` later; secrets never will.
  *
- * The one thing that does live in `sync` is the daily reply counter in
- * `lib/quota.ts`: a few hundred bytes that are worth carrying between machines,
- * and nothing sensitive in them.
+ * The one thing that does live in `sync` is the reply counter in
+ * `lib/replies.ts`: a couple of kilobytes that are worth carrying between
+ * machines, and nothing sensitive in them.
  */
 
 /**
@@ -76,6 +76,21 @@ export const modelCatalogue = storage.defineItem<ModelCatalogue | null>(
  * back, not a button that does nothing.
  */
 export const enabled = storage.defineItem<boolean>('local:enabled', {
+  fallback: true,
+});
+
+/**
+ * Whether the support dialog may appear every twentieth reply.
+ *
+ * On by default and off for good the moment the dialog's own checkbox is
+ * ticked. A thank-you that cannot be switched off is an advert, and the switch
+ * belongs on the thing being switched off rather than three clicks away on a
+ * settings page — someone who wants it gone wants it gone now.
+ *
+ * `local`, like every other preference: it is about this browser, and a person
+ * who dismissed it here has said nothing about the machine at work.
+ */
+export const supportNudges = storage.defineItem<boolean>('local:support.nudges', {
   fallback: true,
 });
 

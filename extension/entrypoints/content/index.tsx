@@ -7,6 +7,7 @@ import { closePopover, openPopover } from './popover';
 import { ReplyButton } from './ReplyButton';
 import { clearHistory } from './session';
 import { studioSurface } from './studio-dom';
+import { offerSupport } from './support';
 import { type CommentData, type CommentSurface, INJECTED_ATTR } from './surface';
 import { syncTheme } from './theme';
 import { watchSurface } from './youtube-dom';
@@ -178,6 +179,10 @@ async function handleOpen(ctx: ContentScriptContext, toolbar: HTMLElement, ancho
       clearHistory(comment.id);
       void insertGeneratedReply(toolbar, text);
     },
+    // Once the popover is out of the way, and only then: the thank-you card is
+    // due every twentieth reply and must never land on someone still reading
+    // one. It decides for itself whether this is the moment.
+    onClosed: () => void offerSupport(ctx),
   });
 }
 

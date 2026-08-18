@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { CoffeeMark } from '@/components/CoffeeMark';
+import { CoffeeButton } from '@/components/CoffeeButton';
 import { FailureNotice } from '@/components/FailureNotice';
 import { GHOST, MICRO, MICRO_TYPE, SOLID } from '@/components/ui';
 import type { FailureFacts } from '@/lib/failure';
@@ -7,8 +7,7 @@ import { failureOf, sendRequest } from '@/lib/messaging';
 import type { KeyInfo } from '@/lib/openrouter/types';
 import { waitlistUrl } from '@/lib/pro';
 import { enabled as enabledSetting, model as modelSetting, soul as soulSetting } from '@/lib/settings';
-import { SUPPORT_URL } from '@/lib/support';
-import { useQuota } from '@/lib/use-quota';
+import { useReplies } from '@/lib/use-replies';
 import { useSetting } from '@/lib/use-setting';
 
 /**
@@ -25,7 +24,7 @@ export function App() {
   const [model, setModel] = useState('');
   const [hasSoul, setHasSoul] = useState<boolean | null>(null);
   const [on, setOn] = useSetting(enabledSetting);
-  const quota = useQuota();
+  const replies = useReplies();
 
   // A key that cannot be read is a key that will not generate either, so the
   // reason is shown here rather than swallowed — this panel is where someone
@@ -96,15 +95,22 @@ export function App() {
 
       {connected && (
         <dl className="flex flex-col gap-2 text-sm">
-          {/* Ours, and first: it is the number that decides whether the next
-              reply happens at all. Everything below it belongs to OpenRouter. */}
+          {/* Ours, and first. It used to read "3 of 50" and was a cap as much
+              as a count; the cap is gone, so it is now only what it always
+              claimed to be. The lifetime figure rides alongside it — that is
+              the number people are actually pleased by. */}
           <div className="flex items-baseline justify-between gap-2">
-            <dt className="text-base-content/60" title="Resets at midnight">
+            <dt className="text-base-content/60" title="Since midnight, on this machine">
               Replies today
             </dt>
             {/* Counts, credits and model ids are mono: they are numbers and
                 machine names, and the face says so (brand.md §2). */}
-            <dd className="font-mono">{quota ? `${quota.used} of ${quota.limit}` : '…'}</dd>
+            <dd className="font-mono">
+              {replies ? replies.today : '…'}
+              {replies && replies.total > replies.today && (
+                <span className="text-base-content/45"> · {replies.total} in all</span>
+              )}
+            </dd>
           </div>
           <div className="flex items-baseline justify-between gap-2">
             <dt className="text-base-content/60">Model</dt>
@@ -165,12 +171,12 @@ export function App() {
         comment.
       </p>
 
-      {/* The curiosity entry point, tagged apart from the one behind the daily
-          cap: a click from here and a click from a blocked reply are different
-          claims and have to stay different numbers (#31). */}
+      {/* The curiosity entry point, tagged apart from the ballot on the
+          settings page: a link clicked in passing and a vote cast after reading
+          are different claims and have to stay different numbers (#31). */}
       <a
         className="link text-xs text-base-content/50"
-        href={waitlistUrl('settings')}
+        href={waitlistUrl('popup')}
         target="_blank"
         rel="noreferrer"
       >
@@ -178,16 +184,14 @@ export function App() {
       </a>
 
       {/* Under Pro on purpose: one of these two asks for money for something
-          that does not exist yet, and the other asks for nothing at all. */}
-      <a
-        className="flex items-center gap-1.5 text-xs text-base-content/50 transition-colors duration-150 hover:text-base-content"
-        href={SUPPORT_URL}
-        target="_blank"
-        rel="noreferrer"
-      >
-        <CoffeeMark className="h-3.5" />
-        Buy me a coffee
-      </a>
+          that does not exist yet, and the other asks for nothing at all.
+
+          Their button rather than the quiet line that used to be here. The
+          extension is free, unlimited and has no upsell in it any more, so this
+          is the only place the product asks for anything — and an ask that has
+          to be squinted at is not worth making. Their colours, per brand.md §1;
+          see components/CoffeeButton.tsx for why it is not their script. */}
+      <CoffeeButton className="w-full" />
     </div>
   );
 }

@@ -16,11 +16,15 @@ const WAITLIST_URL = 'https://reply-ai.mikidev.app/pro';
 /**
  * Which entry point sent the user, tagged so the two stay separate numbers.
  *
- * `settings` is curiosity — someone reading about a tier that does not exist.
- * `limit` is a person blocked in the middle of their work, which is the far
- * stronger signal and the one that decides whether Pro gets built.
+ * `settings` is someone reading the Pro section with the ballot in front of
+ * them; `popup` is a one-line link clicked out of curiosity. They are different
+ * claims and have to stay different numbers.
+ *
+ * There used to be a third, `limit`, for a person blocked by the daily cap.
+ * That was the strongest signal we had and it is gone with the cap — demand is
+ * measured by what people tick now, not by what they were stopped from doing.
  */
-export type ProEntryPoint = 'settings' | 'limit';
+export type ProEntryPoint = 'settings' | 'popup';
 
 /**
  * What Pro would contain, as a ballot.
@@ -32,9 +36,11 @@ export type ProEntryPoint = 'settings' | 'limit';
  */
 export const PRO_FEATURES = [
   {
-    id: 'cap',
-    title: 'No daily cap',
-    detail: 'The 50 free replies a day become unlimited. Everything still runs on your own key.',
+    id: 'managed',
+    title: 'No key to set up',
+    detail:
+      'Replies run on a key we provision, with a spend limit you set — no OpenRouter account, ' +
+      'no top-ups. Everything free stays free and stays on your own key.',
   },
   {
     id: 'scanner',
