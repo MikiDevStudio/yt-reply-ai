@@ -35,3 +35,342 @@
   font-family: var(--font-sans);
   line-height: 1.5;
 }
+
+/*
+ * The coffee button in the popover's action row, and the one animation this
+ * product runs on a loop.
+ *
+ * Ported from an earlier prototype's `.uiverse` button: twelve blurred circles
+ * drifting behind a masked, rounded panel on a 7s loop, all of it pure CSS and
+ * none of it an image. Two things changed on the way in.
+ *
+ * **The palette.** The original is a red radial ground with red, blue, magenta
+ * and green circles under a white label — four colours from nowhere, and a
+ * fifth if you count the ground. This one is our own accents over a near-black
+ * ground: the accent orange, a deep violet, a deep blue and one cold note of
+ * the chart cyan, all of them dark and saturated so the panel reads as lit
+ * rather than painted. It is deliberately *not* Buy Me a Coffee's yellow —
+ * their mark and their button are reproduced faithfully elsewhere
+ * (`components/CoffeeButton.tsx`), and dressing a 100px control in someone
+ * else's brand in the middle of a row of ours would read as a bolted-on badge.
+ * See the note in `components/CoffeeGlow.tsx`.
+ *
+ * It keeps its own colours in both themes, exactly as their yellow button does.
+ * One object, recognisable at this size, rather than two that have to be
+ * learned separately.
+ *
+ * **It never stops.** The card that carries the same ask appears once in fifty
+ * replies; this is in view for as long as the popover is open, so
+ * `prefers-reduced-motion` is not a nicety here. Reduced motion leaves the
+ * ground, the ring and every circle exactly where they start and stops them
+ * moving — the button still reads as itself, it simply holds still.
+ *
+ * Written as plain CSS rather than utilities because none of it is expressible
+ * as one: twelve keyframe sets, a mask and a blur field are a stylesheet, and
+ * writing them as arbitrary values would only hide them in the markup. Every
+ * length is px, like everything else we inject — see the note in theme.css.
+ */
+.coffee-glow {
+  --duration: 7s;
+  --easing: linear;
+  /* Ours, and dark. The ground is a near-black with a violet cast, so the warm
+     circles have something cool to sit against. */
+  --c-radial-inner: #191524;
+  --c-radial-outer: #0a0910;
+  --c-orange: rgba(255, 138, 61, 0.9);
+  --c-violet: rgba(124, 88, 232, 0.9);
+  --c-blue: rgba(37, 63, 214, 0.85);
+  --c-cyan: rgba(11, 194, 218, 0.6);
+  --c-shadow: rgba(255, 138, 61, 0.38);
+  --c-shadow-inset-top: rgba(255, 255, 255, 0.26);
+  --c-shadow-inset-bottom: rgba(0, 0, 0, 0.55);
+
+  -webkit-tap-highlight-color: transparent;
+  appearance: none;
+  position: relative;
+  display: inline-block;
+  flex: none;
+  padding: 0;
+  margin: 0;
+  border: none;
+  border-radius: var(--radius-control);
+  cursor: pointer;
+  text-decoration: none;
+  color: #fff;
+  background: radial-gradient(circle, var(--c-radial-inner), var(--c-radial-outer) 80%);
+  /* A hairline instead of a border, so adding it cannot move the label by a
+     pixel, and the glow that makes it the one lit thing in the row. */
+  box-shadow:
+    0 0 0 1px rgba(255, 255, 255, 0.14),
+    0 0 12px var(--c-shadow);
+  transition: box-shadow 150ms ease-out;
+}
+
+.coffee-glow:hover {
+  --duration: 1400ms;
+  box-shadow:
+    0 0 0 1px rgba(255, 255, 255, 0.22),
+    0 0 18px var(--c-shadow);
+}
+
+.coffee-glow::before {
+  content: '';
+  pointer-events: none;
+  position: absolute;
+  z-index: 3;
+  inset: 0;
+  border-radius: var(--radius-control);
+  box-shadow:
+    inset 0 2px 8px var(--c-shadow-inset-top),
+    inset 0 -3px 6px var(--c-shadow-inset-bottom);
+}
+
+.coffee-glow .wrapper {
+  /* Positioned, so the absolutely placed field below is contained *here* and
+     the overflow clips it. Without this its containing block is the anchor, an
+     ancestor of this box, and an overflow only clips descendants whose
+     containing block it is — the field escaped, and the surface it was drawn on
+     grew by the width of the circles that had wandered off it. */
+  position: relative;
+  display: block;
+  /* The mask is what keeps the circles inside the rounded corners. `overflow`
+     alone clips the circles but not the blur reaching past them, which leaves a
+     soft halo hanging outside the panel. */
+  mask-image: radial-gradient(white, black);
+  overflow: hidden;
+  border-radius: var(--radius-control);
+  padding: 8px 12px;
+}
+
+.coffee-glow .label {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  position: relative;
+  z-index: 1;
+  font-weight: 500;
+  font-size: 13px;
+  line-height: 14px;
+  letter-spacing: 0.01em;
+}
+
+/*
+ * The circle field, at the size it was drawn for. The prototype's button was
+ * about this wide, which is why nothing here is scaled: circles wander past the
+ * right edge and the mask takes them, and that drifting in and out is the whole
+ * effect.
+ */
+.coffee-glow .field {
+  position: absolute;
+  inset: 0;
+}
+
+.coffee-glow .circle {
+  position: absolute;
+  left: 0;
+  top: 0;
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  filter: blur(var(--blur, 8px));
+  background: var(--background, transparent);
+  transform: translate(var(--x, 0), var(--y, 0)) translateZ(0);
+  animation: var(--animation, none) var(--duration) var(--easing) infinite;
+}
+
+.coffee-glow .circle-1,
+.coffee-glow .circle-9,
+.coffee-glow .circle-10 {
+  --background: var(--c-cyan);
+}
+
+.coffee-glow .circle-3,
+.coffee-glow .circle-4 {
+  --background: var(--c-blue);
+  --blur: 14px;
+}
+
+.coffee-glow .circle-5,
+.coffee-glow .circle-6 {
+  --background: var(--c-violet);
+  --blur: 16px;
+}
+
+.coffee-glow .circle-2,
+.coffee-glow .circle-7,
+.coffee-glow .circle-8,
+.coffee-glow .circle-11,
+.coffee-glow .circle-12 {
+  --background: var(--c-orange);
+  --blur: 12px;
+}
+
+.coffee-glow .circle-1 {
+  --x: 0;
+  --y: -40px;
+  --animation: coffee-circle-1;
+}
+.coffee-glow .circle-2 {
+  --x: 92px;
+  --y: 8px;
+  --animation: coffee-circle-2;
+}
+.coffee-glow .circle-3 {
+  --x: -12px;
+  --y: -12px;
+  --animation: coffee-circle-3;
+}
+.coffee-glow .circle-4 {
+  --x: 80px;
+  --y: -12px;
+  --animation: coffee-circle-4;
+}
+.coffee-glow .circle-5 {
+  --x: 12px;
+  --y: -4px;
+  --animation: coffee-circle-5;
+}
+.coffee-glow .circle-6 {
+  --x: 56px;
+  --y: 16px;
+  --animation: coffee-circle-6;
+}
+.coffee-glow .circle-7 {
+  --x: 8px;
+  --y: 28px;
+  --animation: coffee-circle-7;
+}
+.coffee-glow .circle-8 {
+  --x: 28px;
+  --y: -4px;
+  --animation: coffee-circle-8;
+}
+.coffee-glow .circle-9 {
+  --x: 20px;
+  --y: -12px;
+  --animation: coffee-circle-9;
+}
+.coffee-glow .circle-10 {
+  --x: 64px;
+  --y: 16px;
+  --animation: coffee-circle-10;
+}
+.coffee-glow .circle-11 {
+  --x: 4px;
+  --y: 4px;
+  --animation: coffee-circle-11;
+}
+.coffee-glow .circle-12 {
+  --blur: 14px;
+  --x: 52px;
+  --y: 4px;
+  --animation: coffee-circle-12;
+}
+
+@keyframes coffee-circle-1 {
+  33% {
+    transform: translate(0px, 16px) translateZ(0);
+  }
+  66% {
+    transform: translate(12px, 64px) translateZ(0);
+  }
+}
+@keyframes coffee-circle-2 {
+  33% {
+    transform: translate(80px, -10px) translateZ(0);
+  }
+  66% {
+    transform: translate(72px, -48px) translateZ(0);
+  }
+}
+@keyframes coffee-circle-3 {
+  33% {
+    transform: translate(20px, 12px) translateZ(0);
+  }
+  66% {
+    transform: translate(12px, 4px) translateZ(0);
+  }
+}
+@keyframes coffee-circle-4 {
+  33% {
+    transform: translate(76px, -12px) translateZ(0);
+  }
+  66% {
+    transform: translate(112px, -8px) translateZ(0);
+  }
+}
+@keyframes coffee-circle-5 {
+  33% {
+    transform: translate(84px, 28px) translateZ(0);
+  }
+  66% {
+    transform: translate(40px, -32px) translateZ(0);
+  }
+}
+@keyframes coffee-circle-6 {
+  33% {
+    transform: translate(28px, -16px) translateZ(0);
+  }
+  66% {
+    transform: translate(76px, -56px) translateZ(0);
+  }
+}
+@keyframes coffee-circle-7 {
+  33% {
+    transform: translate(8px, 28px) translateZ(0);
+  }
+  66% {
+    transform: translate(20px, -60px) translateZ(0);
+  }
+}
+@keyframes coffee-circle-8 {
+  33% {
+    transform: translate(32px, -4px) translateZ(0);
+  }
+  66% {
+    transform: translate(56px, -20px) translateZ(0);
+  }
+}
+@keyframes coffee-circle-9 {
+  33% {
+    transform: translate(20px, -12px) translateZ(0);
+  }
+  66% {
+    transform: translate(80px, -8px) translateZ(0);
+  }
+}
+@keyframes coffee-circle-10 {
+  33% {
+    transform: translate(68px, 20px) translateZ(0);
+  }
+  66% {
+    transform: translate(100px, 28px) translateZ(0);
+  }
+}
+@keyframes coffee-circle-11 {
+  33% {
+    transform: translate(4px, 4px) translateZ(0);
+  }
+  66% {
+    transform: translate(68px, 20px) translateZ(0);
+  }
+}
+@keyframes coffee-circle-12 {
+  33% {
+    transform: translate(56px, 0px) translateZ(0);
+  }
+  66% {
+    transform: translate(60px, -32px) translateZ(0);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .coffee-glow .circle {
+    animation: none;
+  }
+  /* The hover speed-up is motion too, and a change of pace is precisely what
+     the setting asks us not to make. */
+  .coffee-glow:hover {
+    --duration: 7s;
+  }
+}

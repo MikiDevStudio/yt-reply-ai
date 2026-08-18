@@ -37,8 +37,6 @@ interface OpenOptions {
   /** Start generating on open, or wait for the user to press Generate. */
   autoStart: boolean;
   onInsert: (text: string) => void;
-  /** A milestone the reply counter crossed. See `ReplyPopover`. */
-  onNudge?: (count: number) => void;
 }
 
 export async function openPopover({
@@ -48,7 +46,6 @@ export async function openPopover({
   context,
   autoStart,
   onInsert,
-  onNudge,
 }: OpenOptions): Promise<void> {
   const { container, root } = await ensureHost(ctx);
 
@@ -95,7 +92,6 @@ export async function openPopover({
       commentId={commentId}
       context={context}
       autoStart={autoStart}
-      onNudge={onNudge}
       onInsert={(text) => {
         onInsert(text);
         close();

@@ -56,6 +56,24 @@ export interface FailureFacts {
    * differently to the person holding the account.
    */
   hadKey?: boolean;
+  /**
+   * Whether the key that ran out was the trial one we issued. Present on
+   * `key_exhausted`, where it decides between two unrelated messages.
+   *
+   * Absent or false means "not ours as far as we know", which is the reading
+   * that fails safely: calling someone's own key a trial sends them looking for
+   * a trial they never had.
+   */
+  keyIsOurs?: boolean;
+  /**
+   * Whether this install can still take the free trial. Present wherever the
+   * answer is "you need a key", which is the only place it changes anything.
+   *
+   * It is the difference between a first run that ends in a reply and one that
+   * ends in a form. Absent means no: a card that offers a trial nobody can
+   * claim is worse than one that never mentioned it.
+   */
+  trialAvailable?: boolean;
   /** Text that arrived before the failure. Kept rather than thrown away. */
   partial?: string;
 }
@@ -69,9 +87,26 @@ export type FailureAction =
   /** Open a page on openrouter.ai. */
   | { kind: 'link'; label: string; url: string }
   /** Switch the stored model to the free preset, then retry. */
-  | { kind: 'free-model'; label: string };
+  | { kind: 'free-model'; label: string }
+  /**
+   * Claim the free trial here, without going anywhere.
+   *
+   * The point of the whole action: pressed under a YouTube comment, it fetches
+   * a key and runs the generation the person actually asked for. Sending them
+   * to a settings tab to press a second button is the form this replaces.
+   */
+  | { kind: 'trial'; label: string };
 
 export interface Failure {
+  /**
+   * How the card is drawn. Absent means a fault, in the error frame.
+   *
+   * `notice` is for the two cards on this path that are not faults at all: the
+   * trial being offered, and the trial finishing exactly as designed. Both used
+   * to arrive in a red box, which contradicted every word inside it — and the
+   * offer is the first thing a new install ever shows.
+   */
+  tone?: 'notice';
   /** One sentence naming what happened, in our words. */
   title: string;
   /** What it means, or when it lifts. */
@@ -83,6 +118,7 @@ export interface Failure {
 }
 
 const CREDITS_URL = 'https://openrouter.ai/settings/credits';
+const KEYS_URL = 'https://openrouter.ai/settings/keys';
 
 /**
  * The fixed half of each message.
@@ -95,6 +131,25 @@ const COPY: Record<FailureKind, Failure> = {
     title: 'OpenRouter rejected the key',
     detail: 'It was revoked or deleted on OpenRouter. Connecting again issues a new one.',
     actions: [{ kind: 'options', label: 'Reconnect', section: '/account' }],
+  },
+
+  // The entry for a key that is not ours. The trial's own ending is written in
+  // `describeFailure`, because only the background can tell the two apart and
+  // this is the half that is safe to say when it cannot.
+  key_exhausted: {
+    title: 'This key has spent its limit',
+    detail:
+      'The cap is on the key itself rather than on the account behind it, so adding ' +
+      'credits will not lift it. Authorising again issues a fresh key; raising the ' +
+      'limit on OpenRouter keeps this one.',
+    // Authorising first, and the key page second, because our own flow is the
+    // one that ends in a working key without the user having to find anything.
+    // The page behind the link is a list — useful to someone who set the cap
+    // that just bit, useless to someone who has never opened it.
+    actions: [
+      { kind: 'options', label: 'Connect OpenRouter', section: '/account' },
+      { kind: 'link', label: 'Raise the limit', url: KEYS_URL },
+    ],
   },
 
   no_credits: {
@@ -194,11 +249,52 @@ const COPY: Record<FailureKind, Failure> = {
 export function describeFailure(facts: FailureFacts): Failure {
   const base = COPY[facts.kind];
 
+  const connect: FailureAction = {
+    kind: 'options',
+    label: 'Connect OpenRouter',
+    section: '/account',
+  };
+
   if (facts.kind === 'unauthorized' && facts.hadKey === false) {
+    // The first run, and the whole of #35: someone who has just installed this
+    // is one press from a reply, not one account away from one. The offer is
+    // made where the failure is — under the comment they were answering — and
+    // pressing it generates that reply, rather than opening a tab about it.
+    if (facts.trialAvailable) {
+      return {
+        tone: 'notice',
+        title: 'Start with about twenty replies, free',
+        detail:
+          "On a key of this install's own — no account, no card, nothing to cancel. " +
+          'When it runs out, connect your own OpenRouter account and carry on; ' +
+          'replies cost about $0.002 each.',
+        actions: [{ kind: 'trial', label: 'Try it free' }, connect],
+      };
+    }
+
+    // No trial to offer, so this is the plain truth and the base entry's
+    // "Reconnect" is the wrong word for it: nobody re-does what they have
+    // never done.
     return {
       title: 'Not connected to OpenRouter',
       detail: 'Replies are generated through your own account. Connecting takes about a minute.',
-      actions: base.actions,
+      actions: [connect],
+    };
+  }
+
+  // The trial running out is the one failure here that is not a fault: it is
+  // the thing working as designed, arriving at the end. Said in the base entry's
+  // words it would read as a key that broke, which is both wrong and the last
+  // impression the trial gets to leave.
+  if (facts.kind === 'key_exhausted' && facts.keyIsOurs) {
+    return {
+      tone: 'notice',
+      title: 'The free trial is used up',
+      detail:
+        'That was the trial in full — about twenty replies, on us. Your own OpenRouter ' +
+        'account carries on from here, and nothing else changes: replies cost about ' +
+        '$0.002 each, billed by OpenRouter rather than by us.',
+      actions: [{ kind: 'options', label: 'Connect OpenRouter', section: '/account' }],
     };
   }
 

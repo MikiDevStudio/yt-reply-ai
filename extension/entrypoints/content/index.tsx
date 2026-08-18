@@ -7,7 +7,6 @@ import { closePopover, openPopover } from './popover';
 import { ReplyButton } from './ReplyButton';
 import { clearHistory } from './session';
 import { studioSurface } from './studio-dom';
-import { showSupport } from './support';
 import { type CommentData, type CommentSurface, INJECTED_ATTR } from './surface';
 import { syncTheme } from './theme';
 import { watchSurface } from './youtube-dom';
@@ -179,10 +178,6 @@ async function handleOpen(ctx: ContentScriptContext, toolbar: HTMLElement, ancho
       clearHistory(comment.id);
       void insertGeneratedReply(toolbar, text);
     },
-    // Over the popover, the moment a milestone reply arrives — which is
-    // deliberately before the reply is used. The worker decides when this
-    // happens; see `takeNudge` and the note on the `done` message.
-    onNudge: (count) => void showSupport(ctx, count),
   });
 }
 

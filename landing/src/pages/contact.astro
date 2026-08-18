@@ -1,0 +1,243 @@
+---
+import Micro from '../components/Micro.astro';
+import Base from '../layouts/Base.astro';
+import { CONTACT_EMAIL, ISSUES_URL } from '../lib/links';
+
+/**
+ * The contact form, and the end of every `mailto:` this product used to ship.
+ *
+ * A `mailto:` link assumes a configured mail client. Plenty of people have
+ * none — the link opens nothing, or opens something they have not signed into
+ * since 2019 — and the message is simply never sent, silently, with the person
+ * believing it was. It also hands them an empty window and asks them to compose
+ * a letter, which is a far higher bar than a field with a placeholder in it.
+ *
+ * The address is still printed here, in the footer and on `/privacy`, as text
+ * rather than as a link: it has to be reachable when this form is broken, when
+ * JavaScript is off, and from a Chrome Web Store listing that requires a
+ * support contact. What it stops being is the *only* route.
+ */
+---
+
+<Base
+  title="Contact — Reply AI"
+  description="Write to me about the extension: a bug, an idea, a licence, or a request to delete your data. One field and an address to reply to."
+>
+  <section class="mx-auto max-w-3xl px-5 pb-16 pt-14">
+    <Micro n="01" label="contact" />
+
+    <h1 class="mt-6 text-[38px] font-semibold leading-[1.1] tracking-[-0.03em] sm:text-[46px]">
+      Write to me. <span class="text-white/55">It arrives as an email, and a person answers it.</span>
+    </h1>
+
+    <p class="mt-6 max-w-2xl border-l-2 border-accent pl-4 text-[16px] leading-[1.7] text-white/70">
+      There is one person behind this extension, so the answer comes from him and it comes in a day
+      or two rather than in an hour. Everything is worth sending: a reply that came out wrong, a
+      button that never appeared, a question about the trial, a request to delete your data.
+    </p>
+  </section>
+
+  <section class="mx-auto max-w-3xl px-5 pb-24">
+    <form id="contact" novalidate class="flex flex-col gap-10">
+      <div class="flex flex-col gap-4">
+        <h2 class="text-[22px] font-semibold tracking-[-0.015em]">What happened?</h2>
+        <label class="micro" for="message">the message itself</label>
+        <textarea
+          id="message"
+          name="message"
+          rows="7"
+          maxlength="4000"
+          required
+          class="field resize-y"
+          placeholder="The button appears under every comment except the pinned one…"></textarea>
+        <p class="text-[13px] leading-[1.6] text-white/45">
+          If it is a bug, the video it happened on and what you saw instead is enough — no logs, no
+          screenshots required. Nothing is collected from your browser to go with it.
+        </p>
+      </div>
+
+      <div class="flex flex-col gap-4">
+        <h2 class="text-[22px] font-semibold tracking-[-0.015em]">Where do I answer?</h2>
+        <label class="micro" for="email">email</label>
+        <input
+          id="email"
+          name="email"
+          type="email"
+          autocomplete="email"
+          required
+          class="field"
+          placeholder="you@example.com"
+        />
+
+        <label class="micro mt-2" for="name">name — optional, and only so a reply can open with it</label>
+        <input id="name" name="name" type="text" maxlength="80" autocomplete="name" class="field" />
+
+        <p class="text-[13px] leading-[1.6] text-white/45">
+          The address is used to reply to this message and nothing else — it is not added to any
+          list, and there is no mailing to unsubscribe from. Details in the
+          {' '}
+          <a class="text-white/70 underline decoration-line-hi underline-offset-4 hover:text-white" href="/privacy">privacy policy</a>.
+        </p>
+      </div>
+
+      <!--
+        Honeypot. A real person never sees it, so anything filled in here came
+        from a bot and n8n drops the submission without answering.
+      -->
+      <div aria-hidden="true" style="position: absolute; left: -9999px">
+        <label for="nickname">Nickname</label>
+        <input id="nickname" name="nickname" type="text" tabindex="-1" autocomplete="off" />
+      </div>
+
+      <div class="flex flex-wrap items-center gap-4">
+        <button id="submit" class="btn-primary" type="submit">Send it</button>
+        <span class="text-[13px] text-white/45">No account, no captcha, no ticket number.</span>
+      </div>
+
+      <div
+        id="error"
+        role="alert"
+        hidden
+        class="flex flex-col gap-2 border border-danger/25 bg-danger/10 p-4 text-[14px] leading-[1.65] text-white/80"
+      >
+      </div>
+    </form>
+
+    <div
+      id="done"
+      role="status"
+      hidden
+      class="flex flex-col gap-3 border border-accent-line bg-accent-soft p-6"
+    >
+      <p class="text-[15px] font-medium text-accent">Sent. It is in the inbox.</p>
+      <p class="text-[14px] leading-[1.7] text-white/70">
+        The answer comes to the address you gave, usually within a day or two. There is no ticket
+        number to quote and nothing else you have to do — if it turns out to be a bug, you will
+        also get the version number it was fixed in.
+      </p>
+      <p class="text-[14px] text-white/45">
+        Nothing was stored about you beyond the message and that address.
+      </p>
+    </div>
+
+    <div class="mt-12 grid gap-px border border-line bg-line md:grid-cols-2">
+      <div class="flex flex-col gap-3 bg-surface p-7">
+        <span class="micro">the public route</span>
+        <h2 class="text-[18px] font-semibold tracking-[-0.015em]">Open an issue instead</h2>
+        <p class="text-[14px] leading-[1.65] text-white/70">
+          A bug or a feature request is better in the open: it gets a number, other people can add
+          to it, and the fix arrives with a version you can check. The code is public and so is the
+          tracker.
+        </p>
+        <a class="btn-secondary mt-auto self-start" href={ISSUES_URL} rel="noreferrer">Open an issue</a>
+      </div>
+
+      <div class="flex flex-col gap-3 bg-surface p-7">
+        <span class="micro">the route that needs nothing of ours</span>
+        <h2 class="text-[18px] font-semibold tracking-[-0.015em]">Or write to the address itself</h2>
+        <p class="text-[14px] leading-[1.65] text-white/70">
+          The form above is a convenience, not a gatekeeper. If it fails, if JavaScript is off, or
+          if you would simply rather use your own mail client, this reaches the same inbox:
+        </p>
+        <p class="mt-auto select-all font-mono text-[15px] text-white">{CONTACT_EMAIL}</p>
+      </div>
+    </div>
+  </section>
+</Base>
+
+<script>
+  /*
+   * One n8n webhook, and no other network dependency on this page.
+   *
+   * The same instance the waitlist form posts to — a second workflow beside it,
+   * which mails the message on and answers this page. No new infrastructure,
+   * and nothing is stored: the message is an email, not a row.
+   */
+  const SUBMIT_URL = 'https://n8n-coolify-personal.mikidev.app/webhook/contact';
+
+  const form = document.getElementById('contact') as HTMLFormElement | null;
+  const button = document.getElementById('submit') as HTMLButtonElement | null;
+  const error = document.getElementById('error');
+  const done = document.getElementById('done');
+
+  if (form && button && error && done) {
+    /* The address is written here rather than imported so that a failure
+       message can print it verbatim. A form that fails without telling you the
+       other way through is a dead end, and this is the one moment the page has
+       to hand over a route it does not control. */
+    const FALLBACK = 'privacy@mikidev.app';
+
+    const showError = (message: string) => {
+      error.textContent = message;
+      error.hidden = false;
+    };
+
+    form.addEventListener('submit', async (event) => {
+      event.preventDefault();
+      error.hidden = true;
+
+      const fields = form.elements as HTMLFormControlsCollection & {
+        message: HTMLTextAreaElement;
+        email: HTMLInputElement;
+        name: HTMLInputElement;
+        nickname: HTMLInputElement;
+      };
+
+      const message = fields.message.value.trim();
+      if (message.length < 10) {
+        showError('There is nothing in the message yet — a sentence is enough, but not less.');
+        fields.message.focus();
+        return;
+      }
+
+      const email = fields.email.value.trim();
+      /* Deliberately loose, as on the waitlist: a regex that rejects a valid
+         address is worse than one that lets a typo through, and a typo here
+         costs one unanswerable message rather than a lost subscription. */
+      if (!/^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(email)) {
+        showError('That address does not look complete, and it is the only way to answer you.');
+        fields.email.focus();
+        return;
+      }
+
+      button.disabled = true;
+      button.textContent = 'Sending…';
+
+      try {
+        const response = await fetch(SUBMIT_URL, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            message,
+            email,
+            name: fields.name.value.trim() || null,
+            nickname: fields.nickname.value,
+            /* Which page sent them, so a message from the settings screen can
+               be told from one written off the landing page. A path, never a
+               full referrer. */
+            from: new URLSearchParams(location.search).get('from') || 'direct',
+            /* The language to answer in, as far as the browser knows it. Not an
+               identifier. */
+            locale: navigator.language || null,
+          }),
+        });
+        if (!response.ok) throw new Error(`HTTP ${response.status}`);
+
+        form.hidden = true;
+        done.hidden = false;
+        done.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      } catch {
+        /* Never swallowed. The whole point of replacing `mailto:` was that it
+           failed silently; a form that does the same is no improvement, and the
+           text the person just wrote is still in the field to be copied out. */
+        button.disabled = false;
+        button.textContent = 'Send it';
+        showError(
+          `That did not go through, and your message is still in the box above. Try once more — ` +
+            `and if it fails again, copy it into an email to ${FALLBACK}, which reaches the same ` +
+            `inbox by a route that does not depend on this page.`,
+        );
+      }
+    });
+  }
+</script>

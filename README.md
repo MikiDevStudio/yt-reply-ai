@@ -10,6 +10,7 @@ viewer's own entry point, a button in the "Add a comment" box, is still phase 2 
 
 ```
 extension/          the Chrome extension (WXT + React + TypeScript + Tailwind)
+worker/             the Worker (Cloudflare) — trial keys, and licences
 landing/            the website's source (Astro + Tailwind) — edit here
 site/               the website, built from landing/ and committed — do not edit
 docs/               design notes and decisions
@@ -43,11 +44,16 @@ the page's CORS rules, so a `fetch` from the YouTube page cannot reach OpenRoute
 putting an API key in a content script exposes it to the page. The content script only
 sends messages; the worker owns the key and the network.
 
-**`host_permissions` is scoped to `https://openrouter.ai/*`.** Never `<all_urls>`.
+**`host_permissions` is scoped to `https://openrouter.ai/*` and
+`https://api.mikidev.app/*`.** Never `<all_urls>`. The second is our Worker,
+touched once per install for the trial and once more if that person buys a
+licence; every generation goes straight to OpenRouter.
 
 **Secrets live in `chrome.storage.local`, never `sync`.** `storage.sync` uploads to
 Google's servers and caps at 8 KB per item / 100 KB total — a soul profile alone can
-exceed that. Only small UI preferences go in `sync`.
+exceed that. Only small UI preferences go in `sync` — and the licence, which is
+the one thing that is *supposed* to travel between a person's machines and names
+nobody. No API key ever goes there, the trial's included.
 
 **No API key is ever bundled.** `OPENROUTER_API_KEY` in `.env` is for local smoke tests
 only; extension source must not reference it. A `.crx` is trivially unpackable.
@@ -89,12 +95,18 @@ Context is tiered and user-controlled:
 | L1 | + video title, channel, parent comment | ~500 tokens |
 | L2 | + video description / summary | first call only |
 
-A retry is not free. The first attempt runs with reasoning held to `minimal`; every
-attempt after it gets `low`, because pressing the button again says the obvious answer
-missed and finding a different one is the work thinking pays for. Measured on
-`gemini-3.6-flash`: $0.0005 for the first reply, ~$0.0055 for each retry. Holding every
-attempt at `minimal` costs ~$0.0008 and still varies — the angle deck does most of that
-work — but the replies are noticeably flatter.
+A retry is not free. `reasoningFor` in `background.ts` sends `low` on the first attempt
+and `medium` on every attempt after it — pressing the button again says the obvious
+answer missed, and finding a different one is the work thinking pays for. Free models
+stay at `low` throughout, since their cost is a request quota rather than tokens.
+
+**A reply costs about $0.002** on `gemini-3.6-flash`, measured at the effort the first
+attempt actually sends: `npm run measure` re-runs it over four comments and prints the
+mean. That is the number to quote wherever a price per reply is quoted — the trial's
+$0.04 limit is thirty of them, and the landing page and the onboarding copy say the same
+figure. The older $0.0003 in `lib/models.ts` was measured at `minimal`, which the product
+does not send; a retry at `medium` costs several times the first reply and has not been
+re-measured since the tier changed.
 
 The video-level context is fetched once per `videoId`, cached in `storage.session`, and
 reused across every comment on that video. With OpenRouter's prompt-caching pass-through
@@ -104,23 +116,80 @@ the shared prefix is billed at 0.1–0.25× on repeat calls. Note the provider m
 Video metadata is scraped from the page, not fetched from the YouTube Data API: no extra
 key, no quota.
 
+## The first run
+
+A new install is one press from a reply, not one account away from one. Pressing
+**Try it free** — in the popover under a comment, in the toolbar popup, or on the
+settings page — asks `worker/` for a real OpenRouter key of this install's own,
+capped at $0.04, which is about twenty replies. What leaves the machine is one
+random UUID; see `worker/README.md`.
+
+When that key runs out OpenRouter answers 403 with `Key limit exceeded`, which is
+the same status a revoked key gets. `local:trial.keyIsOurs` is what tells the two
+apart, and it is written by the one call in the background worker that stores a
+key, so it cannot drift from the key it describes. Ours reads as the trial
+finishing as designed; anyone else's as a cap set on openrouter.ai.
+
+Neither card is a fault, and neither is drawn as one — `Failure.tone` in
+`extension/lib/failure.ts` puts the offer and the ending in the accent frame
+rather than the error one.
+
 ## Monetisation
 
 | Tier | What | Backend needed |
 |---|---|---|
+| Trial | our own capped key, ~20 replies, no account | the Worker |
 | Free | OpenRouter OAuth, `:free` models (OpenRouter's own 50/day) | none |
 | BYOK | same OAuth, paid models, user pays OpenRouter directly | none |
+| Licence | a gift code: the coffee card never appears again. Not for sale | the Worker, once |
 | Pro | provisioned OpenRouter key with a spend limit, profile sync, bulk mode | minimal |
 
 **We impose no limit of our own.** A daily cap of 50 replies shipped and was
 removed: the only thing it measured was how many people it stopped. What is
-left is a counter (`extension/lib/replies.ts`) that gates nothing and, every
-twenty replies, offers a card saying thank you with a Buy Me a Coffee button and
-two feedback links. Donations and the Pro waitlist are the whole of the ask.
+left is a counter (`extension/lib/replies.ts`) that gates nothing and drives
+two asks at the foot of the reply popover, both of them out of the way of the
+reply itself: every fifty replies a card saying thank you with a Buy Me a Coffee
+button, and every forty a block asking how it is going — which anybody ends for
+good with its own button, whether or not they have paid anything. The popover's
+action row carries a small standing coffee button, which is what lets the card
+be rare. That is the whole of the ask, and Supporter is the whole of what is for
+sale.
 
-v1 ships the first two tiers with **no server at all**. Pro uses OpenRouter's
-provisioning API (`POST /api/v1/keys` with `limit`) so quota enforcement happens
-upstream — our backend only turns a payment into a capped key.
+**Nothing is sold, and that is a design decision rather than a stage.** A coffee
+buys nothing: it unlocks no tier, silences no card and changes nothing about the
+extension for the person who pressed it. The moment it did any of those, it would
+stop being a donation and become a supply for consideration — with VAT, a Trader
+declaration on the Store listing and a statutory right of withdrawal attached to
+it. Three shapes that would have crossed that line were designed and dropped: a
+$12 tier, "any coffee returns a code", and "a coffee stops the card appearing".
+
+**Licence codes exist, and they are gifts.** They go out in giveaways under promo
+videos and by hand, at nobody's entitlement; a code switches the coffee card off
+and stops that button glowing, and later unlocks multiple soul profiles
+(#12) and profile export (#33). It deliberately does not silence the review
+block: a review attached to a gift is not one worth having. The
+three conditions that keep this a gift rather than a sale: it is offered nowhere,
+it is never guaranteed in exchange for money, and the extension behaves
+identically for everyone who has not been given one.
+
+The mechanism is in `worker/README.md`, and the two things worth knowing here are
+that **an activated licence never contacts us again** — it is verified against a
+public key that ships in the extension, so shutting the Worker down cannot take
+one back — and that **nothing on our side can say who has one**. See
+`extension/lib/licence.ts` and `worker/src/licences.ts`.
+
+`worker/src/bmc.ts` turns a Buy Me a Coffee purchase into a code automatically.
+**It is finished, tested and deliberately not wired up** — no webhook exists in
+their dashboard — because wiring it is precisely what would make a coffee a
+purchase. It is kept for the day selling is set up properly, and that day needs a
+merchant of record: Buy Me a Coffee is explicitly not one.
+
+The only server is the trial Worker, and it exists so a first run can end in a
+reply. It is not a proxy and must not become one: no comment text passes through
+it, and an outage there cannot stop an install that already has a key. Pro uses
+the same OpenRouter provisioning API (`POST /api/v1/keys` with `limit`) so quota
+enforcement happens upstream — a backend that turns a payment into a capped key
+and nothing more.
 
 Chrome Web Store's built-in payments are discontinued; billing must be external.
 
@@ -133,6 +202,18 @@ npm run dev       # launches Chrome with the extension loaded
 npm run build
 npm run compile   # typecheck
 npm run smoke     # exercise the OpenRouter client against the live API
+npm run measure   # what one reply actually costs, per model and reasoning level
+```
+
+The Worker has its own workspace:
+
+```bash
+cd worker
+npx wrangler dev
+npx wrangler deploy
+node scripts/trial-key.mjs list      # the trial keys this account has issued
+node scripts/trial-key.mjs exhaust   # drop the newest below its spend, to see the end
+node scripts/trial-key.mjs restore   # put its limit back to $0.04
 ```
 
 `npm run smoke` reads `OPENROUTER_API_KEY` from the repo-root `.env`. It checks
@@ -149,7 +230,15 @@ OAuth redirect URL embeds it. Do not regenerate the key in `.keys/`.
 chrome://extensions → Developer mode → Load unpacked → extension/.output/chrome-mv3
 ```
 
-Then open the extension's settings, connect an OpenRouter account (or paste a
-key), and open a video with comments.
+Then open a video with comments and press **AI reply**. The card offers the free
+trial; the settings page also takes an OpenRouter account or a pasted key.
+
+To take the trial again on an install that has had one, clear its record in the
+service worker console — `trial.claimed` is what hides the button, and the
+options tab has to be reloaded because it reads that once, on mount:
+
+```js
+await chrome.storage.local.remove(['openrouter.apiKey','trial.installId','trial.claimed','trial.keyIsOurs','trial.spent']);
+```
 
 Test video: <https://www.youtube.com/watch?v=5ViTG9HrtFk>

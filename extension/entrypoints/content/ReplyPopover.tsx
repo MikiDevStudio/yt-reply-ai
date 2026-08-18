@@ -9,10 +9,14 @@ import {
   X,
 } from 'lucide-react';
 import { useEffect, useRef, useState } from 'react';
+import { CoffeeGlow } from '@/components/CoffeeGlow';
 import { CoffeeMark } from '@/components/CoffeeMark';
 import { FailureNotice } from '@/components/FailureNotice';
+import { ReviewAsk } from '@/components/ReviewAsk';
+import { SupportCard } from '@/components/SupportCard';
 import { FOCUS, ICON, MICRO, MICRO_TYPE, SECONDARY, SOLID } from '@/components/ui';
 import { detectLanguage } from '@/lib/language';
+import { licensed } from '@/lib/licence';
 import type { GenerationContext } from '@/lib/messaging';
 import { angleFor, CREATIVITY, STYLES } from '@/lib/prompt';
 import {
@@ -78,15 +82,6 @@ interface ReplyPopoverProps {
   autoStart: boolean;
   /** Writes the text into YouTube's reply box. */
   onInsert: (text: string) => void;
-  /**
-   * A milestone the reply counter just crossed, handed up so the surface that
-   * owns the shadow roots can draw the support card over this one.
-   *
-   * Fired from the arrival of the reply rather than from Insert: the card is
-   * meant to land between the answer appearing and the answer being used, and
-   * that is the only moment which is both.
-   */
-  onNudge?: (count: number) => void;
   onClose: () => void;
 }
 
@@ -95,7 +90,6 @@ export function ReplyPopover({
   context,
   autoStart,
   onInsert,
-  onNudge,
   onClose,
 }: ReplyPopoverProps) {
   const { state, generate, cancel } = useGeneration();
@@ -112,6 +106,33 @@ export function ReplyPopover({
   const [level, setLevel] = useState(3);
   const [detected, setDetected] = useState<string | null>(null);
   const [language, setLanguage] = useState(readLanguageOverride() ?? '');
+
+  /**
+   * The two asks, raised by the reply that just landed and drawn at the foot of
+   * this popover rather than over it.
+   *
+   * Held here rather than by the surface that owns the shadow roots, which is
+   * where the card used to live when it was a modal with its own root and its
+   * own backdrop. Inside the popover it is simply another block, so it belongs
+   * to the component the block is inside. Both are cleared when the popover is
+   * keyed to a different comment, which is what the user would expect: an ask
+   * attached to one reply does not follow them to the next comment.
+   *
+   * The worker decides when either is due and never sends both at once; see
+   * `takeNudge` and `takeReview` in lib/replies.ts.
+   */
+  const [nudge, setNudge] = useState<number | null>(null);
+  const [review, setReview] = useState(false);
+
+  /**
+   * Whether a licence has been activated, which is what turns the glowing
+   * coffee button back into the quiet mark it replaced (#45).
+   *
+   * `null` until the answer lands, and the row draws nothing in that slot until
+   * it does — a button that swaps shape a frame after the popover opens is a
+   * button that moves the three beside it.
+   */
+  const [paid, setPaid] = useState<boolean | null>(null);
 
   const [note, setNote] = useState(() => readNote(commentId));
   const [audience, setAudience] = useState<Audience>('owner');
@@ -142,6 +163,7 @@ export function ReplyPopover({
       setAudience(stored);
       audienceRef.current = stored;
     });
+    void licensed().then(setPaid);
   }, [context.commentText]);
 
   const start = () => {
@@ -197,9 +219,10 @@ export function ReplyPopover({
     setCursor(history.cursor);
 
     // Inside the same guarded block as filing the attempt, so a re-render
-    // cannot raise the card twice for one reply.
-    if (state.nudge !== undefined) onNudge?.(state.nudge);
-  }, [state, commentId, onNudge]);
+    // cannot raise either block twice for one reply.
+    if (state.nudge !== undefined) setNudge(state.nudge);
+    if (state.review) setReview(true);
+  }, [state, commentId]);
 
   useEffect(() => {
     const onKeyDown = (event: KeyboardEvent) => {
@@ -534,19 +557,30 @@ export function ReplyPopover({
 
           <div className="flex shrink-0 items-center gap-2">
             {/* A link, not a button, and the only thing on this row that does
-                not act on the reply. Their mark rather than a lucide cup: it
-                points at their service, and a stranger's logo is more honest
-                about where the click goes than a drawing of a coffee cup. */}
-            <a
-              className={ICON}
-              href={SUPPORT_URL}
-              target="_blank"
-              rel="noreferrer"
-              aria-label="Buy me a coffee"
-              title="Buy me a coffee"
-            >
-              <CoffeeMark className="h-4" />
-            </a>
+                not act on the reply.
+
+                It used to be their grey mark at icon size, beside a copy
+                button, which is to say invisible. #45 made the card in this
+                popover five times rarer, and a rare card is only affordable if
+                something quiet is always in view — so this became the standing
+                ask, lit and drifting. A licence turns it back into the mark: an
+                accent is exactly what somebody who has already given something
+                should stop being shown. Nothing is drawn until that answer
+                arrives, so the row is never rearranged under the cursor. */}
+            {paid === null ? null : paid ? (
+              <a
+                className={ICON}
+                href={SUPPORT_URL}
+                target="_blank"
+                rel="noreferrer"
+                aria-label="Buy me a coffee"
+                title="Buy me a coffee"
+              >
+                <CoffeeMark className="h-4" />
+              </a>
+            ) : (
+              <CoffeeGlow />
+            )}
 
             {busy ? (
               <button
@@ -607,6 +641,14 @@ export function ReplyPopover({
           </div>
         </div>
 
+        {/* 8 · What this product asks for, and the only place it asks. Under
+            the action row rather than above it: the reply is finished, Insert
+            has not moved, and the popover has grown downwards by a panel that
+            covers nothing. Both are dismissible and neither holds anything. */}
+        {review && (
+          <ReviewAsk onClose={() => setReview(false)} onAnswer={() => setReview(false)} />
+        )}
+        {nudge !== null && <SupportCard count={nudge} onClose={() => setNudge(null)} />}
       </div>
     </div>
   );

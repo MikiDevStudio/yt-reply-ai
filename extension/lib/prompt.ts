@@ -85,6 +85,12 @@ export function creativityPreset(level: number): CreativityLevel {
  * best one — the deck exists for when it is not.
  */
 export const ANGLES = [
+  // Left deliberately bare. Adding "invite them back if it is natural" here
+  // took the invitation from 0% of first attempts to 79%, against 17% for real
+  // creators: a permission in the angle slot reads as an instruction, because
+  // the angle is the last thing the model sees before it writes. The move still
+  // exists — it has its own slot below, which is where a first attempt that
+  // missed can reach it.
   'Answer straight. No detour.',
   // This one used to ask for a detail from behind the scenes — how it was made,
   // what nearly went wrong. A model with no such detail available does not
@@ -92,7 +98,12 @@ export const ANGLES = [
   // with the same invented story about a render that nearly caught fire. The
   // move is still worth having, but only over material that exists.
   'Pick out something concrete the video or the voice profile above actually states, and answer through that. If they state nothing usable, answer straight instead.',
-  'Turn it around: answer, then ask them something specific that is worth answering.',
+  // Reshaped from "answer, then ask them something specific". A question mark
+  // is the tidy version of this move and the rarer one in the wild: creators
+  // hand the thread back with "let me know how it goes" far more often than
+  // they interrogate. Both forms are allowed; the invitation is named first
+  // because it is what people actually write.
+  'Hand the thread back: answer, then invite them to carry on — tell you how it went, say which one they picked. Ask outright only if there is something you genuinely need to know.',
   'Find the humour in it. A joke that lands, not a joke that tries.',
   'Take the less obvious side of it, politely. Say the thing the commenter did not expect to hear.',
 ] as const;
@@ -272,13 +283,50 @@ export function buildReplyPrompt({
     'Never state anything about the video, the channel or how it was made that is not written below. If you do not know a detail, leave it out — do not invent it, and do not imply it.',
   );
 
+  // The failure this catches is a reply that agrees with the comment and says
+  // it back in other words: warm, fluent, and carrying nothing. It is what made
+  // generated replies read as automated, and it is the one line here that earns
+  // its tokens several times over — asked over the eval set, a judge found 37%
+  // of replies mirroring without it and 5% with it. Real channel owners, judged
+  // the same way, mirror 44% of the time, so the target was never zero and the
+  // escape hatch is not politeness: told only to add something, a model with
+  // nothing to add invents it.
+  //
+  // A second line spelling out "do not hand the comment back" stood here and
+  // was removed. It read as the stronger of the two and measured as the weaker:
+  // dropping it moved mirroring from 5% to 11%, both far under what people do,
+  // for 102 characters billed on every reply ever generated.
+  system.push(
+    'Add something they did not say: an answer, a detail of your own, a limit of what you know, a disagreement. Restating what they said in other words, however warmly, is not a reply. If you have nothing to add, say less rather than padding. A short acknowledgement is a real reply; a long one that only agrees is not.',
+    // A count, because the qualitative version did nothing. "About as long as
+    // the comment, one sentence longer at most" left the median at 110
+    // characters across two runs — the model kept writing single sentences that
+    // were simply long. Real creators write 54 characters, near enough ten
+    // words; twenty-five is that with room, and it is a number the model can
+    // actually check itself against.
+    'Stay under twenty-five words unless the comment genuinely needs more. Most replies are one short sentence.',
+  );
+
+  // Real creators used an em dash in none of those 88 replies; the model used
+  // one in 11% of the eval set. Nothing about the punctuation is wrong — it is
+  // simply not what a person types into a comment box, and readers have learnt
+  // what it signals.
+  system.push(
+    'Punctuate the way people type in a comment box: no em dashes or en dashes. A comma, a full stop or brackets instead.',
+  );
+
   if (soul.trim()) {
     system.push('', 'Voice and rules to follow:', clip(soul, LIMITS.soul));
   }
 
-  const styleHint = STYLES[style] ?? STYLES.auto;
-  system.push('', `Tone for this reply: ${styleHint}`);
-  system.push(`How far to stray: ${creativityPreset(creativity).instruction}`);
+  // `auto` is the default and says to match the tone of the comment, which is
+  // what the model does when nothing is said at all: removing the line moved
+  // neither the length of a reply nor how often it mirrored. So the default
+  // costs nothing, and the four named styles — which do change the output — are
+  // still spelled out.
+  const styleHint = STYLES[style];
+  const tone = styleHint && style !== 'auto' ? [`Tone for this reply: ${styleHint}`] : [];
+  system.push('', ...tone, `How far to stray: ${creativityPreset(creativity).instruction}`);
 
   // L1 and above add video context. It is constant per video, so it belongs in
   // the cacheable prefix rather than in the user turn.

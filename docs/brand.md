@@ -145,7 +145,19 @@ and the only place any surface of ours asks for money. It is drawn from their pu
 parameters rather than loaded from their CDN: MV3's CSP forbids remote code, and their
 script also pulls a display face from a font host, which is a request we do not make
 anywhere. Everything but that face is reproduced (`components/CoffeeButton.tsx`); the
-words are theirs to configure and currently read *Buy me a tea*.
+words are theirs to configure and currently read *Buy me a coffee*.
+
+The rule also settles where their yellow **stops**. The popover's action row carries a
+small glowing coffee button (`components/CoffeeGlow.tsx`) that is deliberately *not* in
+their colours: it is a 100px control in a row of ours, and dressing it in someone else's
+brand would read as a badge bolted to our panel. It carries our accents over a near-black
+ground, our own drawing of a cup, and the word *Coffee* — an ordinary outbound link to
+their site rather than a copy of their button. Their button, undisguised and in their
+yellow, still appears in the popup and in About, which is where the mark belongs.
+
+That button keeps its own colours in both themes, exactly as their yellow one does — one
+object recognisable at that size, not two that have to be learned separately. See §5 for
+the loop and what stops it.
 
 ### Data and charts
 
@@ -319,26 +331,34 @@ layer, transition `background-color 150ms ease-out`. A micro-label sits at the t
 card (number + rule + name). A card that folds away keeps the same frame when closed, so
 a put-away control never reads as a missing one.
 
-### The support dialog
+### The two asks
 
-The one modal we draw (`components/SupportCard.tsx`), and the only element in this system
-allowed to interrupt. It is raised **over the popover, as a milestone reply arrives and
-before it is used**, with the page dimmed to `black/55` behind it.
+There is no modal in this system. There was one — the support card, raised over the
+popover every twentieth reply with the page dimmed to `black/55` behind it — and #45
+removed it. That shape was right while the card was also the thing a licence switched off:
+the interruption was the price of a free, uncapped tool. It stopped being that, and rare
+and modal is still modal.
 
-Same materials as the popover — `--overlay`, `--line-hi`, `--shadow-elevated`, sharp — at
-`420px`, centred, entering at 200ms rather than the popover's 120ms: it arrives unbidden,
-and something that appears out of nowhere in 120ms reads as a glitch.
+Both asks are now **inner panels at the foot of the popover**, below the action row, after
+everything the user came for: `bg:--surface-hi`, border `--line`, `p-3`, `gap-3`, entering
+at 200ms rather than the popover's 120ms — they arrive unbidden, and something that
+appears out of nowhere in 120ms reads as a glitch. No backdrop, no dimming, nothing
+covered; the popover simply grows downwards.
 
-Blocks top to bottom: the signature label carrying the count, a heading that states the
-number, one question with two outlined answers, the ask with their yellow button, the
-contact links, and a footer with the cadence and the one line that turns it off. No stars,
-no five-point scale, no second ask after an answer, and no "don't show again" — the card
-is what the free version costs, so the only thing that removes it is a paid plan.
+**The coffee card** (`components/SupportCard.tsx`), every 50 replies: the signature label
+carrying the count, a heading that states the number, one paragraph, their yellow button,
+and a footer with the cadence and the line that turns it off. No question, no rating, no
+"don't show again" — it is the only place any surface of ours asks for money, and the one
+thing that removes it is a licence.
 
-The dimming is the whole of the pressure. Nothing is trapped behind it: the reply is
-finished in the popover underneath, and the close button, Escape and a click on the
-backdrop all dismiss it. Both answers are outbound links; nothing about the rating is
-recorded, here or anywhere.
+**The review block** (`components/ReviewAsk.tsx`), every 40 replies until it is answered:
+five stars, one sentence that changes with the answer, and then *both* roads out — the
+Store listing and a bug report — always in the same order, with only the weight changing
+between outlined and plain. Its own two text buttons end it for good. A licence must never
+silence this one, and the stars must never decide who sees the review link: see §4 Rating.
+
+Neither holds anything. The reply is finished above them, every route out is an outbound
+link, and nothing about a star is recorded — here or anywhere.
 
 ### The popover
 
@@ -389,7 +409,20 @@ A 6px dot + a `font-mono` 10px uppercase label:
 ### Rating
 
 Five 8px dots, `--radius-pill`. Filled `--accent`, empty `--line-hi`. No stars — a star is
-a rating widget from another product; a dot is ours.
+a rating widget from another product; a dot is ours. Creativity is the only rating in the
+interface that follows this.
+
+**One exception, and only one:** the review block draws real stars, filled `--accent` and
+empty at `--ink-28`. The other product is the entire point there — what is being asked for
+*is* a star on a store page, and drawing it as a dot would hide what the ask is.
+
+That block also carries a rule with a price on it. **The stars decide nothing.** Both
+roads — the review and the bug report — render whatever the answer, and the rating only
+changes which of the two is outlined and which is plain. Sending four stars to the Store
+and two to a support form is review gating: Google Play and the App Store ban it outright,
+and the Chrome Web Store's rating-manipulation policy reaches it. The cost of getting it
+wrong is the listing. `/feedback` on the site draws its two columns the same way and for
+the same reason.
 
 ### Settings page
 
@@ -425,18 +458,31 @@ line only.
 | What | Value |
 |---|---|
 | Popover open | `opacity 0→1`, `translateY 4px→0`, `120ms cubic-bezier(.23,1,.32,1)` |
-| Support dialog open | `opacity 0→1`, `translateY 8px→0`, `200ms cubic-bezier(.23,1,.32,1)`; backdrop fades alone |
+| Ask panel open | `opacity 0→1`, `translateY 8px→0`, `200ms cubic-bezier(.23,1,.32,1)` |
 | Settings card enter | `fade-up`: `opacity 0→1`, `translateY 16px→0`, `400ms cubic-bezier(.23,1,.32,1)` |
 | Cascade | delays `40ms`, `80ms`, `120ms` in element order |
 | Hover, colour | `150ms ease-out` |
 | Hover, layout | not animated — nothing moves or scales |
 | Streaming dots | 1.2s pulse loop, opacity only |
+| Coffee button, popover action row | 7s loop of twelve blurred circles behind a mask; `1400ms` on hover |
 
 The source's 700ms entrance is landing-page motion. A tool that opens over a comment the
 user is already reading has to be there immediately — the popover animation exists only
 to say *this appeared*, and 120ms is enough to say it.
 
 Everything is under `motion-safe:`; `prefers-reduced-motion` turns the animations off.
+
+The coffee button in the popover's action row is the one loop that never stops — it is in
+view for as long as the popover is open, which is the point of it: #45 made the card five
+times rarer, and a rare card is only affordable if something quiet is always there. It
+reads the OS setting in CSS rather than through `motion-safe:`, and reduced motion holds
+every circle exactly where it starts and cancels the hover speed-up too, because a change
+of pace is motion.
+
+It costs nothing while nothing is open: the popover is mounted on demand and torn down on
+close, so twelve blurred circles are only ever repainting while somebody is looking at a
+reply. A licence turns the button back into the flat mark — an accent is exactly what
+someone who has already given something should stop being shown.
 
 ---
 

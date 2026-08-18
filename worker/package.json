@@ -1,0 +1,19 @@
+{
+  "name": "reply-ai-worker",
+  "description": "Issues capped trial keys for the extension (#38)",
+  "private": true,
+  "version": "0.0.0",
+  "type": "module",
+  "scripts": {
+    "dev": "wrangler dev",
+    "deploy": "wrangler deploy",
+    "compile": "tsc --noEmit",
+    "types": "wrangler types",
+    "tail": "wrangler tail"
+  },
+  "devDependencies": {
+    "@cloudflare/workers-types": "^5.20260818.1",
+    "typescript": "^5.9.3",
+    "wrangler": "^4.123.0"
+  }
+}

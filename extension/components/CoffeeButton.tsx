@@ -51,7 +51,7 @@ export function CoffeeButton({ className = '' }: CoffeeButtonProps) {
       }
     >
       <img src={cupOnYellow} alt="" aria-hidden className="h-[18px] w-auto" />
-      Buy me a tea
+      Buy me a coffee
     </a>
   );
 }

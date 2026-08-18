@@ -7,7 +7,7 @@ Astro 7 + Tailwind 4, static output, no client framework. Five pages:
 | `/` | `src/pages/index.astro` | The landing page: what the extension is, what the panel does, what it costs |
 | `/pro` | `src/pages/pro.astro` | The waitlist and the feature vote (#32). The only place an address is typed |
 | `/privacy` | `src/pages/privacy.astro` | Required by the Web Store listing (#17), because the extension stores an API key |
-| `/feedback` | `src/pages/feedback.astro` | Where the thank-you card's two answers land. Reads `?rating=`, records nothing |
+| `/feedback` | `src/pages/feedback.astro` | Both roads an opinion can take, side by side. Linked from the footer; records nothing |
 | 404 | `src/pages/404.astro` | Served by nginx once it is told to (`error_page 404 /404.html`) |
 
 ## Build output is committed

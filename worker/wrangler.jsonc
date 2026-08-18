@@ -1,0 +1,105 @@
+{
+  "$schema": "./node_modules/wrangler/config-schema.json",
+  "name": "reply-ai-trial",
+  "main": "src/index.ts",
+  "compatibility_date": "2026-08-18",
+
+  // Two things this Worker is for: handing a new install a capped OpenRouter
+  // key so the first run does not end at "go and register somewhere else"
+  // (#38), and turning a code into a signed entitlement once (#39).
+  // Generation traffic never comes here — the extension talks to
+  // openrouter.ai directly with the key it was given.
+  //
+  // Three secrets, none of them in this file:
+  //   npx wrangler secret put OPENROUTER_MANAGEMENT_API_KEY
+  //   npx wrangler secret put LICENCE_SIGNING_KEY     # scripts/generate-licence-key.mjs
+  //   npx wrangler secret put LICENCE_ISSUE_TOKEN     # for issuing a code by hand
+  //   npx wrangler secret put BMC_WEBHOOK_SECRET      # Buy Me a Coffee → Integrations → webhook
+  //   npx wrangler secret put RESEND_API_KEY          # the same key the rest of the stack sends with
+
+  "routes": [
+    {
+      // Goes into the extension's host_permissions, so it is expensive to
+      // change once the extension is in the Store. One level of subdomain on
+      // purpose: Universal SSL covers *.mikidev.app but not a second level.
+      "pattern": "api.mikidev.app",
+      "custom_domain": true,
+    },
+  ],
+
+  // No workers.dev URL. A second address that also mints keys is a second
+  // address to rate-limit, and nothing needs it.
+  "workers_dev": false,
+
+  "vars": {
+    // What one trial is worth, in dollars. Measured at $0.001245 a reply on
+    // google/gemini-3.6-flash with reasoning at `low` — which is what
+    // background.ts actually sends — so this is about 32 replies. The older
+    // $0.0003 figure was measured at `minimal` and no longer applies.
+    "TRIAL_LIMIT_USD": "0.04",
+
+    // Keys issued per UTC day across everyone. The ceiling exists so one bad
+    // day cannot drain the balance: at the limit above it caps a day at $8.
+    "TRIAL_DAILY_CEILING": "200",
+
+    // How many times one install may be re-issued a key after a dropped
+    // response. Each retry deletes the unused key it replaces, so an install
+    // never holds two.
+    "TRIAL_MAX_ATTEMPTS": "3",
+
+    // How many machines one purchase may be activated on. An honest buyer with
+    // Chrome sync on needs exactly one; three covers sync being off, a
+    // reinstall and a second machine, and is far short of worth sharing.
+    // Set here rather than passed in, so a compromised shop webhook cannot
+    // mint a code with a thousand activations on it.
+    "SUPPORTER_ACTIVATIONS": "3",
+
+    // A promo code is one person's, and the person it was given to is in the
+    // room. One activation, and it goes stale quickly.
+    "PROMO_ACTIVATIONS": "1",
+    "PROMO_DAYS": "30",
+
+    // Sent from the subdomain that already has SPF and DKIM on it, and replied
+    // to at the address that receives. The same split the website uses.
+    "LICENCE_FROM": "Reply AI <hello@reply-ai.mikidev.app>",
+    "SUPPORT_EMAIL": "privacy@mikidev.app",
+  },
+
+  "durable_objects": {
+    "bindings": [
+      { "name": "LEDGER", "class_name": "TrialLedger" },
+      // Separate from the trial's ledger on purpose: they share no row and no
+      // lifetime, and a licence must never be joinable to an install id.
+      { "name": "LICENCES", "class_name": "LicenceLedger" },
+    ],
+  },
+
+  // SQLite-backed, which is the only kind the free plan offers.
+  "migrations": [
+    { "tag": "v1", "new_sqlite_classes": ["TrialLedger"] },
+    { "tag": "v2", "new_sqlite_classes": ["LicenceLedger"] },
+  ],
+
+  "ratelimits": [
+    {
+      "name": "MINT_LIMITER",
+      "namespace_id": "1001",
+      // Counted per Cloudflare location rather than globally, and it is a
+      // counter that expires, not a stored per-IP quota — that design was
+      // rejected on data-protection grounds and stays rejected. The global
+      // side of the defence is TRIAL_DAILY_CEILING above.
+      "simple": { "limit": 5, "period": 60 },
+    },
+    {
+      "name": "ACTIVATE_LIMITER",
+      "namespace_id": "1002",
+      // A code is 80 bits, so this is not what stops guessing — it stops a
+      // guesser costing us a Durable Object read per attempt. Looser than the
+      // mint limiter because a household behind one address may well activate
+      // more than once in a minute, and refusing that is a support email.
+      "simple": { "limit": 10, "period": 60 },
+    },
+  ],
+
+  "observability": { "enabled": true },
+}

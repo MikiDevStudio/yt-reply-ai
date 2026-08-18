@@ -12,10 +12,17 @@ import {
 import { connectWithOAuth } from '@/lib/openrouter/auth';
 import { fetchKeyInfo, fetchModel, fetchModels, streamCompletion } from '@/lib/openrouter/client';
 import { OpenRouterError } from '@/lib/openrouter/errors';
+import { licensed } from '@/lib/licence';
 import { angleFor, buildReplyPrompt, buildSoulPrompt, creativityPreset } from '@/lib/prompt';
-import { countReply, takeNudge } from '@/lib/replies';
+import { countReply, takeNudge, takeReview } from '@/lib/replies';
 import * as settings from '@/lib/settings';
 import type { SoulProfile } from '@/lib/soul';
+import {
+  claimed as trialClaimed,
+  claimTrial,
+  keyIsOurs as trialKeyIsOurs,
+  spent as trialSpent,
+} from '@/lib/trial';
 import { recallDescription, rememberDescription } from '@/lib/video-cache';
 
 /**
@@ -147,14 +154,7 @@ async function generate(
     model = chosen;
 
     if (!key) {
-      post(port, {
-        type: 'error',
-        kind: 'unauthorized',
-        message: 'No OpenRouter key is stored',
-        // Never connected, as opposed to a key OpenRouter has since rejected.
-        // The two need different words, and only this side can tell them apart.
-        hadKey: false,
-      });
+      post(port, { type: 'error', ...(await noKey('No OpenRouter key is stored')) });
       return;
     }
 
@@ -221,10 +221,24 @@ async function generate(
     // comment finds it already counted and is free.
     await countReply(comment);
 
-    // Claimed here, in the one process that is a single writer for it. The
-    // preference is read first so that someone who has switched the card off
-    // never burns a milestone they will not be shown.
-    const nudge = (await settings.supportNudges.getValue()) ? await takeNudge() : null;
+    // Claimed here, in the one process that is a single writer for it. Both
+    // gates are read first so that someone who will not be shown a card never
+    // burns a milestone on one.
+    //
+    // The licence is the gate that matters and it is checked rather than
+    // mirrored into the local flag: an entitlement arrives through
+    // `chrome.storage.sync`, so on a second machine it is there before anything
+    // local has been written, and a card shown to somebody who has paid is the
+    // worst version of this feature.
+    const quiet = (await licensed()) || !(await settings.supportNudges.getValue());
+    const nudge = quiet ? null : await takeNudge();
+
+    // The review block is not what a licence buys. A coffee silences the coffee
+    // card, and deliberately nothing else: this block is dismissed for free
+    // with its own button, and a review that had to be paid off to stop being
+    // asked for is a review nobody should want. `nudge` is passed so the two
+    // never land on the same reply — see `takeReview`.
+    const review = await takeReview(nudge !== null);
 
     post(port, {
       type: 'done',
@@ -234,6 +248,7 @@ async function generate(
       // handing over a sentence that ends mid-word as if it were finished.
       truncated: next.value.finishReason === 'length',
       ...(nudge !== null ? { nudge } : {}),
+      ...(review ? { review: true } : {}),
     });
   } catch (error) {
     if (asOpenRouterError(error).kind === 'aborted') {
@@ -357,7 +372,7 @@ async function respond(request: Request): Promise<Response<unknown>> {
 
     case 'auth:connect': {
       const key = await connectWithOAuth();
-      await settings.apiKey.setValue(key);
+      await storeKey(key, { ours: false });
       return { ok: true, data: { connected: true } };
     }
 
@@ -365,13 +380,37 @@ async function respond(request: Request): Promise<Response<unknown>> {
       // Validate before storing, so a typo surfaces immediately rather than at
       // the first generation attempt.
       await fetchKeyInfo(request.apiKey);
-      await settings.apiKey.setValue(request.apiKey);
+      await storeKey(request.apiKey, { ours: false });
       return { ok: true, data: { connected: true } };
     }
 
     case 'auth:disconnect': {
-      await settings.apiKey.removeValue();
+      await Promise.all([
+        settings.apiKey.removeValue(),
+        trialKeyIsOurs.setValue(false),
+        trialSpent.setValue(false),
+      ]);
       return { ok: true, data: { connected: false } };
+    }
+
+    case 'trial:claim': {
+      // A stored key is never overwritten, whatever the button that got here
+      // said. Someone who has connected their own account has nothing to gain
+      // from a two-cent trial and everything to lose from us replacing it.
+      if (await settings.apiKey.getValue()) {
+        return { ok: true, data: { status: 'connected' } };
+      }
+
+      const { outcome, key } = await claimTrial();
+      // The trial key goes exactly where an OAuth key goes: generation cannot tell
+      // the two apart and must not try. The flag is only ever read at the end, when
+      // the key runs out and the message depends on whose it was.
+      if (key) await storeKey(key, { ours: true });
+      // `unavailable` means "not this minute" — the offer stands. The other two
+      // are final for this install.
+      if (outcome.status !== 'unavailable') await trialClaimed.setValue(true);
+
+      return { ok: true, data: outcome };
     }
 
     case 'models:list': {
@@ -391,9 +430,7 @@ async function respond(request: Request): Promise<Response<unknown>> {
 
     case 'usage:get': {
       const key = await settings.apiKey.getValue();
-      if (!key) {
-        return { ok: false, kind: 'unauthorized', message: 'No key stored', hadKey: false };
-      }
+      if (!key) return { ok: false, ...(await noKey('No key stored')) };
       return { ok: true, data: await fetchKeyInfo(key) };
     }
 
@@ -415,9 +452,7 @@ async function respond(request: Request): Promise<Response<unknown>> {
         settings.apiKey.getValue(),
         settings.model.getValue(),
       ]);
-      if (!key) {
-        return { ok: false, kind: 'unauthorized', message: 'No key stored', hadKey: false };
-      }
+      if (!key) return { ok: false, ...(await noKey('No key stored')) };
 
       // Streamed and then assembled: one editor-sized answer has nothing to
       // show progressively, but the streaming path is the one that handles
@@ -443,6 +478,41 @@ async function respond(request: Request): Promise<Response<unknown>> {
       return { ok: true, data: text };
     }
   }
+}
+
+/**
+ * Store a key, and record whose it is, in the same breath.
+ *
+ * The two are written together because they are one fact. An `apiKey.setValue`
+ * that forgot the flag would leave someone's own key wearing the trial's label,
+ * and the copy at the end would then tell them a trial they never took had run
+ * out — so there is one door, and it takes both.
+ */
+async function storeKey(key: string, { ours }: { ours: boolean }): Promise<void> {
+  await Promise.all([
+    settings.apiKey.setValue(key),
+    trialKeyIsOurs.setValue(ours),
+    // Whatever the last key ran out of is not this key's business.
+    trialSpent.setValue(false),
+  ]);
+}
+
+/**
+ * The failure for "there is no key", said once for every surface that can hit it.
+ *
+ * Two facts the UI cannot work out for itself, and both change what it says.
+ * `hadKey: false` separates never having connected from a key OpenRouter has
+ * since rejected. `trialAvailable` decides whether the card offers a free
+ * trial or a form — the whole of #35, and it has to be answered the same way
+ * under a YouTube comment, in the popup and on the settings page.
+ */
+async function noKey(message: string): Promise<FailurePayload> {
+  return {
+    kind: 'unauthorized',
+    message,
+    hadKey: false,
+    trialAvailable: !(await trialClaimed.getValue()),
+  };
 }
 
 function asOpenRouterError(error: unknown): OpenRouterError {
@@ -471,6 +541,16 @@ async function describeFor(error: unknown, model?: string): Promise<FailurePaylo
 
   if (failure.kind === 'unauthorized') {
     payload.hadKey = Boolean(await settings.apiKey.getValue());
+  }
+
+  // Whose key just ran out. The UI has no way to know — the key never reaches
+  // it — and the answer decides between two messages with nothing in common.
+  if (failure.kind === 'key_exhausted') {
+    payload.keyIsOurs = await trialKeyIsOurs.getValue();
+    // This refusal is the only trustworthy notice that the trial is over, so it
+    // is written down here rather than re-derived later from what the API says
+    // is left on the key. See `spent` in lib/trial.ts.
+    if (payload.keyIsOurs) await trialSpent.setValue(true);
   }
 
   if (failure.kind === 'rate_limited') {

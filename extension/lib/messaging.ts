@@ -94,6 +94,10 @@ export interface FailurePayload {
   rateLimit?: RateLimitFacts;
   /** Present on `unauthorized`: false means no key was ever stored. */
   hadKey?: boolean;
+  /** Present on `key_exhausted`: true means the key that ran out was the trial's. */
+  keyIsOurs?: boolean;
+  /** Present when no key is stored: whether the free trial is still on offer. */
+  trialAvailable?: boolean;
 }
 
 /** Background → content script, over the generate port. */
@@ -111,13 +115,24 @@ export type GenerateServerMessage =
    * `truncated` when the model stopped because it ran out of room, not because
    * it finished.
    *
-   * `nudge` carries a milestone the counter just crossed — 20, 40, 60 — and is
-   * absent on every other reply, which is nineteen out of twenty. The worker
-   * decides it rather than the content script because it is the only single
-   * writer: two tabs finishing at the same instant would otherwise both claim
-   * the same milestone and open two cards. See `takeNudge` in lib/replies.ts.
+   * `nudge` carries a milestone the counter just crossed — 50, 100, 150 — and
+   * is absent on every other reply, which is forty-nine out of fifty. `review`
+   * says the review block is due, which happens every fortieth reply until
+   * somebody answers it and then never again.
+   *
+   * The worker decides both rather than the content script because it is the
+   * only single writer: two tabs finishing at the same instant would otherwise
+   * both claim the same milestone and raise it twice. It also never sends both
+   * in one message. See `takeNudge` and `takeReview` in lib/replies.ts.
    */
-  | { type: 'done'; text: string; usage?: TokenUsage; truncated?: boolean; nudge?: number }
+  | {
+      type: 'done';
+      text: string;
+      usage?: TokenUsage;
+      truncated?: boolean;
+      nudge?: number;
+      review?: true;
+    }
   | ({ type: 'error' } & FailurePayload);
 
 /** One-shot request/response pairs, sent with `chrome.runtime.sendMessage`. */
@@ -126,6 +141,11 @@ export type Request =
   | { type: 'auth:connect' }
   | { type: 'auth:disconnect' }
   | { type: 'auth:setKey'; apiKey: string }
+  /**
+   * Ask for the free trial key (#38). Answers with what happened, never with
+   * the key — a key belongs in the background worker and nowhere else.
+   */
+  | { type: 'trial:claim' }
   /** The catalogue, from cache unless `refresh` says to go and ask again. */
   | { type: 'models:list'; refresh?: boolean }
   /** Check one id against the catalogue and return what it says about it. */

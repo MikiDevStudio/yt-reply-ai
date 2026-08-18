@@ -8,6 +8,16 @@
 export type OpenRouterErrorKind =
   /** No key, revoked key, or wrong key. Action: reconnect. */
   | 'unauthorized'
+  /**
+   * The key has spent everything it was allowed to spend.
+   *
+   * Apart from `unauthorized` even though both arrive as 403, and apart from
+   * `no_credits` even though both are about money: the cap here is on the key
+   * rather than on the account behind it, so topping the account up changes
+   * nothing. What to offer depends on whose key it is — see `keyIsOurs` in
+   * lib/failure.ts.
+   */
+  | 'key_exhausted'
   /** Account or key credit limit reached. Action: top up. */
   | 'no_credits'
   /** Too many requests. Free-tier models allow 20/min and 50/day. */
@@ -89,7 +99,7 @@ export class OpenRouterError extends Error {
   /** Map an HTTP failure onto a kind. */
   static fromResponse(status: number, body: string, headers?: Headers): OpenRouterError {
     const { message, limitSource, resetSeconds } = readErrorBody(body);
-    return new OpenRouterError(kindForStatus(status), message ?? `HTTP ${status}`, {
+    return new OpenRouterError(kindForStatus(status, message), message ?? `HTTP ${status}`, {
       status,
       // The body first: a rate-limited response carries its reset inside
       // `metadata.headers` and sends no rate-limit headers of its own — checked
@@ -119,17 +129,28 @@ export class OpenRouterError extends Error {
         ? error.message
         : 'The model provider failed mid-response';
 
-    return new OpenRouterError(status ? kindForStatus(status) : 'upstream', message, {
+    return new OpenRouterError(status ? kindForStatus(status, message) : 'upstream', message, {
       status,
       ...readMetadata(error.metadata),
     });
   }
 }
 
-function kindForStatus(status: number): OpenRouterErrorKind {
+/**
+ * What an exhausted key says, as opposed to a revoked one.
+ *
+ * Both are 403 and only the text separates them: a key that has spent its limit
+ * comes back as "Key limit exceeded (total limit)", checked against a live key
+ * pushed over its cap. Matched loosely because the parenthetical varies with
+ * which limit ran out, and the leading words are the part that identifies it.
+ */
+const KEY_EXHAUSTED = /key limit exceeded/i;
+
+function kindForStatus(status: number, message?: string): OpenRouterErrorKind {
   switch (status) {
-    case 401:
     case 403:
+      return message && KEY_EXHAUSTED.test(message) ? 'key_exhausted' : 'unauthorized';
+    case 401:
       return 'unauthorized';
     case 402:
       return 'no_credits';

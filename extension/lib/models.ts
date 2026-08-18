@@ -13,6 +13,24 @@ export const MODEL_PRESETS = {
   /**
    * Default. $1.50 in / $7.50 out, and it thinks before answering: measured at
    * $0.0003 per reply with reasoning held to `minimal`, $0.0041 without.
+   *
+   * What it costs in practice is neither of those. `reasoningFor` sends `low`
+   * on the reply people actually see, and that measured at $0.00125 until the
+   * reply prompt grew the rules that keep a reply from reading as generated
+   * (see `lib/prompt.ts`). Two runs after them: $0.0017 and $0.0020.
+   *
+   * **Quote ~$0.002.** Rounded up on purpose, and the number to use wherever a
+   * price per reply appears — the trial's spend limit, the landing page, the
+   * onboarding copy.
+   *
+   * Do not read a change in this figure as a change in the prompt. The second
+   * run above was the more expensive one against a prompt 200 characters
+   * *shorter* than the first: what a reply costs is decided by how much the
+   * model chooses to think, and a single run spans $0.0010 to $0.0031 across
+   * four comments. Quoting it to the last digit claims precision the
+   * measurement does not have; quoting it low makes a promise the next reply
+   * can break. `npm run measure` re-runs it, and `npm run eval` is what says
+   * whether a prompt change bought anything.
    */
   balanced: 'google/gemini-3.6-flash',
   /** $0.25 in / $1.50 out, no reasoning — measured at $0.00005 per reply. */

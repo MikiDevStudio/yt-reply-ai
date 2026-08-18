@@ -18,8 +18,19 @@ export type GenerateOptions = Omit<
 export type GenerationState =
   | { status: 'idle' }
   | { status: 'streaming'; text: string }
-  /** `nudge` is a milestone the reply counter crossed. See `messaging.ts`. */
-  | { status: 'done'; text: string; usage?: TokenUsage; truncated?: boolean; nudge?: number }
+  /**
+   * `nudge` is a milestone the reply counter crossed and `review` says the
+   * review block is due. Both are carried through untouched for the popover to
+   * act on; see `messaging.ts`.
+   */
+  | {
+      status: 'done';
+      text: string;
+      usage?: TokenUsage;
+      truncated?: boolean;
+      nudge?: number;
+      review?: true;
+    }
   /** `facts.partial` carries whatever streamed in before the failure. */
   | { status: 'error'; facts: FailureFacts };
 
@@ -73,6 +84,7 @@ export function useGeneration() {
               usage: message.usage,
               truncated: message.truncated,
               nudge: message.nudge,
+              review: message.review,
             });
             disconnect();
             break;

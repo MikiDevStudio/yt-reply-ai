@@ -3,6 +3,11 @@
 .env.*
 !.env.example
 
+# The Worker's local secrets. `wrangler dev` reads this file the way the
+# deployed Worker reads `wrangler secret put` — same value, no repository.
+.dev.vars
+.dev.vars.*
+
 # MCP server config: it carries the n8n API key inline, in plain text
 .mcp.json
 
@@ -15,6 +20,11 @@ docs/stitch_smart_youtube_ai_replies/
 
 # Extension signing key — losing it is survivable, leaking it is not
 .keys/
+
+# The licence signing key's private half, as written by
+# worker/scripts/generate-licence-key.mjs. Leaking it means anyone can mint
+# entitlements; losing it after codes are in the wild means nobody can.
+worker/.licence-signing-key
 
 # Infrastructure notes: workflow definitions, host names, resource ids. No
 # secrets in them, but the repository is public and none of it is anyone else's
@@ -37,6 +47,7 @@ node_modules/
 .output/
 .wxt/
 .astro/
+.wrangler/
 dist/
 *.zip
 
@@ -62,3 +73,7 @@ Thumbs.db
 !site/**/*.png
 !site/**/*.jpg
 
+# Reference comments pulled from YouTube to tune the reply prompt against. Real
+# people's writing, under their own display names, on a public repository: kept
+# on disk and not published, the same as the notes above.
+research/

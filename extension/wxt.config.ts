@@ -41,7 +41,12 @@ export default defineConfig({
 
     // Listing openrouter.ai here lets the background service worker call the API
     // without being subject to the page's CORS rules. Never widen this to <all_urls>.
-    host_permissions: ['https://openrouter.ai/*'],
+    //
+    // api.mikidev.app is ours, and is touched once per install: it issues the
+    // trial key (#38) and, later, activates a licence (#39). Replies never go
+    // there — every generation goes straight to openrouter.ai — so an outage on
+    // our side cannot stop an install that already has a key.
+    host_permissions: ['https://openrouter.ai/*', 'https://api.mikidev.app/*'],
 
     // `options_ui` is not set here on purpose. WXT generates it from the options
     // entrypoint and overrides whatever this config says, so `open_in_tab` lives
