@@ -12,6 +12,7 @@ import {
 import { connectWithOAuth } from '@/lib/openrouter/auth';
 import { fetchKeyInfo, fetchModel, fetchModels, streamCompletion } from '@/lib/openrouter/client';
 import { OpenRouterError } from '@/lib/openrouter/errors';
+import { licensed } from '@/lib/licence';
 import { angleFor, buildReplyPrompt, buildSoulPrompt, creativityPreset } from '@/lib/prompt';
 import { countReply, takeNudge } from '@/lib/replies';
 import * as settings from '@/lib/settings';
@@ -220,10 +221,17 @@ async function generate(
     // comment finds it already counted and is free.
     await countReply(comment);
 
-    // Claimed here, in the one process that is a single writer for it. The
-    // preference is read first so that someone who has switched the card off
-    // never burns a milestone they will not be shown.
-    const nudge = (await settings.supportNudges.getValue()) ? await takeNudge() : null;
+    // Claimed here, in the one process that is a single writer for it. Both
+    // gates are read first so that someone who will not be shown a card never
+    // burns a milestone on one.
+    //
+    // The licence is the gate that matters and it is checked rather than
+    // mirrored into the local flag: an entitlement arrives through
+    // `chrome.storage.sync`, so on a second machine it is there before anything
+    // local has been written, and a card shown to somebody who has paid is the
+    // worst version of this feature.
+    const quiet = (await licensed()) || !(await settings.supportNudges.getValue());
+    const nudge = quiet ? null : await takeNudge();
 
     post(port, {
       type: 'done',

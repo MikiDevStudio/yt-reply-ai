@@ -2,7 +2,7 @@
 import CoffeeButton from '../components/CoffeeButton.astro';
 import Micro from '../components/Micro.astro';
 import Base from '../layouts/Base.astro';
-import { CONTACT_EMAIL, ISSUES_URL, IN_STORE, SOURCE_URL, STORE_REVIEW_URL } from '../lib/links';
+import { ISSUES_URL, IN_STORE, SOURCE_URL, STORE_REVIEW_URL } from '../lib/links';
 
 /**
  * Where the thank-you card's two buttons land.
@@ -33,8 +33,8 @@ import { CONTACT_EMAIL, ISSUES_URL, IN_STORE, SOURCE_URL, STORE_REVIEW_URL } fro
     </h1>
 
     <p id="intro" class="mt-6 max-w-2xl border-l-2 border-accent pl-4 text-[16px] leading-[1.7] text-white/70">
-      Nothing was sent when you clicked — the extension has no server and reports nothing. That
-      button opened this page and that is all it did. If you have thirty seconds, one of the two
+      Nothing was sent when you clicked — the extension reports nothing, ever. That button opened
+      this page and that is all it did. If you have thirty seconds, one of the two
       below is worth more than any rating widget.
     </p>
   </section>
@@ -70,7 +70,7 @@ import { CONTACT_EMAIL, ISSUES_URL, IN_STORE, SOURCE_URL, STORE_REVIEW_URL } fro
         </p>
         <div class="mt-auto flex flex-wrap gap-3">
           <a class="btn-secondary" href={ISSUES_URL} rel="noreferrer">Open an issue</a>
-          <a class="btn-ghost" href={`mailto:${CONTACT_EMAIL}?subject=Reply%20AI`}>Email me</a>
+          <a class="btn-ghost" href="/contact?from=feedback">Write to me</a>
         </div>
       </div>
     </div>
@@ -80,8 +80,8 @@ import { CONTACT_EMAIL, ISSUES_URL, IN_STORE, SOURCE_URL, STORE_REVIEW_URL } fro
       <p class="max-w-xl text-[15px] leading-[1.7] text-white/70">
         The extension is free, unlimited, has no account and no upsell, and it stays that way
         whichever button you pressed. If you would rather say thank you in the other currency, the
-        tea button is here — and the card in the extension can be switched off for good from inside
-        itself.
+        coffee button is here — and it buys nothing, changes nothing, and unlocks nothing. That is
+        the point of it.
       </p>
       <CoffeeButton />
     </div>

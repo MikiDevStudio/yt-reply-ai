@@ -59,45 +59,52 @@ export function About() {
         </div>
       </Section>
 
-      {/* The donation block, and the whole of the product's ask (#36). There is
-          no cap to lift and nothing to unlock, so this is the only sentence in
-          the extension that mentions money at all — which is exactly why it is
-          allowed to be a real button rather than a line of grey text. */}
+      {/* The donation block, and the whole of the product's ask (#36). A coffee
+          buys nothing and unlocks nothing — that is deliberate and it is what
+          keeps this a donation rather than a sale — so it is allowed to be a
+          real button rather than a line of grey text. */}
       <Section
         n={3}
         title="Support this extension"
-        description="Free, unlimited, no account, and it runs on your own key — so nobody is billed for what you write. If it saves you an evening of typing, a tea is how it stays that way."
+        description="Free, unlimited, no account, and it runs on your own key — so nobody is billed for what you write. If it saves you an evening of typing, a coffee is how it stays that way."
       >
-        <CoffeeButton className="self-start" />
-
         {/* Stated plainly rather than offered as a switch. The card is what the
             free version costs, so a checkbox here would be a checkbox for
             paying nothing — and someone who finds it in the way deserves to
             read why it is there rather than only how to be rid of it. */}
+        <CoffeeButton className="self-start" />
+
         <div className="flex flex-col gap-2 border-t border-line pt-4 text-sm">
           <span className="font-medium">Once every {NUDGE_EVERY} replies, a card appears</span>
           <p className="text-base-content/70">
-            Over the comment you are answering, as the reply lands: the count, one question, this
-            same button, and a way to tell me what is broken. It reports nothing and it closes with
-            Escape. It is the only thing this extension ever asks for — there is no cap to lift, no
-            metered anything, and no second ask anywhere else. A paid plan will switch it off.
+            Over the comment you are answering, as the reply lands: the count, one question, a
+            coffee button, and a way to tell me what is broken. It reports nothing and it closes
+            with Escape. It is the only thing this extension ever asks for — there is no cap to
+            lift, no metered anything, and no second ask anywhere else. A coffee does not switch it
+            off: nothing you can pay for changes anything here, which is exactly why the button
+            above is a thank-you and not a checkout.
           </p>
-          <a
-            className="link text-sm text-base-content/50"
-            href={waitlistUrl('settings')}
-            target="_blank"
-            rel="noreferrer"
-          >
-            What a paid plan would add
-          </a>
+          <div className="flex flex-wrap items-center gap-4 pt-1">
+            <a className={SECONDARY} href="#/licence">
+              Enter a licence code
+            </a>
+            <a
+              className="link text-sm text-base-content/50"
+              href={waitlistUrl('settings')}
+              target="_blank"
+              rel="noreferrer"
+            >
+              What Pro would add
+            </a>
+          </div>
         </div>
 
         <div className="flex flex-wrap items-center gap-4 text-sm">
           <a className={GHOST} href={ISSUES_URL} target="_blank" rel="noreferrer">
             Report a problem
           </a>
-          <a className={GHOST} href={CONTACT_URL}>
-            Email me
+          <a className={GHOST} href={CONTACT_URL} target="_blank" rel="noreferrer">
+            Write to me
           </a>
         </div>
       </Section>

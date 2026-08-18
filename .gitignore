@@ -21,6 +21,11 @@ docs/stitch_smart_youtube_ai_replies/
 # Extension signing key — losing it is survivable, leaking it is not
 .keys/
 
+# The licence signing key's private half, as written by
+# worker/scripts/generate-licence-key.mjs. Leaking it means anyone can mint
+# entitlements; losing it after codes are in the wild means nobody can.
+worker/.licence-signing-key
+
 # Infrastructure notes: workflow definitions, host names, resource ids. No
 # secrets in them, but the repository is public and none of it is anyone else's
 # business. Kept on disk, and stripped from the history for the same reason as

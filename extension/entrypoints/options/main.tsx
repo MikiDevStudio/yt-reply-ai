@@ -8,6 +8,7 @@ import { Generation } from './sections/Generation';
 import { Models } from './sections/Models';
 import { Pro } from './sections/Pro';
 import { Soul } from './sections/Soul';
+import { Licence } from './sections/Licence';
 
 // Extension pages are our own documents, so the theme goes on <html> as usual —
 // unlike injected UI, which has to carry it inside a shadow root.
@@ -32,6 +33,7 @@ ReactDOM.createRoot(document.getElementById('root')!).render(
         <Route path="/soul" element={<Soul />} />
         <Route path="/generation" element={<Generation />} />
         <Route path="/models" element={<Models />} />
+        <Route path="/licence" element={<Licence />} />
         <Route path="/pro" element={<Pro />} />
         <Route path="/about" element={<About />} />
         {/* A stale bookmark should land somewhere, not on a blank page. */}

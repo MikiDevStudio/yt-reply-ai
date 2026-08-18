@@ -113,7 +113,7 @@ const context = [
 const faq = [
   {
     q: 'Is there a limit?',
-    a: 'No. There was one — 50 replies a day — and it was removed: the only thing it measured was how many people it stopped in the middle of a comment section. What is left is a card that appears over the comment section every twentieth reply, as the answer lands, asking one question and pointing at a tea. It closes with Escape and reports nothing, and a paid plan switches it off. That is the whole of what the free version costs.',
+    a: 'No. There was one — 50 replies a day — and it was removed: the only thing it measured was how many people it stopped in the middle of a comment section. What is left is a card that appears over the comment section every twentieth reply, as the answer lands, asking one question and pointing at a coffee. It closes with Escape and reports nothing, and a coffee switches it off for good. That is the whole of what the free version costs.',
   },
   {
     q: 'What does it cost to run?',
@@ -121,7 +121,7 @@ const faq = [
   },
   {
     q: 'Do you see my comments?',
-    a: 'No, and there is no place for them to arrive: the extension has no server. The comment goes from your browser to OpenRouter on your own key, and to whichever model provider you picked. We are not in that path and never see a request.',
+    a: 'No, and there is no place for them to arrive: nothing of ours sits in that path. The comment goes from your browser to OpenRouter on your own key, and to whichever model provider you picked. We do have one service — it hands a new install its trial key and turns a supporter code into a licence — and it never sees a comment, a reply or a request to generate one.',
   },
   {
     q: 'Will it post replies automatically?',
@@ -140,7 +140,7 @@ const faq = [
 
 <Base
   title="Reply AI — replies to your YouTube comments, in your own voice"
-  description="A Chrome extension that drafts replies to YouTube comments in your voice, on your own OpenRouter key. No account, no server, no daily limit."
+  description="A Chrome extension that drafts replies to YouTube comments in your voice, on your own OpenRouter key. No account, no daily limit, and nothing of ours in the path of a reply."
   links={links}
 >
   <!-- ══ 00 · Hero ══════════════════════════════════════════════════════ -->
@@ -500,7 +500,7 @@ const faq = [
   <section id="privacy" class="mx-auto max-w-6xl px-5 pb-24 pt-8" data-reveal>
     <Micro n="06" label="privacy" />
     <h2 class="mt-6 max-w-2xl text-[32px] font-semibold leading-[1.15] tracking-[-0.02em] sm:text-[38px]">
-      There is no server <span class="text-white/55">to be trusted with anything.</span>
+      No server <span class="text-white/55">is ever in the path of a reply.</span>
     </h2>
 
     <div class="mt-10 grid gap-6 md:grid-cols-3">
@@ -514,8 +514,10 @@ const faq = [
       <div class="card flex flex-col gap-3">
         <span class="micro">no telemetry</span>
         <p class="text-[14px] leading-[1.65] text-white/70">
-          No usage pings, no error reports, no install beacon. The one host it may contact is
-          openrouter.ai, and the manifest is scoped so it cannot reach another.
+          No usage pings, no error reports, no install beacon. Two hosts are reachable at all and
+          the manifest is scoped so no third can be: openrouter.ai, where the replies are written,
+          and one of ours — touched at most twice in the life of an install, and only when you
+          press something.
         </p>
       </div>
       <div class="card flex flex-col gap-3">
@@ -526,6 +528,13 @@ const faq = [
         </p>
       </div>
     </div>
+
+    <p class="mt-6 max-w-2xl text-[14px] leading-[1.7] text-white/45">
+      Ours is contacted twice at most: once for the free trial key, once to turn a supporter code
+      into a licence. Neither carries a word of anybody's comment, neither happens unless you press
+      something, and after them the extension never speaks to us again — a licence is checked
+      against a key that ships inside the extension, so it keeps working whatever happens to us.
+    </p>
 
     <p class="mt-6 text-[14px] text-white/45">
       The full policy — every stored item, every field of every request — is on the
@@ -544,11 +553,11 @@ const faq = [
       Free, and <span class="text-white/55">not the kind that runs out.</span>
     </h2>
 
-    <div class="mx-auto mt-10 grid max-w-4xl gap-6 md:grid-cols-2">
+    <div class="mx-auto mt-10 grid max-w-6xl gap-6 md:grid-cols-3">
       <!-- The real product. It gets the solid button, because it is the one
-           thing on this page anybody can actually have today. -->
+           thing on this page anybody can have without paying. -->
       <div class="flex flex-col gap-5 border border-line-hi bg-surface p-7">
-        <div class="flex items-baseline gap-2">
+        <div class="flex flex-col gap-1">
           <h3 class="text-[24px] font-semibold tracking-[-0.02em]">Free</h3>
           <span class="micro">everything, on your own key</span>
         </div>
@@ -561,7 +570,8 @@ const faq = [
               'Unlimited replies — no daily cap, no counter to watch',
               'Every tone, every model, every control in the panel',
               'Soul profile, retries, languages, YouTube Studio',
-              'Models billed by OpenRouter at cost, or free variants for nothing',
+              'About thirty replies to start with, on our key, before any account exists',
+              'After that, models billed by OpenRouter at cost — or free variants for nothing',
             ].map((line) => (
               <li class="flex gap-3">
                 <span aria-hidden="true" class="mt-2 size-1.5 shrink-0 rounded-full bg-accent" />
@@ -579,12 +589,49 @@ const faq = [
         </a>
       </div>
 
+      <!-- Support. A donation card, and the hardest one on the page to write:
+           it has to be worth pressing while promising nothing at all. The
+           moment it promises something, a coffee stops being a donation and
+           becomes a sale — with VAT, Trader status and a right of withdrawal
+           behind it. So the bullets say what the money pays for, never what the
+           payer receives. Its button is Buy Me a Coffee's own mark rather than a
+           second solid button of ours (brand.md §1). -->
+      <div class="flex flex-col gap-5 border border-line bg-surface p-7">
+        <div class="flex flex-col gap-1">
+          <h3 class="text-[24px] font-semibold tracking-[-0.02em]">Support</h3>
+          <span class="micro">a coffee, buying nothing</span>
+        </div>
+        <p class="font-mono text-[28px] leading-none">
+          a coffee<span class="text-[15px] text-white/45"> / if you feel like it</span>
+        </p>
+        <ul class="flex flex-col gap-3 text-[14px] text-white/70">
+          {
+            [
+              'Nothing changes in the extension. There is no tier here to unlock',
+              'It pays for the trial keys new installs run on — those are real cents, spent by us',
+              'And for the domain, the mail and the small service behind them',
+              'Once, never, or whenever. The product is the same either way',
+            ].map((line) => (
+              <li class="flex gap-3">
+                <span aria-hidden="true" class="mt-2 size-1.5 shrink-0 rounded-full bg-line-hi" />
+                {line}
+              </li>
+            ))
+          }
+        </ul>
+        <p class="text-[13px] leading-[1.6] text-white/45">
+          This is a thank-you, not a purchase — there is nothing here to buy, and pressing it buys
+          nothing. The free column above is the whole product.
+        </p>
+        <CoffeeButton class="mt-auto w-full justify-center" />
+      </div>
+
       <!-- Pro. Outlined, never filled: nothing here is for sale and the card
            must not read as a checkout. -->
       <div class="flex flex-col gap-5 border border-line bg-surface/60 p-7">
-        <div class="flex items-baseline gap-2">
+        <div class="flex flex-col gap-1">
           <h3 class="text-[24px] font-semibold tracking-[-0.02em]">Pro</h3>
-          <span class="micro !text-accent">unbuilt</span>
+          <span class="micro">unbuilt</span>
         </div>
         <p class="font-mono text-[28px] leading-none text-white/45">
           —<span class="text-[15px]"> / undecided</span>
@@ -592,10 +639,9 @@ const faq = [
         <ul class="flex flex-col gap-3 text-[14px] text-white/70">
           {
             [
-              'No card every twentieth reply — included in any plan',
-              'A key we provision, so there is no OpenRouter account to set up',
               'A scanner that points at the comments worth answering',
               'Bulk drafting for a whole page of comments',
+              'A key we provision, so there is no OpenRouter account to set up',
               'Saved voices — a channel, a client, a second language',
             ].map((line) => (
               <li class="flex gap-3">
@@ -613,16 +659,28 @@ const faq = [
       </div>
     </div>
 
-    <!-- The support strip. The only ask on the page, and it is for nothing in
-         return — the product does not change if you press it. -->
-    <div class="mx-auto mt-10 flex max-w-4xl flex-col items-center gap-4 border border-line bg-surface p-8 text-center">
-      <span class="micro">no upsell, one tea</span>
-      <p class="max-w-xl text-[15px] leading-[1.7] text-white/70">
-        The cap is gone. What replaced it is one card, every twentieth reply, over the comment you
-        are answering — it asks once, closes with Escape, and reports nothing. If the extension
-        saves you an evening of typing, this is the shorter way to answer it.
-      </p>
-      <CoffeeButton />
+    <!-- The argument the columns cannot make on their own. Two sentences, and
+         the number in the first is the one measured in the extension's own
+         repository — see `npm run measure`. -->
+    <div class="mx-auto mt-10 grid max-w-6xl gap-6 md:grid-cols-2">
+      <div class="flex flex-col gap-3 border border-line bg-surface p-7">
+        <span class="micro">why free has no cap</span>
+        <p class="text-[15px] leading-[1.7] text-white/70">
+          Because the replies run on your own OpenRouter key. Metering them would be metering
+          something you already pay for, so there is no cap to lift and no number that could ever be
+          worth selling you. One did ship, at fifty replies a day, and the only thing it measured
+          was how many people it stopped in the middle of a comment section.
+        </p>
+      </div>
+      <div class="flex flex-col gap-3 border border-line bg-surface p-7">
+        <span class="micro">what a reply actually costs</span>
+        <p class="text-[15px] leading-[1.7] text-white/70">
+          About <span class="font-mono text-white">$0.00125</span> on the default model — measured,
+          not estimated — paid to OpenRouter at cost with nothing added by us. The first thirty or
+          so are on our key and need no account at all, which makes the price of finding out
+          exactly nothing. Those thirty are what a coffee pays for, for somebody else.
+        </p>
+      </div>
     </div>
   </section>
 

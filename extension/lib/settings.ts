@@ -84,14 +84,20 @@ export const enabled = storage.defineItem<boolean>('local:enabled', {
  *
  * On, and deliberately with no control anywhere in the interface that turns it
  * off: the card is what the free version costs, and a tick box beside it would
- * be a tick box for paying nothing. It exists as a stored flag rather than a
- * constant because a paid plan is what flips it — the licence check writes here
- * and everything else keeps working unchanged.
+ * be a tick box for paying nothing.
+ *
+ * It is **not** what a licence writes. A Supporter entitlement lives in `sync`
+ * so it reaches the buyer's other machines, and the background worker asks
+ * `lib/licence.ts` directly before claiming a milestone — mirroring the answer
+ * into this local flag would leave a paid-for card showing on the second
+ * machine until something happened to write it. What survives here is the
+ * escape hatch: a value anyone can set to `false` in `chrome.storage` if they
+ * want the card gone without paying, which is a door left deliberately unlocked.
  *
  * Read in the background worker, which is where the milestone is claimed, so a
  * user who has it off never burns one.
  *
- * `local`, like every other preference: an entitlement is about this install.
+ * `local`, like every other preference: it describes this install.
  */
 export const supportNudges = storage.defineItem<boolean>('local:support.nudges', {
   fallback: true,

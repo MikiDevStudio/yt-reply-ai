@@ -10,7 +10,7 @@ viewer's own entry point, a button in the "Add a comment" box, is still phase 2 
 
 ```
 extension/          the Chrome extension (WXT + React + TypeScript + Tailwind)
-worker/             the trial Worker (Cloudflare) — issues the free trial key
+worker/             the Worker (Cloudflare) — trial keys, and licences
 landing/            the website's source (Astro + Tailwind) — edit here
 site/               the website, built from landing/ and committed — do not edit
 docs/               design notes and decisions
@@ -45,12 +45,15 @@ putting an API key in a content script exposes it to the page. The content scrip
 sends messages; the worker owns the key and the network.
 
 **`host_permissions` is scoped to `https://openrouter.ai/*` and
-`https://api.mikidev.app/*`.** Never `<all_urls>`. The second is our trial Worker,
-touched once per install; every generation goes straight to OpenRouter.
+`https://api.mikidev.app/*`.** Never `<all_urls>`. The second is our Worker,
+touched once per install for the trial and once more if that person buys a
+licence; every generation goes straight to OpenRouter.
 
 **Secrets live in `chrome.storage.local`, never `sync`.** `storage.sync` uploads to
 Google's servers and caps at 8 KB per item / 100 KB total — a soul profile alone can
-exceed that. Only small UI preferences go in `sync`.
+exceed that. Only small UI preferences go in `sync` — and the licence, which is
+the one thing that is *supposed* to travel between a person's machines and names
+nobody. No API key ever goes there, the trial's included.
 
 **No API key is ever bundled.** `OPENROUTER_API_KEY` in `.env` is for local smoke tests
 only; extension source must not reference it. A `.crx` is trivially unpackable.
@@ -92,12 +95,18 @@ Context is tiered and user-controlled:
 | L1 | + video title, channel, parent comment | ~500 tokens |
 | L2 | + video description / summary | first call only |
 
-A retry is not free. The first attempt runs with reasoning held to `minimal`; every
-attempt after it gets `low`, because pressing the button again says the obvious answer
-missed and finding a different one is the work thinking pays for. Measured on
-`gemini-3.6-flash`: $0.0005 for the first reply, ~$0.0055 for each retry. Holding every
-attempt at `minimal` costs ~$0.0008 and still varies — the angle deck does most of that
-work — but the replies are noticeably flatter.
+A retry is not free. `reasoningFor` in `background.ts` sends `low` on the first attempt
+and `medium` on every attempt after it — pressing the button again says the obvious
+answer missed, and finding a different one is the work thinking pays for. Free models
+stay at `low` throughout, since their cost is a request quota rather than tokens.
+
+**A reply costs about $0.00125** on `gemini-3.6-flash`, measured at the effort the first
+attempt actually sends: `npm run measure` re-runs it over four comments and prints the
+mean. That is the number to quote wherever a price per reply is quoted — the trial's
+$0.04 limit is thirty of them, and the landing page and the onboarding copy say the same
+figure. The older $0.0003 in `lib/models.ts` was measured at `minimal`, which the product
+does not send; a retry at `medium` costs several times the first reply and has not been
+re-measured since the tier changed.
 
 The video-level context is fetched once per `videoId`, cached in `storage.session`, and
 reused across every comment on that video. With OpenRouter's prompt-caching pass-through
@@ -129,16 +138,45 @@ rather than the error one.
 
 | Tier | What | Backend needed |
 |---|---|---|
-| Trial | our own capped key, ~30 replies, no account | the trial Worker |
+| Trial | our own capped key, ~30 replies, no account | the Worker |
 | Free | OpenRouter OAuth, `:free` models (OpenRouter's own 50/day) | none |
 | BYOK | same OAuth, paid models, user pays OpenRouter directly | none |
+| Licence | a gift code: the thank-you card never appears again. Not for sale | the Worker, once |
 | Pro | provisioned OpenRouter key with a spend limit, profile sync, bulk mode | minimal |
 
 **We impose no limit of our own.** A daily cap of 50 replies shipped and was
 removed: the only thing it measured was how many people it stopped. What is
 left is a counter (`extension/lib/replies.ts`) that gates nothing and, every
 twenty replies, offers a card saying thank you with a Buy Me a Coffee button and
-two feedback links. Donations and the Pro waitlist are the whole of the ask.
+two feedback links. That card is the whole of the ask, and Supporter is the whole
+of what is for sale.
+
+**Nothing is sold, and that is a design decision rather than a stage.** A coffee
+buys nothing: it unlocks no tier, silences no card and changes nothing about the
+extension for the person who pressed it. The moment it did any of those, it would
+stop being a donation and become a supply for consideration — with VAT, a Trader
+declaration on the Store listing and a statutory right of withdrawal attached to
+it. Three shapes that would have crossed that line were designed and dropped: a
+$12 tier, "any coffee returns a code", and "a coffee stops the card appearing".
+
+**Licence codes exist, and they are gifts.** They go out in giveaways under promo
+videos and by hand, at nobody's entitlement; a code switches the thank-you card
+off, and later unlocks multiple soul profiles (#12) and profile export (#33). The
+three conditions that keep this a gift rather than a sale: it is offered nowhere,
+it is never guaranteed in exchange for money, and the extension behaves
+identically for everyone who has not been given one.
+
+The mechanism is in `worker/README.md`, and the two things worth knowing here are
+that **an activated licence never contacts us again** — it is verified against a
+public key that ships in the extension, so shutting the Worker down cannot take
+one back — and that **nothing on our side can say who has one**. See
+`extension/lib/licence.ts` and `worker/src/licences.ts`.
+
+`worker/src/bmc.ts` turns a Buy Me a Coffee purchase into a code automatically.
+**It is finished, tested and deliberately not wired up** — no webhook exists in
+their dashboard — because wiring it is precisely what would make a coffee a
+purchase. It is kept for the day selling is set up properly, and that day needs a
+merchant of record: Buy Me a Coffee is explicitly not one.
 
 The only server is the trial Worker, and it exists so a first run can end in a
 reply. It is not a proxy and must not become one: no comment text passes through

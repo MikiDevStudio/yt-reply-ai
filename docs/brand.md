@@ -145,7 +145,7 @@ and the only place any surface of ours asks for money. It is drawn from their pu
 parameters rather than loaded from their CDN: MV3's CSP forbids remote code, and their
 script also pulls a display face from a font host, which is a request we do not make
 anywhere. Everything but that face is reproduced (`components/CoffeeButton.tsx`); the
-words are theirs to configure and currently read *Buy me a tea*.
+words are theirs to configure and currently read *Buy me a coffee*.
 
 ### Data and charts
 

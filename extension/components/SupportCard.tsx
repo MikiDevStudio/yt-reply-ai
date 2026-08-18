@@ -3,6 +3,7 @@ import { useState } from 'react';
 import { CoffeeButton } from '@/components/CoffeeButton';
 import { GHOST, ICON, MICRO, MICRO_TYPE, SECONDARY } from '@/components/ui';
 import { CONTACT_URL, feedbackUrl, ISSUES_URL, type Rating } from '@/lib/feedback';
+import { sendRequest } from '@/lib/messaging';
 import { waitlistUrl } from '@/lib/pro';
 import { NUDGE_EVERY } from '@/lib/replies';
 
@@ -91,7 +92,7 @@ export function SupportCard({ count, onClose }: SupportCardProps) {
       <div className="flex flex-col gap-3 border-t border-line pt-4">
         <p className="text-base-content/70">
           Reply AI is free, has no account and no limit, and runs on your own key. If it saves you
-          an evening of typing, a tea is how it stays that way.
+          an evening of typing, a coffee is how it stays that way.
         </p>
         <CoffeeButton className="self-start" />
       </div>
@@ -102,9 +103,9 @@ export function SupportCard({ count, onClose }: SupportCardProps) {
           <MessageSquareWarning className="size-4" />
           Open an issue
         </a>
-        <a className={GHOST} href={CONTACT_URL}>
+        <a className={GHOST} href={CONTACT_URL} target="_blank" rel="noreferrer">
           <Mail className="size-4" />
-          Email
+          Write to me
         </a>
       </div>
 
@@ -117,14 +118,23 @@ export function SupportCard({ count, onClose }: SupportCardProps) {
         <span className={MICRO}>
           shown every {NUDGE_EVERY} replies · nothing is sent from here
         </span>
-        <a
-          className="text-[13px] text-base-content/45 underline decoration-line-hi underline-offset-4 transition-colors duration-150 hover:text-base-content"
-          href={waitlistUrl('nudge')}
-          target="_blank"
-          rel="noreferrer"
-        >
-          A paid plan will turn this card off — here is what else it would add
-        </a>
+        <div className="flex flex-wrap items-center gap-x-4 gap-y-1">
+          <button
+            type="button"
+            className="text-[13px] text-base-content/45 underline decoration-line-hi underline-offset-4 transition-colors duration-150 hover:text-base-content"
+            onClick={() => void sendRequest({ type: 'ui:openOptions', section: '/licence' })}
+          >
+            Have a licence code? Enter it here
+          </button>
+          <a
+            className="text-[13px] text-base-content/45 underline decoration-line-hi underline-offset-4 transition-colors duration-150 hover:text-base-content"
+            href={waitlistUrl('nudge')}
+            target="_blank"
+            rel="noreferrer"
+          >
+            What Pro would add
+          </a>
+        </div>
       </div>
     </div>
   );

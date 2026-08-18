@@ -26,6 +26,7 @@ const stored = [
   ['Video descriptions', 'Session, cleared when the browser closes', 'Avoids re-reading the same page for every reply on it'],
   ['Reply counter', 'Synced storage', 'Counts what you have written. It gates nothing — see the note below'],
   ['Install id', 'Local, on this device', 'A random number this copy of the extension gives itself, used once to ask for a free trial key. Only created if you take the trial'],
+  ['Supporter licence', 'Synced storage', 'The signed licence a code turns into, if you bought one. It names what was bought and when it expires, and nobody at all'],
 ];
 
 const permissions = [
@@ -37,7 +38,7 @@ const permissions = [
   ],
   [
     'api.mikidev.app',
-    'Ours, contacted once in the life of an install and only if you take the free trial: it asks for a trial key and receives one. Replies never go through it',
+    'Ours, contacted at most twice in the life of an install and only if you ask it to: once for a free trial key, once to turn a supporter code into a licence. Replies never go through it',
   ],
   [
     'www.youtube.com · studio.youtube.com',
@@ -60,8 +61,9 @@ const permissions = [
     <p class="mt-6 border-l-2 border-accent pl-4 text-[16px] leading-[1.7] text-white/70">
       Reply AI has no account, no analytics and nothing that tracks you. It stores what it needs on
       your own machine, and every reply goes straight to OpenRouter on your own API key. One
-      service of ours exists, and it is contacted once in the life of an install — only if you take
-      the free trial, and never with a word of anyone’s comment.
+      service of ours exists, and it is contacted at most twice in the life of an install — for a
+      free trial key, and to turn a supporter code into a licence — never with a word of anyone’s
+      comment, and only when you press something.
     </p>
 
     <p class="micro mt-6">last updated: 18 august 2026 · applies to version 0.1.0 onward</p>
@@ -74,12 +76,17 @@ const permissions = [
           nothing anyone else wrote, ever reaches us.
         </p>
         <p>
-          There is one exception, and it happens at most once: if you press <em>Try it free</em>,
-          the extension sends a random number it generated for itself and receives an OpenRouter key
-          with a few cents on it. We record that number, the time, and whether a key was issued —
-          enough to give one trial per install and to answer you if it fails. It is tied to no
-          account, no email and no address, and after that request the extension never contacts us
-          again. Take your own key instead and this never happens at all.
+          There are two exceptions, each of which happens at most once and only when you press
+          something. If you press <em>Try it free</em>, the extension sends a random number it
+          generated for itself and receives an OpenRouter key with a few cents on it. We record that
+          number, the time, and whether a key was issued — enough to give one trial per install and
+          to answer you if it fails. It is tied to no account, no email and no address. Take your
+          own key instead and this never happens at all.
+        </p>
+        <p>
+          The second is activating a supporter licence, which sends the code and nothing else. It is
+          described further down. Neither request carries an identifier of you, and after them the
+          extension never contacts us again.
         </p>
       </section>
 
@@ -121,8 +128,10 @@ const permissions = [
           numbers that cannot be turned back into a comment, an author or a link. It exists so the
           count follows your profile instead of resetting on every new machine, and so the
           extension can say thank you once every twenty replies. It restricts nothing: there is no
-          daily limit and nothing is refused when the number gets large. Nothing else is synced —
-          your API key and your soul profile stay on the device they were entered on.
+          daily limit and nothing is refused when the number gets large. A supporter licence rides
+          the same storage for the same reason, and names nobody. Nothing else is synced — your API
+          key stays on the device it was entered on, the trial's included, and so does your soul
+          profile.
         </p>
       </section>
 
@@ -236,10 +245,34 @@ const permissions = [
           you wrote in the free-text field, and which entry point sent you.
         </p>
         <p>
+          The contact form is a different thing and is stored differently: what you write there,
+          the address to reply to and the name if you gave one are turned into an email to the
+          address below and nothing else. It is not added to any list, there is no mailing to
+          unsubscribe from, and the only record that persists is that email in an inbox — for as
+          long as the conversation is worth keeping, and deleted on request.
+        </p>
+        <p>
           You will receive a confirmation email and are on the list only if you click the link in
           it. The address is used for one thing — telling you when Pro exists — and every email
           carries a one-click unsubscribe that deletes you from the list. It is never sold, rented
           or shared, and it is not used for any other mailing.
+        </p>
+      </section>
+
+      <section class="flex flex-col gap-4">
+        <h2 class="text-[22px] font-semibold tracking-[-0.015em] text-white">Activating a licence code</h2>
+        <p>
+          Codes are given away rather than sold — in giveaways and by hand — so there is no
+          purchase here and no payment of yours that we see. If you buy a coffee, that happens
+          entirely at Buy Me a Coffee, under their privacy policy, and nothing about it reaches
+          this extension or changes how it behaves.
+        </p>
+        <p>
+          Activating sends the code and nothing else: no email, no account, no identifier of your
+          machine. What comes back is a signed licence saying what kind of code it was and when it
+          expires, stored in Chrome's synced storage so it reaches your other machines. There is
+          nothing in it that identifies you, we never learn which install activated which code, and
+          after that moment the extension never contacts us about the licence again.
         </p>
       </section>
 
@@ -269,9 +302,14 @@ const permissions = [
       <section class="flex flex-col gap-4">
         <h2 class="text-[22px] font-semibold tracking-[-0.015em] text-white">Contact</h2>
         <p>
-          <a class="text-white underline decoration-line-hi underline-offset-4" href={`mailto:${CONTACT_EMAIL}`}>{CONTACT_EMAIL}</a>
+          <span class="select-all font-mono text-white">{CONTACT_EMAIL}</span> — for anything on
+          this page, including a request to delete data. The address is printed rather than linked
+          on purpose: it has to work from a machine with no mail client configured, and from a
+          screenshot. There is also a
           {' '}
-          — for anything on this page, including a request to delete data.
+          <a class="text-white underline decoration-line-hi underline-offset-4" href="/contact?from=privacy">form</a>,
+          {' '}
+          which reaches the same inbox.
         </p>
       </section>
     </div>

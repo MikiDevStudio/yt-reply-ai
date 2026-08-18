@@ -37,5 +37,17 @@ export const ISSUES_URL = 'https://github.com/MikiDevStudio/yt-reply-ai/issues/n
  */
 export const CONTACT_EMAIL = 'privacy@mikidev.app';
 
-/** A mail link with the subject already filled in, so replies can be filed. */
-export const CONTACT_URL = `mailto:${CONTACT_EMAIL}?subject=${encodeURIComponent('Reply AI')}`;
+/**
+ * Where "write to me" goes: a form on the site, not a `mailto:`.
+ *
+ * A `mailto:` assumes a configured mail client. On a machine with none it opens
+ * nothing at all, or opens something the person has not signed into in years —
+ * and the message is never sent, silently, by someone who believes it was. It
+ * also hands them an empty window and asks for a letter, which is a much higher
+ * bar than a field with a placeholder in it.
+ *
+ * The address itself is still printed on the site's footer and privacy page, as
+ * text, for exactly the cases this page cannot serve: the form being down, or
+ * JavaScript being off. It stops being the only route, not a route.
+ */
+export const CONTACT_URL = 'https://reply-ai.mikidev.app/contact?from=extension';

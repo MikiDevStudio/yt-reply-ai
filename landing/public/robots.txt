@@ -1,5 +1,6 @@
 # Everything here is meant to be found, except the two pages that carry a
-# `noindex` of their own: the waitlist and the feedback page.
+# `noindex` of their own: the waitlist and the feedback page. The contact form
+# is indexed on purpose — a support page nobody can find is not a support page.
 User-agent: *
 Allow: /
 

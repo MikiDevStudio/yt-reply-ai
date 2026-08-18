@@ -4,13 +4,18 @@
   "main": "src/index.ts",
   "compatibility_date": "2026-08-18",
 
-  // The only thing this Worker is for: handing a new install a capped
-  // OpenRouter key so the first run does not end at "go and register
-  // somewhere else". Generation traffic never comes here — the extension
-  // talks to openrouter.ai directly with the key it was given.
+  // Two things this Worker is for: handing a new install a capped OpenRouter
+  // key so the first run does not end at "go and register somewhere else"
+  // (#38), and turning a code into a signed entitlement once (#39).
+  // Generation traffic never comes here — the extension talks to
+  // openrouter.ai directly with the key it was given.
   //
-  // The provisioning key lives in a secret, never in this file:
-  //   npx wrangler secret put OPENROUTER_PROVISIONING_KEY
+  // Three secrets, none of them in this file:
+  //   npx wrangler secret put OPENROUTER_MANAGEMENT_API_KEY
+  //   npx wrangler secret put LICENCE_SIGNING_KEY     # scripts/generate-licence-key.mjs
+  //   npx wrangler secret put LICENCE_ISSUE_TOKEN     # for issuing a code by hand
+  //   npx wrangler secret put BMC_WEBHOOK_SECRET      # Buy Me a Coffee → Integrations → webhook
+  //   npx wrangler secret put RESEND_API_KEY          # the same key the rest of the stack sends with
 
   "routes": [
     {
@@ -41,14 +46,39 @@
     // response. Each retry deletes the unused key it replaces, so an install
     // never holds two.
     "TRIAL_MAX_ATTEMPTS": "3",
+
+    // How many machines one purchase may be activated on. An honest buyer with
+    // Chrome sync on needs exactly one; three covers sync being off, a
+    // reinstall and a second machine, and is far short of worth sharing.
+    // Set here rather than passed in, so a compromised shop webhook cannot
+    // mint a code with a thousand activations on it.
+    "SUPPORTER_ACTIVATIONS": "3",
+
+    // A promo code is one person's, and the person it was given to is in the
+    // room. One activation, and it goes stale quickly.
+    "PROMO_ACTIVATIONS": "1",
+    "PROMO_DAYS": "30",
+
+    // Sent from the subdomain that already has SPF and DKIM on it, and replied
+    // to at the address that receives. The same split the website uses.
+    "LICENCE_FROM": "Reply AI <hello@reply-ai.mikidev.app>",
+    "SUPPORT_EMAIL": "privacy@mikidev.app",
   },
 
   "durable_objects": {
-    "bindings": [{ "name": "LEDGER", "class_name": "TrialLedger" }],
+    "bindings": [
+      { "name": "LEDGER", "class_name": "TrialLedger" },
+      // Separate from the trial's ledger on purpose: they share no row and no
+      // lifetime, and a licence must never be joinable to an install id.
+      { "name": "LICENCES", "class_name": "LicenceLedger" },
+    ],
   },
 
   // SQLite-backed, which is the only kind the free plan offers.
-  "migrations": [{ "tag": "v1", "new_sqlite_classes": ["TrialLedger"] }],
+  "migrations": [
+    { "tag": "v1", "new_sqlite_classes": ["TrialLedger"] },
+    { "tag": "v2", "new_sqlite_classes": ["LicenceLedger"] },
+  ],
 
   "ratelimits": [
     {
@@ -59,6 +89,15 @@
       // rejected on data-protection grounds and stays rejected. The global
       // side of the defence is TRIAL_DAILY_CEILING above.
       "simple": { "limit": 5, "period": 60 },
+    },
+    {
+      "name": "ACTIVATE_LIMITER",
+      "namespace_id": "1002",
+      // A code is 80 bits, so this is not what stops guessing — it stops a
+      // guesser costing us a Durable Object read per attempt. Looser than the
+      // mint limiter because a household behind one address may well activate
+      // more than once in a minute, and refusing that is a support email.
+      "simple": { "limit": 10, "period": 60 },
     },
   ],
 
