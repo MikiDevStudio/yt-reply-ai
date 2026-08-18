@@ -10,8 +10,14 @@ viewer's own entry point, a button in the "Add a comment" box, is still phase 2 
 
 ```
 extension/          the Chrome extension (WXT + React + TypeScript + Tailwind)
+landing/            the website's source (Astro + Tailwind) — edit here
+site/               the website, built from landing/ and committed — do not edit
 docs/               design notes and decisions
 ```
+
+`site/` is build output. `npm run build` in `landing/` empties and rewrites it,
+and it is committed so that deploying is a `git pull` with no Node on the host.
+See `landing/README.md`.
 
 Two earlier prototypes sit next to this repo on disk and are **git-ignored** — they are
 kept as reference only:

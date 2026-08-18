@@ -32,11 +32,16 @@ yt-reply-extension/
 # Dependencies
 node_modules/
 
-# Build output
+# Build output. `site/` is the exception and is committed on purpose: it is the
+# website, built from `landing/`, and the host deploys it by pulling.
 .output/
 .wxt/
+.astro/
 dist/
 *.zip
+
+# Playwright MCP's scratch output, written wherever it happens to be invoked
+.playwright-mcp/
 
 # Editor / OS
 .DS_Store

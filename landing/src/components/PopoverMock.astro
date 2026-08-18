@@ -1,0 +1,157 @@
+---
+/**
+ * The product, drawn in HTML rather than screenshotted.
+ *
+ * A screenshot of this panel would be a 200 KB PNG that is wrong the first time
+ * a label changes, blurry on a retina display unless it is 400 KB, and unable
+ * to carry the accent through a theme it was not captured in. The panel is a
+ * few hundred bytes of markup instead, built from the same tokens the real one
+ * uses — so when the brand book changes, this changes with it.
+ *
+ * It is a picture, not a control: `aria-hidden`, nothing focusable, nothing
+ * that responds to a click. The real thing is in the extension, and a mock that
+ * takes keyboard focus is a mock that traps a screen reader in a fake dialog.
+ *
+ * The proportions are the real ones: 460px wide, `p-3`, `gap-3`, 14px text —
+ * see `entrypoints/content/ReplyPopover.tsx` and brand.md §4.
+ */
+---
+
+<div
+  aria-hidden="true"
+  class="w-full max-w-[460px] select-none border border-line-hi bg-overlay text-[14px] leading-[1.6] shadow-elevated"
+>
+  <div class="flex flex-col gap-3 p-3">
+    <!-- 1 · Header -->
+    <div class="flex items-center gap-2">
+      <span class="shrink-0 text-[16px] font-semibold leading-[1.2] tracking-[-0.01em]">
+        AI <span class="text-white/55">reply</span>
+      </span>
+      <div class="flex min-w-0 flex-1 items-center gap-1">
+        <span class="min-w-0 flex-1 border-b border-line px-1 py-0.5 text-[13px] text-white/28">
+          English
+        </span>
+        <span class="micro shrink-0 px-1">auto</span>
+      </div>
+      <span class="grid size-7 place-items-center text-white/55">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="size-4">
+          <path d="M18 6 6 18M6 6l12 12"></path>
+        </svg>
+      </span>
+    </div>
+
+    <!-- 2 · The comment being answered -->
+    <div class="rounded-control bg-surface-hi px-2.5 py-2">
+      <p class="text-[13px] leading-[1.55] text-white/55">
+        <span class="font-medium text-white/70">@marta_builds: </span>
+        Watched this twice. The part about the jig at 8:40 finally made it click — any chance of a
+        follow-up on the fence setup?
+      </p>
+    </div>
+
+    <!-- 3 · Audience, creativity, auto. Wraps for the same reason the action
+         row does — see the note there. -->
+    <div class="flex flex-wrap items-center gap-2">
+      <div class="flex border border-line">
+        <span
+          class="border-t border-t-accent bg-accent-soft px-2.5 py-1 font-mono text-[12px] uppercase tracking-[0.1em] text-accent"
+        >
+          channel
+        </span>
+        <span
+          class="border-l border-t border-l-line border-t-transparent px-2.5 py-1 font-mono text-[12px] uppercase tracking-[0.1em] text-white/55"
+        >
+          viewer
+        </span>
+      </div>
+
+      <div class="flex items-center gap-2">
+        <span class="micro shrink-0">creativity</span>
+        <div class="flex items-center gap-1.5">
+          <span class="size-2.5 rounded-full bg-line-hi"></span>
+          <span class="size-2.5 rounded-full bg-line-hi"></span>
+          <span class="size-2.5 rounded-full bg-accent"></span>
+          <span class="size-2.5 rounded-full bg-line-hi"></span>
+          <span class="size-2.5 rounded-full bg-line-hi"></span>
+        </div>
+      </div>
+
+      <div class="flex items-center gap-2 sm:ml-auto">
+        <span class="flex h-4 w-7 items-center rounded-full bg-line-hi p-0.5">
+          <span class="size-3 rounded-full bg-white/70"></span>
+        </span>
+        <span class="micro">auto</span>
+      </div>
+    </div>
+
+    <!-- 4 · Tone -->
+    <div class="flex flex-wrap gap-2">
+      <span class="border border-accent-line bg-accent-soft px-2.5 py-1 text-[13px] text-accent">auto</span>
+      <span class="border border-line px-2.5 py-1 text-[13px] text-white/70">friendly</span>
+      <span class="border border-line px-2.5 py-1 text-[13px] text-white/70">humorous</span>
+      <span class="border border-line px-2.5 py-1 text-[13px] text-white/70">engaging</span>
+      <span class="border border-line px-2.5 py-1 text-[13px] text-white/70">brief</span>
+    </div>
+
+    <!-- 5 · The note -->
+    <div class="min-h-[60px] border border-line-input bg-bg px-2.5 py-2 text-[14px] text-white/28">
+      Optional: what to say, or a draft to fix up
+    </div>
+
+    <!-- 6 · The reply -->
+    <div class="flex flex-col gap-1.5">
+      <div class="flex items-center gap-2">
+        <span class="micro">reply</span>
+        <span aria-hidden="true" class="h-px flex-1 bg-line"></span>
+        <span class="micro">213 tokens</span>
+        <span aria-hidden="true" class="size-1.5 rounded-full bg-accent-bright motion-safe:animate-dot-pulse"></span>
+        <span class="micro">writing</span>
+      </div>
+      <div class="min-h-20 border border-line p-2.5 text-white/92">
+        Twice is a compliment, thank you. The fence setup is exactly where that jig gets fiddly, so
+        yes — it is going in the next one<span
+          class="ml-0.5 inline-block h-[1.1em] w-[2px] translate-y-[2px] bg-accent-bright motion-safe:animate-caret"
+        ></span>
+      </div>
+    </div>
+
+    <!-- 7 · Actions. `flex-wrap` is the one liberty this mock takes with the
+         real panel: the popover is fixed at 460px and never wraps, but a
+         picture of it on a 360px phone has to fold rather than overflow. -->
+    <div class="flex flex-wrap items-center justify-between gap-2">
+      <div class="flex items-center">
+        <span class="grid size-7 place-items-center text-white/55">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="size-4">
+            <path d="m15 18-6-6 6-6"></path>
+          </svg>
+        </span>
+        <span class="font-mono text-[13px] text-white/55">2/3</span>
+        <span class="grid size-7 place-items-center text-white/22">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="size-4">
+            <path d="m9 18 6-6-6-6"></path>
+          </svg>
+        </span>
+      </div>
+
+      <div class="flex shrink-0 items-center gap-2">
+        <span class="grid size-7 place-items-center text-white/55">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="size-4">
+            <path d="M21 12a9 9 0 1 1-3-6.7L21 8"></path><path d="M21 3v5h-5"></path>
+          </svg>
+        </span>
+        <span class="grid size-7 place-items-center text-white/55">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="size-4">
+            <rect x="9" y="9" width="12" height="12" rx="1"></rect>
+            <path d="M5 15V4a1 1 0 0 1 1-1h11"></path>
+          </svg>
+        </span>
+        <span class="flex items-center gap-1.5 bg-solid px-3 py-1.5 text-[13px] font-medium text-solid-ink">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="size-4">
+            <path d="M9 10 4 15l5 5"></path><path d="M20 4v7a4 4 0 0 1-4 4H4"></path>
+          </svg>
+          Insert
+        </span>
+      </div>
+    </div>
+  </div>
+</div>

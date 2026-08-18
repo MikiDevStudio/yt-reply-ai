@@ -1,0 +1,27 @@
+---
+import Micro from '../components/Micro.astro';
+import Base from '../layouts/Base.astro';
+
+/**
+ * The 404. nginx serves this for any unknown path once the host is told to
+ * (`error_page 404 /404.html`); until then it falls back to nginx's own, which
+ * is ugly but correct.
+ */
+---
+
+<Base title="Not here — Reply AI" description="That page does not exist." noindex>
+  <section class="mx-auto flex max-w-3xl flex-col items-start gap-7 px-5 pb-32 pt-24">
+    <Micro n="404" label="wrong turn" />
+    <h1 class="text-[38px] font-semibold leading-[1.1] tracking-[-0.03em] sm:text-[46px]">
+      Nothing here. <span class="text-white/55">Which is at least honest.</span>
+    </h1>
+    <p class="max-w-xl text-[16px] leading-[1.7] text-white/70">
+      The page you asked for does not exist. The three that do are the extension itself, the Pro
+      waitlist, and the privacy policy.
+    </p>
+    <div class="flex flex-wrap gap-3">
+      <a href="/" class="btn-primary">Back to the start</a>
+      <a href="/privacy" class="btn-secondary">Privacy policy</a>
+    </div>
+  </section>
+</Base>

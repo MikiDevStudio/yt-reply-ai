@@ -1,0 +1,27 @@
+---
+/**
+ * The signature label (brand.md §2): a two-digit number in orange, a 40px
+ * hairline, and an uppercase mono label.
+ *
+ * It marks every section of every surface we ship — the settings cards, the
+ * blocks of the popover, and each section of this page. The number is the only
+ * thing on the page allowed to be orange and large-ish; everything else the
+ * accent touches is a line, a dot or 10px of type.
+ */
+interface Props {
+  /** Two digits, zero-padded by the caller when it matters. */
+  n?: string;
+  label: string;
+  /** Centre it, for the sections that are centred. */
+  center?: boolean;
+  class?: string;
+}
+
+const { n, label, center = false, class: extra = '' } = Astro.props;
+---
+
+<p class={`flex items-center gap-3 ${center ? 'justify-center' : ''} ${extra}`}>
+  {n && <span class="micro !text-accent">{n}</span>}
+  <span aria-hidden="true" class="h-px w-10 bg-accent"></span>
+  <span class="micro">{label}</span>
+</p>

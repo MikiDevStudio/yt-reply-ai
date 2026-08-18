@@ -1,0 +1,119 @@
+---
+import CoffeeButton from '../components/CoffeeButton.astro';
+import Micro from '../components/Micro.astro';
+import Base from '../layouts/Base.astro';
+import { CONTACT_EMAIL, ISSUES_URL, IN_STORE, SOURCE_URL, STORE_REVIEW_URL } from '../lib/links';
+
+/**
+ * Where the thank-you card's two buttons land.
+ *
+ * The card in the extension asks one question and both answers are a link the
+ * user presses — nothing is counted, nothing is posted, and the extension keeps
+ * talking to openrouter.ai alone. This page is the other end of that link, and
+ * the `rating` in the query string is the whole mechanism: it decides which of
+ * the two columns below is emphasised, in the address bar, where the person who
+ * sent it can read it.
+ *
+ * Both columns are rendered into the HTML and the script only sets which one is
+ * lit. That way the page is complete without JavaScript, and someone arriving
+ * with no query string at all gets a page that still makes sense.
+ */
+---
+
+<Base
+  title="Feedback — Reply AI"
+  description="Tell me what is working, or what is not. Two links and an address — nothing is collected."
+  noindex
+>
+  <section class="mx-auto max-w-3xl px-5 pb-16 pt-14">
+    <Micro n="01" label="feedback" />
+
+    <h1 id="heading" class="mt-6 text-[38px] font-semibold leading-[1.1] tracking-[-0.03em] sm:text-[46px]">
+      Thanks for pressing it. <span class="text-white/55">Here is where it goes.</span>
+    </h1>
+
+    <p id="intro" class="mt-6 max-w-2xl border-l-2 border-accent pl-4 text-[16px] leading-[1.7] text-white/70">
+      Nothing was sent when you clicked — the extension has no server and reports nothing. That
+      button opened this page and that is all it did. If you have thirty seconds, one of the two
+      below is worth more than any rating widget.
+    </p>
+  </section>
+
+  <section class="mx-auto max-w-3xl px-5 pb-24">
+    <div class="grid gap-px border border-line bg-line md:grid-cols-2">
+      <div id="card-good" class="flex flex-col gap-4 bg-surface p-7 transition-colors duration-200">
+        <span class="micro">it is working</span>
+        <h2 class="text-[20px] font-semibold tracking-[-0.015em]">Say so where it counts</h2>
+        <p class="text-[14px] leading-[1.65] text-white/70">
+          {
+            IN_STORE
+              ? 'A review on the Chrome Web Store is the only thing that puts this extension in front of other channel owners. It takes a sentence.'
+              : 'The store listing is still in preparation, so there is nowhere to review it yet. A star on the repository does the same job in the meantime, and I will put the review link here the day the listing is live.'
+          }
+        </p>
+        <a
+          class="btn-secondary mt-auto self-start"
+          href={IN_STORE ? STORE_REVIEW_URL : SOURCE_URL}
+          rel="noreferrer"
+        >
+          {IN_STORE ? 'Leave a review' : 'Star it on GitHub'}
+        </a>
+      </div>
+
+      <div id="card-bad" class="flex flex-col gap-4 bg-surface p-7 transition-colors duration-200">
+        <span class="micro">it is not</span>
+        <h2 class="text-[20px] font-semibold tracking-[-0.015em]">Tell me what went wrong</h2>
+        <p class="text-[14px] leading-[1.65] text-white/70">
+          A bad reply, a button that did not appear, a comment section it could not read — all of
+          it is fixable, and none of it is fixable without knowing. An issue is public and gets a
+          version number; an email is private and gets an answer.
+        </p>
+        <div class="mt-auto flex flex-wrap gap-3">
+          <a class="btn-secondary" href={ISSUES_URL} rel="noreferrer">Open an issue</a>
+          <a class="btn-ghost" href={`mailto:${CONTACT_EMAIL}?subject=Reply%20AI`}>Email me</a>
+        </div>
+      </div>
+    </div>
+
+    <div class="mt-10 flex flex-col items-start gap-4 border border-line bg-surface p-7">
+      <span class="micro">or nothing at all</span>
+      <p class="max-w-xl text-[15px] leading-[1.7] text-white/70">
+        The extension is free, unlimited, has no account and no upsell, and it stays that way
+        whichever button you pressed. If you would rather say thank you in the other currency, the
+        tea button is here — and the card in the extension can be switched off for good from inside
+        itself.
+      </p>
+      <CoffeeButton />
+    </div>
+
+    <p class="mt-8 text-[14px] text-white/45">
+      Back to <a class="text-white/70 underline decoration-line-hi underline-offset-4 hover:text-white" href="/">the extension</a>,
+      or read what <a class="text-white/70 underline decoration-line-hi underline-offset-4 hover:text-white" href="/pro">Pro would add</a>.
+    </p>
+  </section>
+</Base>
+
+<script>
+  /*
+   * Light the column that matches the answer, and say it back to them.
+   *
+   * Everything below is presentation: both cards are already in the HTML, so a
+   * visitor with no JavaScript, or no query string, sees a complete page. The
+   * rating is never stored, never sent, and never leaves this tab.
+   */
+  const rating = new URLSearchParams(location.search).get('rating');
+  if (rating === 'good' || rating === 'bad') {
+    const chosen = document.getElementById(rating === 'good' ? 'card-good' : 'card-bad');
+    const other = document.getElementById(rating === 'good' ? 'card-bad' : 'card-good');
+    chosen?.classList.add('bg-surface-hi', 'ring-1', 'ring-inset', 'ring-accent-line');
+    other?.classList.add('opacity-60');
+
+    const heading = document.getElementById('heading');
+    if (heading) {
+      heading.innerHTML =
+        rating === 'good'
+          ? 'Glad it is working. <span class="text-white/55">Here is where that helps most.</span>'
+          : 'Sorry it is not. <span class="text-white/55">Here is the shortest way to fix it.</span>';
+    }
+  }
+</script>

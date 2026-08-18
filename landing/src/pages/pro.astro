@@ -1,0 +1,369 @@
+---
+import CoffeeButton from '../components/CoffeeButton.astro';
+import Micro from '../components/Micro.astro';
+import Base from '../layouts/Base.astro';
+import { CONTACT_EMAIL } from '../lib/links';
+
+/**
+ * The waitlist. This page is the whole demand measurement for Pro (#32).
+ *
+ * The ids in the ballot are the ids in `extension/lib/pro.ts`, and the wording
+ * is the wording the extension shows. Both have to stay in step: the id is what
+ * a vote is counted under, and the sentence is what the person was agreeing to
+ * when they ticked it.
+ *
+ * The extension never posts anything — it links here with `?from=…&want=…`, so
+ * what arrives is a page load the user pressed, not telemetry. The form below
+ * is the first moment an address exists anywhere.
+ *
+ * The `cap` line that used to head this list is gone with the daily cap it
+ * promised to lift. Anyone who voted for it voted for something the free
+ * version now does, which is the best possible outcome for a ballot line.
+ */
+const ballot = [
+  {
+    id: 'managed',
+    title: 'No key to set up',
+    detail:
+      'Replies run on a key we provision, with a spend limit you set — no OpenRouter account, no top-ups. Everything free stays free and stays on your own key.',
+  },
+  {
+    id: 'scanner',
+    title: 'Relevance scanner',
+    detail: 'Reads a comment section and points at the comments actually worth answering.',
+  },
+  {
+    id: 'bulk',
+    title: 'Bulk mode',
+    detail: 'Draft replies to a whole page of comments at once, then go through them one by one.',
+  },
+  {
+    id: 'presets',
+    title: 'Style presets',
+    detail: 'Saved voices to switch between — a channel, a client, a second language.',
+  },
+];
+
+const prices = [
+  { value: 'monthly', name: '~$5 a month', sub: 'Subscription, cancel whenever' },
+  { value: 'lifetime', name: '~$30 once', sub: 'Lifetime licence, no renewal' },
+  { value: 'neither', name: 'Neither', sub: 'The free version is enough' },
+];
+---
+
+<Base
+  title="Pro waitlist — Reply AI"
+  description="Pro is not built yet. Vote for the parts worth building and we will tell you when they exist."
+  noindex
+>
+  <section class="mx-auto max-w-3xl px-5 pb-16 pt-14">
+    <Micro n="01" label="pro waitlist" />
+
+    <h1 class="mt-6 text-[38px] font-semibold leading-[1.1] tracking-[-0.03em] sm:text-[46px]">
+      Pro does not exist yet. <span class="text-white/55">Tell me which parts should.</span>
+    </h1>
+
+    <p class="mt-6 max-w-2xl border-l-2 border-accent pl-4 text-[16px] leading-[1.7] text-white/70">
+      Everything in the extension today is free, unlimited, and runs on your own OpenRouter key.
+      The list below is what a paid tier would contain — all of it unbuilt. Tick what you would
+      actually pay for, and it gets built in that order.
+    </p>
+
+    <p id="from-note" class="mt-4 text-[14px] text-white/45" hidden>
+      You came from the extension with boxes already ticked. They are below, kept exactly as you
+      left them.
+    </p>
+  </section>
+
+  <section class="mx-auto max-w-3xl px-5 pb-24">
+    <form id="waitlist" novalidate class="flex flex-col gap-12">
+      <div class="flex flex-col gap-5">
+        <h2 class="text-[22px] font-semibold tracking-[-0.015em]">What would you pay for?</h2>
+
+        <div class="grid gap-px border border-line bg-line">
+          {
+            ballot.map((item) => (
+              <label class="group flex cursor-pointer gap-4 bg-surface p-5 transition-colors duration-150 hover:bg-surface-hi">
+                <input
+                  type="checkbox"
+                  name="want"
+                  value={item.id}
+                  class="mt-1 size-4 shrink-0 appearance-none border border-line-input bg-bg transition-colors duration-150 checked:border-accent-line checked:bg-accent-soft checked:shadow-[inset_0_0_0_3px_var(--color-accent)]"
+                />
+                <span class="flex flex-col gap-1.5">
+                  <span class="text-[15px] font-medium">{item.title}</span>
+                  <span class="text-[14px] leading-[1.6] text-white/70">{item.detail}</span>
+                  <span class="micro mt-1" data-tally={item.id} hidden />
+                  <span class="mt-1 h-px w-full bg-line" data-bar={item.id} hidden>
+                    <span class="block h-px bg-accent" style="width: 0"></span>
+                  </span>
+                </span>
+              </label>
+            ))
+          }
+        </div>
+
+        <p id="tally-total" class="micro" hidden></p>
+      </div>
+
+      <div class="flex flex-col gap-5">
+        <h2 class="text-[22px] font-semibold tracking-[-0.015em]">And what shape should the price be?</h2>
+        <p class="text-[14px] leading-[1.65] text-white/70">
+          You already pay OpenRouter directly for the models, at cost. This is only about what, if
+          anything, you would pay me on top.
+        </p>
+
+        <div class="grid gap-px border border-line bg-line sm:grid-cols-3">
+          {
+            prices.map((price) => (
+              <label class="flex cursor-pointer flex-col gap-1.5 bg-surface p-5 transition-colors duration-150 hover:bg-surface-hi has-[:checked]:bg-accent-soft">
+                <input type="radio" name="price" value={price.value} class="sr-only peer" />
+                <span class="text-[15px] font-medium peer-checked:text-accent">{price.name}</span>
+                <span class="text-[13px] leading-[1.5] text-white/45">{price.sub}</span>
+              </label>
+            ))
+          }
+        </div>
+      </div>
+
+      <div class="flex flex-col gap-4">
+        <h2 class="text-[22px] font-semibold tracking-[-0.015em]">Anything the list is missing?</h2>
+        <label class="micro" for="wish">in your own words — optional, and read by a person</label>
+        <textarea
+          id="wish"
+          name="wish"
+          rows="3"
+          maxlength="1000"
+          class="field resize-y"
+          placeholder="The thing that would actually save you time…"></textarea>
+        <p class="text-[13px] text-white/45">
+          Write-ins that come up more than once get added to the list above, credited to nobody.
+        </p>
+      </div>
+
+      <div class="flex flex-col gap-4">
+        <h2 class="text-[22px] font-semibold tracking-[-0.015em]">Where do I tell you?</h2>
+        <label class="micro" for="email">email</label>
+        <input
+          id="email"
+          name="email"
+          type="email"
+          autocomplete="email"
+          required
+          class="field"
+          placeholder="you@example.com"
+        />
+        <p class="text-[13px] leading-[1.6] text-white/45">
+          One confirmation email now — you are on the list only once you click the link in it — and
+          then nothing until Pro exists. Unsubscribe in one click from any email. Details in the
+          {' '}
+          <a class="text-white/70 underline decoration-line-hi underline-offset-4 hover:text-white" href="/privacy">privacy policy</a>.
+        </p>
+      </div>
+
+      <!--
+        Honeypot. A real person never sees it, so anything filled in here came
+        from a bot and n8n drops the submission without answering.
+      -->
+      <div aria-hidden="true" style="position: absolute; left: -9999px">
+        <label for="nickname">Nickname</label>
+        <input id="nickname" name="nickname" type="text" tabindex="-1" autocomplete="off" />
+      </div>
+
+      <div class="flex flex-wrap items-center gap-4">
+        <button id="submit" class="btn-primary" type="submit">Join the waitlist</button>
+        <span class="text-[13px] text-white/45">No vote required — the address alone is a vote.</span>
+      </div>
+
+      <div
+        id="error"
+        role="alert"
+        hidden
+        class="border border-danger/25 bg-danger/10 p-4 text-[14px] text-white/80"
+      >
+      </div>
+    </form>
+
+    <div
+      id="done"
+      role="status"
+      hidden
+      class="flex flex-col gap-3 border border-accent-line bg-accent-soft p-6"
+    >
+      <p class="text-[15px] font-medium text-accent">Check your inbox.</p>
+      <p class="text-[14px] leading-[1.7] text-white/70">
+        There is a confirmation link waiting there, and clicking it is what puts you on the list.
+        If it has not arrived in a few minutes, look in spam — and if it is not there either, write
+        to <a class="underline decoration-line-hi underline-offset-4" href={`mailto:${CONTACT_EMAIL}`}>{CONTACT_EMAIL}</a>
+        {' '}
+        and you will be added by hand.
+      </p>
+      <p class="text-[14px] text-white/45">Your votes were recorded either way.</p>
+    </div>
+  </section>
+
+  <section class="mx-auto max-w-3xl px-5 pb-24">
+    <div class="border-t border-line pt-10">
+      <h2 class="text-[22px] font-semibold tracking-[-0.015em]">Why a waitlist and not a buy button</h2>
+      <p class="mt-4 text-[15px] leading-[1.75] text-white/70">
+        Because a paid tier nobody asked for is months of work spent on a guess. The extension is
+        finished, free and unlimited; Pro gets built when this page says which parts are worth
+        building, and the parts nobody ticks never get built at all.
+      </p>
+      <p class="mt-4 text-[14px] leading-[1.7] text-white/45">
+        If you would rather support the free version now, there is a tea button — no account, no
+        subscription, and it changes nothing about what the extension does.
+      </p>
+      <CoffeeButton class="mt-6" />
+    </div>
+  </section>
+</Base>
+
+<script>
+  /*
+   * Two n8n webhooks, and no other network dependency on this page.
+   *
+   * n8n rather than Listmonk's own public endpoint because that endpoint
+   * accepts email, name and list uuids only — the votes cannot ride along with
+   * it, and something holding an admin token has to write them.
+   */
+  const SUBMIT_URL = 'https://n8n-coolify-personal.mikidev.app/webhook/waitlist';
+  const TALLY_URL = 'https://n8n-coolify-personal.mikidev.app/webhook/waitlist-tally';
+
+  /* Below this many confirmed addresses the tally is hidden rather than shown
+     honestly: "1 person wants this" argues against the product more effectively
+     than silence, and early visitors are the ones we can least afford to talk
+     out of it. */
+  const TALLY_FLOOR = 5;
+
+  const form = document.getElementById('waitlist') as HTMLFormElement | null;
+  const button = document.getElementById('submit') as HTMLButtonElement | null;
+  const error = document.getElementById('error');
+  const done = document.getElementById('done');
+
+  if (form && button && error && done) {
+    const params = new URLSearchParams(location.search);
+
+    /* Which entry point sent them. `settings` is the ballot in the extension,
+       `popup` the one-line link in the toolbar panel; anything else is someone
+       who found the page by itself. The old `limit` value went with the daily
+       cap and is treated as `direct` if an old build still sends it. */
+    const sent = params.get('from');
+    const from = sent === 'settings' || sent === 'popup' ? sent : 'direct';
+
+    /* `want` is what the user already ticked in settings, so the boxes arrive
+       pre-ticked and only the address is left to type — that is the entire
+       reason the ballot exists in two places. */
+    const wanted = new Set((params.get('want') || '').split(',').filter(Boolean));
+    let preticked = 0;
+    for (const box of form.querySelectorAll<HTMLInputElement>('input[name="want"]')) {
+      if (wanted.has(box.value)) {
+        box.checked = true;
+        preticked += 1;
+      }
+    }
+    const fromNote = document.getElementById('from-note');
+    if (fromNote && preticked > 0) fromNote.hidden = false;
+
+    const showError = (message: string) => {
+      error.textContent = message;
+      error.hidden = false;
+    };
+
+    form.addEventListener('submit', async (event) => {
+      event.preventDefault();
+      error.hidden = true;
+
+      const fields = form.elements as HTMLFormControlsCollection & {
+        email: HTMLInputElement;
+        price: RadioNodeList;
+        wish: HTMLTextAreaElement;
+        nickname: HTMLInputElement;
+      };
+
+      const email = fields.email.value.trim();
+      /* Deliberately loose: the confirmation email is the real validation, and
+         a regex that rejects a valid address is worse than one that lets a typo
+         through. */
+      if (!/^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(email)) {
+        showError('That address does not look complete. Check it and try again.');
+        fields.email.focus();
+        return;
+      }
+
+      button.disabled = true;
+      button.textContent = 'Sending…';
+
+      const payload = {
+        email,
+        from,
+        want: [...form.querySelectorAll<HTMLInputElement>('input[name="want"]:checked')].map(
+          (box) => box.value,
+        ),
+        price: fields.price.value || null,
+        wish: fields.wish.value.trim() || null,
+        nickname: fields.nickname.value,
+        /* The page's own language, which is the only hint we get about what
+           language to write the announcement in. Not an identifier. */
+        locale: navigator.language || null,
+      };
+
+      try {
+        const response = await fetch(SUBMIT_URL, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(payload),
+        });
+        if (!response.ok) throw new Error(`HTTP ${response.status}`);
+
+        form.hidden = true;
+        done.hidden = false;
+        done.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      } catch {
+        /* Never swallow this. A silent failure here loses the one thing the
+           page exists to collect, and the person has no way to tell. */
+        button.disabled = false;
+        button.textContent = 'Join the waitlist';
+        showError(
+          'That did not go through. Try once more — and if it still fails, send the address to privacy@mikidev.app and it will be added by hand.',
+        );
+      }
+    });
+
+    /* The public tally, best effort. It is social proof, not content: if the
+       endpoint is down the page stays exactly as useful, so a failure is
+       swallowed on purpose here — the one place on this page where that is the
+       right call. */
+    void (async () => {
+      try {
+        const response = await fetch(TALLY_URL, { headers: { Accept: 'application/json' } });
+        if (!response.ok) return;
+
+        const tally = await response.json();
+        const total = Number(tally.total) || 0;
+        if (total < TALLY_FLOOR) return;
+
+        const totalLabel = document.getElementById('tally-total');
+        if (totalLabel) {
+          totalLabel.textContent = `${total} people on the list so far · votes below`;
+          totalLabel.hidden = false;
+        }
+
+        for (const [id, count] of Object.entries(tally.votes || {})) {
+          const label = document.querySelector<HTMLElement>(`[data-tally="${id}"]`);
+          const bar = document.querySelector<HTMLElement>(`[data-bar="${id}"]`);
+          if (!label || !bar) continue;
+
+          const share = Math.round((Number(count) / total) * 100);
+          label.textContent = `${count} of ${total} · ${share}%`;
+          label.hidden = false;
+          bar.hidden = false;
+          const fill = bar.firstElementChild as HTMLElement | null;
+          if (fill) fill.style.width = `${Math.min(share, 100)}%`;
+        }
+      } catch {
+        /* Intentionally silent — see above. */
+      }
+    })();
+  }
+</script>

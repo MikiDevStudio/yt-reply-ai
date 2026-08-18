@@ -1,0 +1,264 @@
+---
+import Micro from '../components/Micro.astro';
+import Base from '../layouts/Base.astro';
+import { CONTACT_EMAIL, SOURCE_URL } from '../lib/links';
+
+/**
+ * The privacy policy the Chrome Web Store listing points at.
+ *
+ * Two rules govern edits here. First, every sentence has to be checkable
+ * against the source: the storage table is `lib/settings.ts`, `lib/replies.ts`
+ * and `lib/video-cache.ts`, and the request list is `GenerationContext` in
+ * `lib/messaging.ts` plus `APP_HEADERS` in `lib/openrouter/client.ts`. Second,
+ * it has to agree with the Web Store data-disclosure form field by field — a
+ * policy that says more than the form, or less, is a rejection.
+ *
+ * The contact address is on the root domain because Cloudflare Email Routing
+ * would not onboard the subdomain. That costs nothing: reputation is a property
+ * of sending, and we still send only from reply-ai.mikidev.app. Receiving is
+ * unrelated to it.
+ */
+const stored = [
+  ['OpenRouter API key', 'Local, on this device', 'Authenticates your generation requests. Sent only to openrouter.ai'],
+  ['Soul profile', 'Local, on this device', 'The description of your channel and voice that you wrote yourself'],
+  ['Preferences', 'Local, on this device', 'Chosen model, tone, creativity, context depth, who the reply speaks as, whether the thank-you card may appear'],
+  ['Model list', 'Local, on this device', "A cached copy of OpenRouter's public catalogue, so the settings page opens fast"],
+  ['Video descriptions', 'Session, cleared when the browser closes', 'Avoids re-reading the same page for every reply on it'],
+  ['Reply counter', 'Synced storage', 'Counts what you have written. It gates nothing — see the note below'],
+];
+
+const permissions = [
+  ['storage', 'The table above. Without it there is nowhere to keep your key or your settings'],
+  ['identity', "Opens OpenRouter's sign-in page and receives the key it issues"],
+  [
+    'openrouter.ai',
+    'The single host the extension may contact. It is not broadened to all sites, and the extension cannot reach any other server',
+  ],
+  [
+    'www.youtube.com · studio.youtube.com',
+    'The two pages the interface is drawn on — the button in a comment’s toolbar and the panel that opens from it. Reading the page is how the comment gets into the panel',
+  ],
+];
+---
+
+<Base
+  title="Privacy policy — Reply AI"
+  description="What Reply AI stores, what it sends to OpenRouter, and why there is nothing else to disclose."
+>
+  <article class="mx-auto max-w-3xl px-5 pb-24 pt-14">
+    <Micro n="01" label="privacy policy" />
+
+    <h1 class="mt-6 text-[38px] font-semibold leading-[1.1] tracking-[-0.03em] sm:text-[44px]">
+      What this extension knows <span class="text-white/55">and what it never sends.</span>
+    </h1>
+
+    <p class="mt-6 border-l-2 border-accent pl-4 text-[16px] leading-[1.7] text-white/70">
+      Reply AI has no server, no account and no analytics. It stores what it needs on your own
+      machine and makes exactly one kind of outbound request: to OpenRouter, on your own API key,
+      when you press Generate.
+    </p>
+
+    <p class="micro mt-6">last updated: 18 august 2026 · applies to version 0.1.0 onward</p>
+
+    <div class="mt-12 flex flex-col gap-10 text-[15px] leading-[1.75] text-white/70">
+      <section class="flex flex-col gap-4">
+        <h2 class="text-[22px] font-semibold tracking-[-0.015em] text-white">What we collect about you</h2>
+        <p>
+          Nothing. There is no server to collect it with. The extension sends us no usage data, no
+          error reports, no install ping and no identifier of any kind, and it has no way to know
+          that you exist.
+        </p>
+      </section>
+
+      <section class="flex flex-col gap-4">
+        <h2 class="text-[22px] font-semibold tracking-[-0.015em] text-white">What is stored on your device</h2>
+        <p>
+          All of it lives in the browser’s own extension storage and is readable only by this
+          extension.
+        </p>
+
+        <div class="overflow-x-auto border border-line">
+          <table class="w-full min-w-[560px] border-collapse text-left">
+            <thead>
+              <tr class="border-b border-line bg-surface-hi">
+                <th class="micro p-4">what</th>
+                <th class="micro p-4">where</th>
+                <th class="micro p-4">why</th>
+              </tr>
+            </thead>
+            <tbody>
+              {
+                stored.map(([what, where, why]) => (
+                  <tr class="border-b border-line-soft bg-surface last:border-b-0">
+                    <td class="p-4 text-[14px] font-medium text-white">{what}</td>
+                    <td class="p-4 text-[14px] text-white/70">{where}</td>
+                    <td class="p-4 text-[14px] text-white/70">{why}</td>
+                  </tr>
+                ))
+              }
+            </tbody>
+          </table>
+        </div>
+
+        <p>
+          The counter is the one item Chrome may copy off your device: it lives in synced extension
+          storage, so if you are signed into Chrome with sync on, Chrome carries it to your Google
+          account along with your other browser data. It holds today’s date, two totals, and a
+          short list of one-way fingerprints of the comments most recently answered — 32-bit
+          numbers that cannot be turned back into a comment, an author or a link. It exists so the
+          count follows your profile instead of resetting on every new machine, and so the
+          extension can say thank you once every twenty replies. It restricts nothing: there is no
+          daily limit and nothing is refused when the number gets large. Nothing else is synced —
+          your API key and your soul profile stay on the device they were entered on.
+        </p>
+      </section>
+
+      <section class="flex flex-col gap-4">
+        <h2 class="text-[22px] font-semibold tracking-[-0.015em] text-white">What is sent when you press Generate</h2>
+        <p>
+          One HTTPS request to <code class="font-mono text-[13px] text-violet">openrouter.ai/api/v1/chat/completions</code>,
+          containing only what the model needs to write the reply:
+        </p>
+        <ul class="flex list-disc flex-col gap-2 pl-5">
+          <li>the text of the comment you are replying to, and its author’s public display name;</li>
+          <li>the comment that started the thread, when you reply inside one;</li>
+          <li>
+            the video’s title, channel name and id — and, only at the deepest context setting, its
+            description;
+          </li>
+          <li>your soul profile and the settings for this reply;</li>
+          <li>anything you typed into the note field, and the earlier attempts when you regenerate;</li>
+          <li>your API key, as the authorisation header;</li>
+          <li>
+            two headers naming the application, so the request is attributable in your own
+            OpenRouter dashboard.
+          </li>
+        </ul>
+        <p>
+          That request goes from your browser straight to OpenRouter and never passes through us.
+          OpenRouter then routes it to whichever model provider you selected. Their handling of it
+          is governed by your agreement with them — see
+          {' '}
+          <a class="text-white underline decoration-line-hi underline-offset-4" href="https://openrouter.ai/privacy" rel="noreferrer">OpenRouter’s privacy policy</a>,
+          and the prompt-logging controls in your OpenRouter account settings, which you own and we
+          cannot change.
+        </p>
+        <p>
+          Two things worth stating plainly. Nothing is sent unless you press a button — the
+          extension does not read comment sections in the background, and it never posts a reply
+          for you; inserting text into YouTube’s reply box is the last thing it does, and pressing
+          Reply is yours. And the comment text belongs to the person who wrote it, not to us: it
+          reaches OpenRouter under your own account and no copy is kept anywhere else.
+        </p>
+      </section>
+
+      <section class="flex flex-col gap-4">
+        <h2 class="text-[22px] font-semibold tracking-[-0.015em] text-white">Signing in to OpenRouter</h2>
+        <p>
+          Connecting an account uses the browser’s own identity API to open OpenRouter’s consent
+          page in a normal browser window. Your OpenRouter password is typed on their site and
+          never reaches the extension; what comes back is an API key scoped to this extension,
+          stored as described above. You can revoke it at any time at
+          {' '}
+          <a class="text-white underline decoration-line-hi underline-offset-4" href="https://openrouter.ai/settings/keys" rel="noreferrer">openrouter.ai/settings/keys</a>,
+          which instantly stops the extension from being able to generate anything.
+        </p>
+      </section>
+
+      <section class="flex flex-col gap-4">
+        <h2 class="text-[22px] font-semibold tracking-[-0.015em] text-white">Permissions, and why each one exists</h2>
+        <div class="overflow-x-auto border border-line">
+          <table class="w-full min-w-[520px] border-collapse text-left">
+            <thead>
+              <tr class="border-b border-line bg-surface-hi">
+                <th class="micro p-4">permission</th>
+                <th class="micro p-4">what it is for</th>
+              </tr>
+            </thead>
+            <tbody>
+              {
+                permissions.map(([name, why]) => (
+                  <tr class="border-b border-line-soft bg-surface last:border-b-0">
+                    <td class="p-4 font-mono text-[13px] text-violet">{name}</td>
+                    <td class="p-4 text-[14px] text-white/70">{why}</td>
+                  </tr>
+                ))
+              }
+            </tbody>
+          </table>
+        </div>
+        <p>
+          The extension contains no remote code. Text a model returns is displayed and inserted as
+          text; it is never executed.
+        </p>
+      </section>
+
+      <section class="flex flex-col gap-4">
+        <h2 class="text-[22px] font-semibold tracking-[-0.015em] text-white">The links out of the extension</h2>
+        <p>
+          Three buttons lead to a web page rather than doing something in the extension: the Pro
+          waitlist, the two feedback answers on the thank-you card, and Buy Me a Coffee. All three
+          are ordinary links you press.
+        </p>
+        <p>
+          The Pro link carries the features you ticked in settings, in the address bar, visible to
+          you, so the waitlist page can pre-tick the same boxes. The feedback links carry which of
+          the two buttons you pressed, and nothing else — no identifier, no counter, no reply text.
+          Neither is a report the extension filed: nothing is submitted from inside it, and if you
+          type an email address it happens on the website, under the terms in the next section.
+        </p>
+        <p>
+          Buy Me a Coffee is a third-party site with its own privacy policy. Their button is
+          redrawn locally rather than embedded, so nothing of theirs runs or loads until you click
+          it.
+        </p>
+      </section>
+
+      <section class="flex flex-col gap-4">
+        <h2 class="text-[22px] font-semibold tracking-[-0.015em] text-white">This website and the waitlist</h2>
+        <p>
+          These pages set no cookies and load no third-party scripts, fonts or images. If you
+          submit the waitlist form, your address is stored in our own self-hosted mailing tool on a
+          server we run, together with the features you voted for, your answer on price, anything
+          you wrote in the free-text field, and which entry point sent you.
+        </p>
+        <p>
+          You will receive a confirmation email and are on the list only if you click the link in
+          it. The address is used for one thing — telling you when Pro exists — and every email
+          carries a one-click unsubscribe that deletes you from the list. It is never sold, rented
+          or shared, and it is not used for any other mailing.
+        </p>
+      </section>
+
+      <section class="flex flex-col gap-4">
+        <h2 class="text-[22px] font-semibold tracking-[-0.015em] text-white">Deleting everything</h2>
+        <p>
+          Removing the extension removes its storage with it, including the synced counter.
+          Settings also lets you clear the stored key on its own. To leave the waitlist, use the
+          unsubscribe link in any email from us; to be certain nothing of yours remains, write to
+          the address below and it will be deleted.
+        </p>
+      </section>
+
+      <section class="flex flex-col gap-4">
+        <h2 class="text-[22px] font-semibold tracking-[-0.015em] text-white">Changes</h2>
+        <p>
+          If what the extension stores or sends ever changes, this page changes in the same release
+          and the date at the top moves. Material changes are also listed in the release notes on
+          {' '}
+          <a class="text-white underline decoration-line-hi underline-offset-4" href={SOURCE_URL} rel="noreferrer">GitHub</a>,
+          so the history is public rather than a silent edit.
+        </p>
+      </section>
+
+      <section class="flex flex-col gap-4">
+        <h2 class="text-[22px] font-semibold tracking-[-0.015em] text-white">Contact</h2>
+        <p>
+          <a class="text-white underline decoration-line-hi underline-offset-4" href={`mailto:${CONTACT_EMAIL}`}>{CONTACT_EMAIL}</a>
+          {' '}
+          — for anything on this page, including a request to delete data.
+        </p>
+      </section>
+    </div>
+  </article>
+</Base>

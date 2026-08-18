@@ -1,0 +1,51 @@
+---
+import { CONTACT_EMAIL, SOURCE_URL, SUPPORT_URL } from '../lib/links';
+
+/**
+ * The footer. A hairline, three columns of links, and a status dot.
+ *
+ * The dot is the same 6px status marker the popup uses for a live connection —
+ * the one green in the system — and it says the thing a footer is actually
+ * good for: this is maintained, and here is the year to prove it.
+ */
+const year = new Date().getFullYear();
+---
+
+<footer class="mt-32 border-t border-line">
+  <div class="mx-auto flex max-w-6xl flex-col gap-8 px-5 py-12 sm:flex-row sm:items-start sm:justify-between">
+    <div class="flex flex-col gap-2">
+      <a href="/" class="text-[15px] font-semibold tracking-[-0.01em]">Reply AI</a>
+      <p class="max-w-xs text-[13px] leading-[1.55] text-white/45">
+        A Chrome extension that answers YouTube comments in your own voice, on your own key.
+        No account, no server, no limit.
+      </p>
+      <p class="mt-2 flex items-center gap-2">
+        <span aria-hidden="true" class="size-1.5 rounded-full bg-connected"></span>
+        <span class="micro">© {year} · built by one person</span>
+      </p>
+    </div>
+
+    <div class="flex flex-wrap gap-x-12 gap-y-8">
+      <div class="flex flex-col gap-3">
+        <span class="micro">product</span>
+        <a class="text-[13px] text-white/55 transition-colors duration-150 hover:text-white" href="/#workflow">How it works</a>
+        <a class="text-[13px] text-white/55 transition-colors duration-150 hover:text-white" href="/#panel">The panel</a>
+        <a class="text-[13px] text-white/55 transition-colors duration-150 hover:text-white" href="/#pricing">Pricing</a>
+        <a class="text-[13px] text-white/55 transition-colors duration-150 hover:text-white" href="/pro">Pro waitlist</a>
+      </div>
+
+      <div class="flex flex-col gap-3">
+        <span class="micro">honest bits</span>
+        <a class="text-[13px] text-white/55 transition-colors duration-150 hover:text-white" href="/privacy">Privacy policy</a>
+        <a class="text-[13px] text-white/55 transition-colors duration-150 hover:text-white" href={SOURCE_URL} rel="noreferrer">Source code</a>
+        <a class="text-[13px] text-white/55 transition-colors duration-150 hover:text-white" href="/feedback">Feedback</a>
+      </div>
+
+      <div class="flex flex-col gap-3">
+        <span class="micro">get in touch</span>
+        <a class="text-[13px] text-white/55 transition-colors duration-150 hover:text-white" href={`mailto:${CONTACT_EMAIL}`}>{CONTACT_EMAIL}</a>
+        <a class="text-[13px] text-white/55 transition-colors duration-150 hover:text-white" href={SUPPORT_URL} rel="noreferrer">Buy me a tea</a>
+      </div>
+    </div>
+  </div>
+</footer>
