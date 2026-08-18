@@ -553,6 +553,11 @@ async function describeFor(error: unknown, model?: string): Promise<FailurePaylo
     if (payload.keyIsOurs) await trialSpent.setValue(true);
   }
 
+  // Which side the filter refused travels with the error; nothing here can add
+  // to it. Absent means the client could not tell, and the UI has a message for
+  // that case rather than a guess to make.
+  if (failure.kind === 'filtered') payload.filtered = failure.filter;
+
   if (failure.kind === 'rate_limited') {
     const source = failure.limitSource ?? 'unknown';
     payload.rateLimit = {

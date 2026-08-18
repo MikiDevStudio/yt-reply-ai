@@ -36,8 +36,17 @@ export type OpenRouterErrorKind =
    * instead of their wifi.
    */
   | 'offline'
-  /** The request succeeded but produced no text — often a content filter. */
+  /** The request succeeded but produced no text. */
   | 'empty'
+  /**
+   * A safety filter refused, rather than anything going wrong.
+   *
+   * Apart from `empty` because the cause is the comment rather than the model:
+   * a model that returns nothing is retried, a filter that fired on the way in
+   * returns nothing every time it is asked. Which side refused is carried in
+   * `filter`, because the two have different remedies — see lib/failure.ts.
+   */
+  | 'filtered'
   /**
    * The model kept writing far past the length of a reply.
    *
@@ -69,6 +78,34 @@ export type RateLimitSource =
   /** A 429 that named no source. */
   | 'unknown';
 
+/**
+ * Which side of the request a safety filter refused.
+ *
+ * `comment` is the one that has to be told apart: OpenRouter screens what goes
+ * into some models, and a screened comment is refused before the model ever
+ * sees it. Nothing about that changes on a second attempt, so a retry button
+ * would be a button that cannot work.
+ */
+export type FilterSide =
+  /** Screened on the way in. The comment never reached the model. */
+  | 'comment'
+  /** The model began and stopped. Reported as `finish_reason: content_filter`. */
+  | 'reply';
+
+/** What a `filtered` refusal knows about itself. */
+export interface FilterFacts {
+  side: FilterSide;
+  /**
+   * The categories OpenRouter's moderation named, when it named any.
+   *
+   * The only part of the refusal that explains it. `flagged_input` sits beside
+   * it in the same object and is deliberately not read: it is a truncated copy
+   * of the comment, and quoting it back adds nothing the person cannot see for
+   * themselves on the page.
+   */
+  reasons?: string[];
+}
+
 /** Everything a failure can carry besides its kind and its text. */
 export interface FailureDetails {
   /** HTTP status, when the failure came from a response. */
@@ -77,12 +114,15 @@ export interface FailureDetails {
   retryAfterSeconds?: number;
   /** Which limit refused, on a 429. */
   limitSource?: RateLimitSource;
+  /** Which side a filter refused, on `filtered`. */
+  filter?: FilterFacts;
 }
 
 export class OpenRouterError extends Error {
   readonly status?: number;
   readonly retryAfterSeconds?: number;
   readonly limitSource?: RateLimitSource;
+  readonly filter?: FilterFacts;
 
   constructor(
     readonly kind: OpenRouterErrorKind,
@@ -94,18 +134,22 @@ export class OpenRouterError extends Error {
     this.status = details.status;
     this.retryAfterSeconds = details.retryAfterSeconds;
     this.limitSource = details.limitSource;
+    this.filter = details.filter;
   }
 
   /** Map an HTTP failure onto a kind. */
   static fromResponse(status: number, body: string, headers?: Headers): OpenRouterError {
-    const { message, limitSource, resetSeconds } = readErrorBody(body);
-    return new OpenRouterError(kindForStatus(status, message), message ?? `HTTP ${status}`, {
+    const { message, limitSource, resetSeconds, filter } = readErrorBody(body);
+    const kind = kindForStatus(status, message, filter);
+
+    return new OpenRouterError(kind, message ?? `HTTP ${status}`, {
       status,
       // The body first: a rate-limited response carries its reset inside
       // `metadata.headers` and sends no rate-limit headers of its own — checked
       // against the live API, where the HTTP headers came back empty.
       retryAfterSeconds: resetSeconds ?? secondsUntilRetry(headers),
       limitSource,
+      filter: filterFor(kind, filter),
     });
   }
 
@@ -128,10 +172,13 @@ export class OpenRouterError extends Error {
       typeof error.message === 'string' && error.message.length > 0
         ? error.message
         : 'The model provider failed mid-response';
+    const details = readMetadata(error.metadata);
+    const kind = status ? kindForStatus(status, message, details.filter) : 'upstream';
 
-    return new OpenRouterError(status ? kindForStatus(status, message) : 'upstream', message, {
+    return new OpenRouterError(kind, message, {
       status,
-      ...readMetadata(error.metadata),
+      ...details,
+      filter: filterFor(kind, details.filter),
     });
   }
 }
@@ -146,10 +193,30 @@ export class OpenRouterError extends Error {
  */
 const KEY_EXHAUSTED = /key limit exceeded/i;
 
-function kindForStatus(status: number, message?: string): OpenRouterErrorKind {
+/**
+ * A moderation 403 that carried no metadata to prove it, in its own words.
+ *
+ * The reference gives 403 three unrelated meanings — "insufficient permissions,
+ * guardrail block, or moderation flag" — and only the moderation one comes with
+ * `metadata.reasons` to identify it by. That metadata is the signal this trusts;
+ * this pattern is the fallback for a provider guardrail that refuses in prose.
+ *
+ * Narrow on purpose, and it errs towards `unauthorized`. Calling a revoked key
+ * a filtered comment takes away the reconnect button, which is the one thing
+ * that would have fixed it — so a word has to be unmistakable to appear here.
+ */
+const FILTERED = /\b(flagged|moderation|guardrail)\b/i;
+
+function kindForStatus(
+  status: number,
+  message?: string,
+  filter?: FilterFacts,
+): OpenRouterErrorKind {
   switch (status) {
     case 403:
-      return message && KEY_EXHAUSTED.test(message) ? 'key_exhausted' : 'unauthorized';
+      if (filter) return 'filtered';
+      if (message && KEY_EXHAUSTED.test(message)) return 'key_exhausted';
+      return message && FILTERED.test(message) ? 'filtered' : 'unauthorized';
     case 401:
       return 'unauthorized';
     case 402:
@@ -209,14 +276,15 @@ function readErrorBody(body: string): {
   message?: string;
   limitSource?: RateLimitSource;
   resetSeconds?: number;
+  filter?: FilterFacts;
 } {
   try {
     const parsed = JSON.parse(body);
     const message = parsed?.error?.message ?? parsed?.message;
 
     if (typeof message === 'string' && message.length > 0) {
-      const { limitSource, retryAfterSeconds } = readMetadata(parsed?.error?.metadata);
-      return { message, limitSource, resetSeconds: retryAfterSeconds };
+      const { limitSource, retryAfterSeconds, filter } = readMetadata(parsed?.error?.metadata);
+      return { message, limitSource, resetSeconds: retryAfterSeconds, filter };
     }
   } catch {
     // Not JSON — fall through to the raw body.
@@ -238,18 +306,53 @@ function readErrorBody(body: string): {
 function readMetadata(metadata: unknown): {
   limitSource?: RateLimitSource;
   retryAfterSeconds?: number;
+  filter?: FilterFacts;
 } {
   if (typeof metadata !== 'object' || metadata === null) return {};
 
-  const { limit_source: source, headers } = metadata as {
+  const {
+    limit_source: source,
+    headers,
+    reasons,
+    flagged_input: flaggedInput,
+  } = metadata as {
     limit_source?: unknown;
     headers?: Record<string, unknown>;
+    reasons?: unknown;
+    flagged_input?: unknown;
   };
+
+  // Either field identifies a moderation refusal; `reasons` is the one worth
+  // keeping. Documented as always arriving together, so the pair is read as an
+  // or rather than an and — a refusal that names no category is still a
+  // refusal, and the message for it does not depend on having one.
+  const moderated = Array.isArray(reasons) || typeof flaggedInput === 'string';
 
   return {
     limitSource: typeof source === 'string' ? classifyLimit(source) : undefined,
     retryAfterSeconds: delayFromReset(headers?.['X-RateLimit-Reset']),
+    filter: moderated ? { side: 'comment', reasons: readReasons(reasons) } : undefined,
   };
+}
+
+/** The categories, when they arrived as the array of strings they should be. */
+function readReasons(reasons: unknown): string[] | undefined {
+  if (!Array.isArray(reasons)) return undefined;
+
+  const named = reasons.filter((reason): reason is string => typeof reason === 'string');
+  return named.length > 0 ? named : undefined;
+}
+
+/**
+ * What a `filtered` error carries when the body did not spell it out.
+ *
+ * A filter that arrives as a status refused before the model saw the comment,
+ * which is the whole difference between the two sides — so the side is settled
+ * here rather than left absent for the UI to guess at.
+ */
+function filterFor(kind: OpenRouterErrorKind, filter?: FilterFacts): FilterFacts | undefined {
+  if (kind !== 'filtered') return filter;
+  return filter ?? { side: 'comment' };
 }
 
 /**

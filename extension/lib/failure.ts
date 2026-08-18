@@ -1,4 +1,4 @@
-import type { OpenRouterErrorKind, RateLimitSource } from './openrouter/errors';
+import type { FilterFacts, OpenRouterErrorKind, RateLimitSource } from './openrouter/errors';
 
 /**
  * What every failure says, and what the user can do about it — in one table.
@@ -74,6 +74,14 @@ export interface FailureFacts {
    * claim is worse than one that never mentioned it.
    */
   trialAvailable?: boolean;
+  /**
+   * Which side a safety filter refused, on `filtered`.
+   *
+   * The two sides do not share a remedy. A comment stopped on the way in is
+   * stopped every time it is sent, so the card that describes it offers no
+   * retry; a reply the model abandoned halfway is worth one more attempt.
+   */
+  filtered?: FilterFacts;
   /** Text that arrived before the failure. Kept rather than thrown away. */
   partial?: string;
 }
@@ -195,6 +203,22 @@ const COPY: Record<FailureKind, Failure> = {
     ],
   },
 
+  // The reply side of a filter. The comment side is written in `describeFailure`,
+  // because it is the half that must not offer a retry — see `filtered` there.
+  // This is also the safe half to say when the side is unknown: naming the model
+  // as the one that refused is true of every filter that got as far as a model.
+  filtered: {
+    title: 'The model refused to answer this comment',
+    detail:
+      'A safety filter stopped the reply — the model read the comment and would not ' +
+      'answer it. Where that line falls belongs to the provider rather than to any ' +
+      'setting here, so another model often answers the same comment without complaint.',
+    actions: [
+      { kind: 'options', label: 'Try another model', section: '/models' },
+      { kind: 'retry', label: 'Try again' },
+    ],
+  },
+
   network: {
     title: 'Could not reach OpenRouter',
     detail: 'Your connection is up, so this is OpenRouter or something between you and it.',
@@ -300,6 +324,21 @@ export function describeFailure(facts: FailureFacts): Failure {
 
   if (facts.kind === 'rate_limited') return rateLimited(facts);
 
+  // A comment screened on the way in never reached a model, so the base entry —
+  // which blames the model — is the wrong story, and the retry it offers is a
+  // button that cannot work: the same comment is refused every time it is sent.
+  if (facts.kind === 'filtered' && facts.filtered?.side === 'comment') {
+    return {
+      title: 'The comment was blocked before it reached the model',
+      detail:
+        'OpenRouter screens what goes into some models, and this comment did not pass' +
+        `${flaggedAs(facts.filtered.reasons)}. The screening comes with the model rather ` +
+        'than with your account, and most models carry none — one of those will take the ' +
+        'comment as it stands.',
+      actions: [{ kind: 'options', label: 'Try another model', section: '/models' }],
+    };
+  }
+
   // Half an answer is still worth something — it can be edited into a reply —
   // so the words have to account for it being on screen rather than pretend the
   // attempt produced nothing.
@@ -403,6 +442,24 @@ function dailyCap(hasPaid: boolean | null): string {
     'Free models allow 50 a day, or 1,000 once the account has bought $10 of ' +
     'credits. A paid model has no daily cap.'
   );
+}
+
+/**
+ * The categories the moderation named, as a clause that can be left out.
+ *
+ * They are the only part of the refusal that explains it, and they are also the
+ * part that may not arrive — so they are written as an aside rather than as the
+ * sentence, which keeps the copy whole when there is nothing to name.
+ */
+function flaggedAs(reasons?: string[]): string {
+  if (!reasons || reasons.length === 0) return '';
+
+  const named =
+    reasons.length === 1
+      ? reasons[0]
+      : `${reasons.slice(0, -1).join(', ')} and ${reasons[reasons.length - 1]}`;
+
+  return `, flagged for ${named}`;
 }
 
 function formatDelay(seconds: number): string {

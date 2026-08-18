@@ -130,12 +130,17 @@ export async function* streamCompletion(
   }
 
   if (result.text.trim().length === 0) {
-    throw new OpenRouterError(
-      'empty',
-      result.finishReason === 'content_filter'
-        ? 'The model refused to answer this comment'
-        : 'The model returned nothing',
-    );
+    // A filter that fired while the model was writing, as opposed to one that
+    // stopped the comment on the way in: OpenRouter normalises both Google's
+    // `SAFETY` and the OpenAI-shaped `content_filter` onto this one value.
+    // Nothing arrived, so there is no half-answer to weigh against saying so.
+    if (result.finishReason === 'content_filter') {
+      throw new OpenRouterError('filtered', 'The model refused to answer this comment', {
+        filter: { side: 'reply' },
+      });
+    }
+
+    throw new OpenRouterError('empty', 'The model returned nothing');
   }
 
   return result;
