@@ -1,4 +1,4 @@
-# Reply AI — YouTube Comment Assistant
+# Reply AI — AI replies for YouTube comments
 
 Chrome extension (WXT + React) that drafts replies to YouTube comments in the
 channel owner's voice. Generation runs through the user's own OpenRouter
