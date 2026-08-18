@@ -283,17 +283,21 @@ export function buildReplyPrompt({
     'Never state anything about the video, the channel or how it was made that is not written below. If you do not know a detail, leave it out — do not invent it, and do not imply it.',
   );
 
-  // The failure this catches was the single largest gap between what the model
-  // wrote and what people write. Measured over the eval set in `research/`,
-  // 74% of generated replies opened by agreeing with the comment and saying it
-  // again in other words; across 88 replies by real channel owners the figure
-  // was 17%. The model was not writing badly — it was writing a mirror, and a
-  // mirror is what makes a reply read as automated no matter how warm it
-  // sounds. The escape hatch matters as much as the rule: told only to add
-  // something, a model with nothing to add invents one.
+  // The failure this catches is a reply that agrees with the comment and says
+  // it back in other words: warm, fluent, and carrying nothing. It is what made
+  // generated replies read as automated, and it is the one line here that earns
+  // its tokens several times over — asked over the eval set, a judge found 37%
+  // of replies mirroring without it and 5% with it. Real channel owners, judged
+  // the same way, mirror 44% of the time, so the target was never zero and the
+  // escape hatch is not politeness: told only to add something, a model with
+  // nothing to add invents it.
+  //
+  // A second line spelling out "do not hand the comment back" stood here and
+  // was removed. It read as the stronger of the two and measured as the weaker:
+  // dropping it moved mirroring from 5% to 11%, both far under what people do,
+  // for 102 characters billed on every reply ever generated.
   system.push(
-    'Do not hand the comment back. Restating what they said in other words, however warmly, is not a reply.',
-    'Add something they did not say: an answer, a detail of your own, a limit of what you know, a disagreement. If you have nothing to add, say less rather than padding. A short acknowledgement is a real reply; a long one that only agrees is not.',
+    'Add something they did not say: an answer, a detail of your own, a limit of what you know, a disagreement. Restating what they said in other words, however warmly, is not a reply. If you have nothing to add, say less rather than padding. A short acknowledgement is a real reply; a long one that only agrees is not.',
     // A count, because the qualitative version did nothing. "About as long as
     // the comment, one sentence longer at most" left the median at 110
     // characters across two runs — the model kept writing single sentences that
@@ -315,9 +319,14 @@ export function buildReplyPrompt({
     system.push('', 'Voice and rules to follow:', clip(soul, LIMITS.soul));
   }
 
-  const styleHint = STYLES[style] ?? STYLES.auto;
-  system.push('', `Tone for this reply: ${styleHint}`);
-  system.push(`How far to stray: ${creativityPreset(creativity).instruction}`);
+  // `auto` is the default and says to match the tone of the comment, which is
+  // what the model does when nothing is said at all: removing the line moved
+  // neither the length of a reply nor how often it mirrored. So the default
+  // costs nothing, and the four named styles — which do change the output — are
+  // still spelled out.
+  const styleHint = STYLES[style];
+  const tone = styleHint && style !== 'auto' ? [`Tone for this reply: ${styleHint}`] : [];
+  system.push('', ...tone, `How far to stray: ${creativityPreset(creativity).instruction}`);
 
   // L1 and above add video context. It is constant per video, so it belongs in
   // the cacheable prefix rather than in the user turn.
