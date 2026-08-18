@@ -3,6 +3,11 @@
 .env.*
 !.env.example
 
+# The Worker's local secrets. `wrangler dev` reads this file the way the
+# deployed Worker reads `wrangler secret put` — same value, no repository.
+.dev.vars
+.dev.vars.*
+
 # MCP server config: it carries the n8n API key inline, in plain text
 .mcp.json
 
@@ -37,6 +42,7 @@ node_modules/
 .output/
 .wxt/
 .astro/
+.wrangler/
 dist/
 *.zip
 

@@ -388,7 +388,7 @@ async function request(
  * a network interface, not that anything is reachable, but `false` means the
  * browser knows there is nothing to reach. Only that direction is used.
  */
-function connectionFailure(message: string): OpenRouterError {
+export function connectionFailure(message: string): OpenRouterError {
   if (typeof navigator !== 'undefined' && navigator.onLine === false) {
     return new OpenRouterError('offline', 'No internet connection');
   }

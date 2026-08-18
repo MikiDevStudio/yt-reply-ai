@@ -25,6 +25,7 @@ const stored = [
   ['Model list', 'Local, on this device', "A cached copy of OpenRouter's public catalogue, so the settings page opens fast"],
   ['Video descriptions', 'Session, cleared when the browser closes', 'Avoids re-reading the same page for every reply on it'],
   ['Reply counter', 'Synced storage', 'Counts what you have written. It gates nothing — see the note below'],
+  ['Install id', 'Local, on this device', 'A random number this copy of the extension gives itself, used once to ask for a free trial key. Only created if you take the trial'],
 ];
 
 const permissions = [
@@ -32,7 +33,11 @@ const permissions = [
   ['identity', "Opens OpenRouter's sign-in page and receives the key it issues"],
   [
     'openrouter.ai',
-    'The single host the extension may contact. It is not broadened to all sites, and the extension cannot reach any other server',
+    'Where every reply is generated. Your key goes here and nowhere else',
+  ],
+  [
+    'api.mikidev.app',
+    'Ours, contacted once in the life of an install and only if you take the free trial: it asks for a trial key and receives one. Replies never go through it',
   ],
   [
     'www.youtube.com · studio.youtube.com',
@@ -53,9 +58,10 @@ const permissions = [
     </h1>
 
     <p class="mt-6 border-l-2 border-accent pl-4 text-[16px] leading-[1.7] text-white/70">
-      Reply AI has no server, no account and no analytics. It stores what it needs on your own
-      machine and makes exactly one kind of outbound request: to OpenRouter, on your own API key,
-      when you press Generate.
+      Reply AI has no account, no analytics and nothing that tracks you. It stores what it needs on
+      your own machine, and every reply goes straight to OpenRouter on your own API key. One
+      service of ours exists, and it is contacted once in the life of an install — only if you take
+      the free trial, and never with a word of anyone’s comment.
     </p>
 
     <p class="micro mt-6">last updated: 18 august 2026 · applies to version 0.1.0 onward</p>
@@ -64,9 +70,16 @@ const permissions = [
       <section class="flex flex-col gap-4">
         <h2 class="text-[22px] font-semibold tracking-[-0.015em] text-white">What we collect about you</h2>
         <p>
-          Nothing. There is no server to collect it with. The extension sends us no usage data, no
-          error reports, no install ping and no identifier of any kind, and it has no way to know
-          that you exist.
+          No usage data, no error reports, no install ping and no profile. Nothing you write, and
+          nothing anyone else wrote, ever reaches us.
+        </p>
+        <p>
+          There is one exception, and it happens at most once: if you press <em>Try it free</em>,
+          the extension sends a random number it generated for itself and receives an OpenRouter key
+          with a few cents on it. We record that number, the time, and whether a key was issued —
+          enough to give one trial per install and to answer you if it fails. It is tied to no
+          account, no email and no address, and after that request the extension never contacts us
+          again. Take your own key instead and this never happens at all.
         </p>
       </section>
 
@@ -234,9 +247,11 @@ const permissions = [
         <h2 class="text-[22px] font-semibold tracking-[-0.015em] text-white">Deleting everything</h2>
         <p>
           Removing the extension removes its storage with it, including the synced counter.
-          Settings also lets you clear the stored key on its own. To leave the waitlist, use the
-          unsubscribe link in any email from us; to be certain nothing of yours remains, write to
-          the address below and it will be deleted.
+          Settings also lets you clear the stored key on its own. If you took the trial, the random
+          number that asked for it stays in our record of trials issued — write to the address
+          below and it will be deleted, along with the trial key it names. To leave the waitlist,
+          use the unsubscribe link in any email from us; to be certain nothing of yours remains,
+          write to the same address.
         </p>
       </section>
 

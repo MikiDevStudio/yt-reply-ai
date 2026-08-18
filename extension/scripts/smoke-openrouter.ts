@@ -63,6 +63,7 @@ check(
 for (const preset of Object.values(MODEL_PRESETS)) {
   check(`preset ${preset} is still offered`, models.some((m) => m.id === preset));
 }
+
 console.log('\n  Free models (first 12):');
 for (const model of free.slice(0, 12)) {
   console.log(`    ${model.id}  (${model.contextLength} ctx)`);
@@ -264,6 +265,7 @@ check(
 // the entries being useful.
 const KINDS: FailureKind[] = [
   'unauthorized',
+  'key_exhausted',
   'no_credits',
   'rate_limited',
   'invalid_request',
@@ -316,6 +318,54 @@ check(
   'the per-minute cap says to wait, not to switch models',
   perMinute.actions.length === 1 && perMinute.actions[0]?.kind === 'retry',
   perMinute.detail,
+);
+
+// A trial key that has spent its allowance answers 403, the same status as a
+// key that was deleted. Read as the latter, the end of the trial tells people
+// their key was revoked and sends them to reconnect one that is working fine.
+const exhausted = OpenRouterError.fromResponse(
+  403,
+  JSON.stringify({ error: { message: 'Key limit exceeded (total limit)', code: 403 } }),
+);
+check(
+  'an exhausted key is not read as a revoked one',
+  exhausted.kind === 'key_exhausted',
+  exhausted.kind,
+);
+
+const revoked = OpenRouterError.fromResponse(
+  403,
+  JSON.stringify({ error: { message: 'No auth credentials found' } }),
+);
+check(
+  'a 403 that is not about a limit stays unauthorized',
+  revoked.kind === 'unauthorized',
+  revoked.kind,
+);
+
+// Whose key ran out decides the whole message: ours is the trial ending exactly
+// as designed, theirs is a cap they set themselves on openrouter.ai.
+const trialOver = describeFailure({ kind: 'key_exhausted', keyIsOurs: true });
+const theirsOver = describeFailure({ kind: 'key_exhausted', keyIsOurs: false });
+check(
+  'the trial ending is told as the trial ending',
+  trialOver.title !== theirsOver.title && trialOver.actions[0]?.kind === 'options',
+  trialOver.title,
+);
+// Every card that ends in "you need a key" leads with our own authorise flow.
+// A link to openrouter.ai's key list is the wrong first step for the majority
+// case — someone who has never opened that page and has nothing listed on it.
+check(
+  'a key that is not ours leads with authorising, not with a page of keys',
+  theirsOver.actions[0]?.kind === 'options' && theirsOver.actions[1]?.kind === 'link',
+  theirsOver.actions.map((a) => a.label).join(', '),
+);
+
+const neverConnected = describeFailure({ kind: 'unauthorized', hadKey: false });
+check(
+  'nobody is asked to re-do something they have never done',
+  neverConnected.actions[0]?.label === 'Connect OpenRouter',
+  neverConnected.actions[0]?.label,
 );
 
 console.log(`\n${failures === 0 ? 'All checks passed.' : `${failures} check(s) failed.`}`);

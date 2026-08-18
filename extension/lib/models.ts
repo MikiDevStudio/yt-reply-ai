@@ -13,6 +13,11 @@ export const MODEL_PRESETS = {
   /**
    * Default. $1.50 in / $7.50 out, and it thinks before answering: measured at
    * $0.0003 per reply with reasoning held to `minimal`, $0.0041 without.
+   *
+   * What it costs in practice is neither of those. `reasoningFor` sends `low`
+   * on the reply people actually see, and that measures at $0.00125 — four
+   * times `minimal`, and the number to quote wherever a price per reply is
+   * quoted. `npm run measure` re-runs it.
    */
   balanced: 'google/gemini-3.6-flash',
   /** $0.25 in / $1.50 out, no reasoning — measured at $0.00005 per reply. */

@@ -56,6 +56,15 @@ export interface FailureFacts {
    * differently to the person holding the account.
    */
   hadKey?: boolean;
+  /**
+   * Whether the key that ran out was the trial one we issued. Present on
+   * `key_exhausted`, where it decides between two unrelated messages.
+   *
+   * Absent or false means "not ours as far as we know", which is the reading
+   * that fails safely: calling someone's own key a trial sends them looking for
+   * a trial they never had.
+   */
+  keyIsOurs?: boolean;
   /** Text that arrived before the failure. Kept rather than thrown away. */
   partial?: string;
 }
@@ -83,6 +92,7 @@ export interface Failure {
 }
 
 const CREDITS_URL = 'https://openrouter.ai/settings/credits';
+const KEYS_URL = 'https://openrouter.ai/settings/keys';
 
 /**
  * The fixed half of each message.
@@ -95,6 +105,25 @@ const COPY: Record<FailureKind, Failure> = {
     title: 'OpenRouter rejected the key',
     detail: 'It was revoked or deleted on OpenRouter. Connecting again issues a new one.',
     actions: [{ kind: 'options', label: 'Reconnect', section: '/account' }],
+  },
+
+  // The entry for a key that is not ours. The trial's own ending is written in
+  // `describeFailure`, because only the background can tell the two apart and
+  // this is the half that is safe to say when it cannot.
+  key_exhausted: {
+    title: 'This key has spent its limit',
+    detail:
+      'The cap is on the key itself rather than on the account behind it, so adding ' +
+      'credits will not lift it. Authorising again issues a fresh key; raising the ' +
+      'limit on OpenRouter keeps this one.',
+    // Authorising first, and the key page second, because our own flow is the
+    // one that ends in a working key without the user having to find anything.
+    // The page behind the link is a list — useful to someone who set the cap
+    // that just bit, useless to someone who has never opened it.
+    actions: [
+      { kind: 'options', label: 'Connect OpenRouter', section: '/account' },
+      { kind: 'link', label: 'Raise the limit', url: KEYS_URL },
+    ],
   },
 
   no_credits: {
@@ -194,11 +223,29 @@ const COPY: Record<FailureKind, Failure> = {
 export function describeFailure(facts: FailureFacts): Failure {
   const base = COPY[facts.kind];
 
+  // "Reconnect" is the base entry's word, and it is the wrong one here: nobody
+  // re-does something they have never done. The label also matches the button
+  // waiting on the page this opens, so the second step is the one expected.
   if (facts.kind === 'unauthorized' && facts.hadKey === false) {
     return {
       title: 'Not connected to OpenRouter',
       detail: 'Replies are generated through your own account. Connecting takes about a minute.',
-      actions: base.actions,
+      actions: [{ kind: 'options', label: 'Connect OpenRouter', section: '/account' }],
+    };
+  }
+
+  // The trial running out is the one failure here that is not a fault: it is
+  // the thing working as designed, arriving at the end. Said in the base entry's
+  // words it would read as a key that broke, which is both wrong and the last
+  // impression the trial gets to leave.
+  if (facts.kind === 'key_exhausted' && facts.keyIsOurs) {
+    return {
+      title: 'The free trial is used up',
+      detail:
+        'That was the trial in full — about thirty replies, on us. Your own OpenRouter ' +
+        'account carries on from here, and nothing else changes: replies cost about a ' +
+        'tenth of a cent each, billed by OpenRouter rather than by us.',
+      actions: [{ kind: 'options', label: 'Connect OpenRouter', section: '/account' }],
     };
   }
 

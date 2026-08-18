@@ -94,6 +94,8 @@ export interface FailurePayload {
   rateLimit?: RateLimitFacts;
   /** Present on `unauthorized`: false means no key was ever stored. */
   hadKey?: boolean;
+  /** Present on `key_exhausted`: true means the key that ran out was the trial's. */
+  keyIsOurs?: boolean;
 }
 
 /** Background → content script, over the generate port. */
@@ -126,6 +128,11 @@ export type Request =
   | { type: 'auth:connect' }
   | { type: 'auth:disconnect' }
   | { type: 'auth:setKey'; apiKey: string }
+  /**
+   * Ask for the free trial key (#38). Answers with what happened, never with
+   * the key — a key belongs in the background worker and nowhere else.
+   */
+  | { type: 'trial:claim' }
   /** The catalogue, from cache unless `refresh` says to go and ask again. */
   | { type: 'models:list'; refresh?: boolean }
   /** Check one id against the catalogue and return what it says about it. */

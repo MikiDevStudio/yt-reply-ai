@@ -13,6 +13,7 @@
     "zip:firefox": "wxt zip -b firefox",
     "compile": "tsc --noEmit",
     "smoke": "tsx scripts/smoke-openrouter.ts",
+    "measure": "tsx scripts/measure-reply-cost.ts",
     "postinstall": "wxt prepare"
   },
   "dependencies": {
