@@ -142,7 +142,7 @@ export function Account() {
             <p className="text-sm text-base-content/70">
               {trialSpent
                 ? 'The trial is used up. Connecting your own OpenRouter account picks up from ' +
-                  'here — replies cost about $0.00125 each, billed by OpenRouter.'
+                  'here — replies cost about $0.002 each, billed by OpenRouter.'
                 : 'These replies are on the trial key, not on an account of yours. Connect one ' +
                   'whenever you like; the trial runs until it is spent either way.'}
             </p>
@@ -176,9 +176,9 @@ export function Account() {
         <>
           {!trialUsed && (
             <p className="text-sm text-base-content/70">
-              The trial is about thirty replies on a key of this install's own — no account, no
+              The trial is about twenty replies on a key of this install's own — no account, no
               card, nothing to cancel. When it runs out, connect your own OpenRouter account and
-              carry on; replies cost about $0.00125 each.
+              carry on; replies cost about $0.002 each.
             </p>
           )}
 

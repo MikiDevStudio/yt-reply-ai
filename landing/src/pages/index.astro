@@ -117,7 +117,7 @@ const faq = [
   },
   {
     q: 'What does it cost to run?',
-    a: 'Whatever the model costs, paid to OpenRouter at cost with no markup from us. Measured on the default model: about $0.0005 for a reply, and a few tenths of a cent for a retry, which thinks harder on purpose. There are free models in the picker too — they cost nothing and are capped by OpenRouter at 20 requests a minute.',
+    a: 'Whatever the model costs, paid to OpenRouter at cost with no markup from us. Measured on the default model: about $0.002 for a reply, and a little more for a retry, which thinks harder on purpose. There are free models in the picker too — they cost nothing and are capped by OpenRouter at 20 requests a minute.',
   },
   {
     q: 'Do you see my comments?',
@@ -202,7 +202,7 @@ const faq = [
         [
           { figure: '0', label: 'servers of ours in the path' },
           { figure: '∞', label: 'replies a day, since the cap went' },
-          { figure: '$0.0005', label: 'per reply on the default model' },
+          { figure: '$0.002', label: 'per reply on the default model' },
           { figure: '1', label: 'button, in YouTube’s own toolbar' },
         ].map((stat) => (
           <div class="flex flex-col gap-2 bg-surface p-6">
@@ -467,7 +467,7 @@ const faq = [
           {
             tag: 'default',
             id: 'google/gemini-3.6-flash',
-            note: 'Thinks before it answers, and it shows in the replies. About $0.0005 each.',
+            note: 'Thinks before it answers, and it shows in the replies. About $0.002 each.',
           },
           {
             tag: 'cheapest',
@@ -570,7 +570,7 @@ const faq = [
               'Unlimited replies — no daily cap, no counter to watch',
               'Every tone, every model, every control in the panel',
               'Soul profile, retries, languages, YouTube Studio',
-              'About thirty replies to start with, on our key, before any account exists',
+              'About twenty replies to start with, on our key, before any account exists',
               'After that, models billed by OpenRouter at cost — or free variants for nothing',
             ].map((line) => (
               <li class="flex gap-3">
@@ -675,7 +675,7 @@ const faq = [
       <div class="flex flex-col gap-3 border border-line bg-surface p-7">
         <span class="micro">what a reply actually costs</span>
         <p class="text-[15px] leading-[1.7] text-white/70">
-          About <span class="font-mono text-white">$0.00125</span> on the default model — measured,
+          About <span class="font-mono text-white">$0.002</span> on the default model — measured,
           not estimated — paid to OpenRouter at cost with nothing added by us. The first thirty or
           so are on our key and need no account at all, which makes the price of finding out
           exactly nothing. Those thirty are what a coffee pays for, for somebody else.

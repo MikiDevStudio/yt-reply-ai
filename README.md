@@ -100,7 +100,7 @@ and `medium` on every attempt after it — pressing the button again says the ob
 answer missed, and finding a different one is the work thinking pays for. Free models
 stay at `low` throughout, since their cost is a request quota rather than tokens.
 
-**A reply costs about $0.00125** on `gemini-3.6-flash`, measured at the effort the first
+**A reply costs about $0.002** on `gemini-3.6-flash`, measured at the effort the first
 attempt actually sends: `npm run measure` re-runs it over four comments and prints the
 mean. That is the number to quote wherever a price per reply is quoted — the trial's
 $0.04 limit is thirty of them, and the landing page and the onboarding copy say the same
@@ -121,7 +121,7 @@ key, no quota.
 A new install is one press from a reply, not one account away from one. Pressing
 **Try it free** — in the popover under a comment, in the toolbar popup, or on the
 settings page — asks `worker/` for a real OpenRouter key of this install's own,
-capped at $0.04, which is about thirty replies. What leaves the machine is one
+capped at $0.04, which is about twenty replies. What leaves the machine is one
 random UUID; see `worker/README.md`.
 
 When that key runs out OpenRouter answers 403 with `Key limit exceeded`, which is
@@ -138,7 +138,7 @@ rather than the error one.
 
 | Tier | What | Backend needed |
 |---|---|---|
-| Trial | our own capped key, ~30 replies, no account | the Worker |
+| Trial | our own capped key, ~20 replies, no account | the Worker |
 | Free | OpenRouter OAuth, `:free` models (OpenRouter's own 50/day) | none |
 | BYOK | same OAuth, paid models, user pays OpenRouter directly | none |
 | Licence | a gift code: the thank-you card never appears again. Not for sale | the Worker, once |

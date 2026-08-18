@@ -58,7 +58,7 @@ edit to the code:
 
 | Var | Value | Why |
 |---|---|---|
-| `TRIAL_LIMIT_USD` | `0.04` | About 30 replies. Measured at $0.00125 a reply on `google/gemini-3.6-flash` with reasoning at `low`, which is what the extension sends — run `npm run measure` in `extension/` to re-check. |
+| `TRIAL_LIMIT_USD` | `0.04` | About 20 replies. Measured at $0.002 a reply on `google/gemini-3.6-flash` with reasoning at `low`, which is what the extension sends — run `npm run measure` in `extension/` to re-check. |
 | `TRIAL_DAILY_CEILING` | `200` | Caps a bad day at $8. Every key minted counts, retries included — see below. |
 | `TRIAL_MAX_ATTEMPTS` | `3` | Retries after a dropped response, each one deleting the unused key it replaces. |
 

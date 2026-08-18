@@ -263,11 +263,11 @@ export function describeFailure(facts: FailureFacts): Failure {
     if (facts.trialAvailable) {
       return {
         tone: 'notice',
-        title: 'Start with about thirty replies, free',
+        title: 'Start with about twenty replies, free',
         detail:
           "On a key of this install's own — no account, no card, nothing to cancel. " +
           'When it runs out, connect your own OpenRouter account and carry on; ' +
-          'replies cost about $0.00125 each.',
+          'replies cost about $0.002 each.',
         actions: [{ kind: 'trial', label: 'Try it free' }, connect],
       };
     }
@@ -291,9 +291,9 @@ export function describeFailure(facts: FailureFacts): Failure {
       tone: 'notice',
       title: 'The free trial is used up',
       detail:
-        'That was the trial in full — about thirty replies, on us. Your own OpenRouter ' +
+        'That was the trial in full — about twenty replies, on us. Your own OpenRouter ' +
         'account carries on from here, and nothing else changes: replies cost about ' +
-        '$0.00125 each, billed by OpenRouter rather than by us.',
+        '$0.002 each, billed by OpenRouter rather than by us.',
       actions: [{ kind: 'options', label: 'Connect OpenRouter', section: '/account' }],
     };
   }
