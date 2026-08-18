@@ -368,5 +368,38 @@ check(
   neverConnected.actions[0]?.label,
 );
 
+// The first run (#35). A card that ends in "go and make an account" while a
+// free trial sits unclaimed is the form the trial was built to replace, and
+// the offer has to lead — a second button is not an offer.
+const firstRun = describeFailure({ kind: 'unauthorized', hadKey: false, trialAvailable: true });
+check(
+  'a first run is offered the trial, and offered it first',
+  firstRun.actions[0]?.kind === 'trial' && firstRun.actions[1]?.kind === 'options',
+  firstRun.title,
+);
+
+// The other direction matters as much: a trial nobody can claim, named in the
+// one message they cannot get past, is worse than never mentioning it.
+const noTrialLeft = describeFailure({ kind: 'unauthorized', hadKey: false, trialAvailable: false });
+check(
+  'a trial that cannot be claimed is never mentioned',
+  !noTrialLeft.actions.some((action) => action.kind === 'trial') &&
+    !/free|trial/i.test(`${noTrialLeft.title} ${noTrialLeft.detail ?? ''}`),
+  noTrialLeft.title,
+);
+
+// Neither of the two trial cards is a fault, and the frame has to agree with
+// the words in it: an offer drawn in the error box says "broken" before anyone
+// has read a line of it, and it is the first thing a new install shows.
+check(
+  'the trial offer and the trial ending are not drawn as faults',
+  firstRun.tone === 'notice' && trialOver.tone === 'notice',
+  `${firstRun.tone} / ${trialOver.tone}`,
+);
+check(
+  'an actual fault keeps the error frame',
+  noTrialLeft.tone === undefined && theirsOver.tone === undefined,
+);
+
 console.log(`\n${failures === 0 ? 'All checks passed.' : `${failures} check(s) failed.`}`);
 process.exit(failures === 0 ? 0 : 1);

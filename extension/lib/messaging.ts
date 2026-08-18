@@ -96,6 +96,8 @@ export interface FailurePayload {
   hadKey?: boolean;
   /** Present on `key_exhausted`: true means the key that ran out was the trial's. */
   keyIsOurs?: boolean;
+  /** Present when no key is stored: whether the free trial is still on offer. */
+  trialAvailable?: boolean;
 }
 
 /** Background → content script, over the generate port. */

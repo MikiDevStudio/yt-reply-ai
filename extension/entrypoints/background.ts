@@ -153,14 +153,7 @@ async function generate(
     model = chosen;
 
     if (!key) {
-      post(port, {
-        type: 'error',
-        kind: 'unauthorized',
-        message: 'No OpenRouter key is stored',
-        // Never connected, as opposed to a key OpenRouter has since rejected.
-        // The two need different words, and only this side can tell them apart.
-        hadKey: false,
-      });
+      post(port, { type: 'error', ...(await noKey('No OpenRouter key is stored')) });
       return;
     }
 
@@ -421,9 +414,7 @@ async function respond(request: Request): Promise<Response<unknown>> {
 
     case 'usage:get': {
       const key = await settings.apiKey.getValue();
-      if (!key) {
-        return { ok: false, kind: 'unauthorized', message: 'No key stored', hadKey: false };
-      }
+      if (!key) return { ok: false, ...(await noKey('No key stored')) };
       return { ok: true, data: await fetchKeyInfo(key) };
     }
 
@@ -445,9 +436,7 @@ async function respond(request: Request): Promise<Response<unknown>> {
         settings.apiKey.getValue(),
         settings.model.getValue(),
       ]);
-      if (!key) {
-        return { ok: false, kind: 'unauthorized', message: 'No key stored', hadKey: false };
-      }
+      if (!key) return { ok: false, ...(await noKey('No key stored')) };
 
       // Streamed and then assembled: one editor-sized answer has nothing to
       // show progressively, but the streaming path is the one that handles
@@ -490,6 +479,24 @@ async function storeKey(key: string, { ours }: { ours: boolean }): Promise<void>
     // Whatever the last key ran out of is not this key's business.
     trialSpent.setValue(false),
   ]);
+}
+
+/**
+ * The failure for "there is no key", said once for every surface that can hit it.
+ *
+ * Two facts the UI cannot work out for itself, and both change what it says.
+ * `hadKey: false` separates never having connected from a key OpenRouter has
+ * since rejected. `trialAvailable` decides whether the card offers a free
+ * trial or a form — the whole of #35, and it has to be answered the same way
+ * under a YouTube comment, in the popup and on the settings page.
+ */
+async function noKey(message: string): Promise<FailurePayload> {
+  return {
+    kind: 'unauthorized',
+    message,
+    hadKey: false,
+    trialAvailable: !(await trialClaimed.getValue()),
+  };
 }
 
 function asOpenRouterError(error: unknown): OpenRouterError {

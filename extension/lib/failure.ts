@@ -65,6 +65,15 @@ export interface FailureFacts {
    * a trial they never had.
    */
   keyIsOurs?: boolean;
+  /**
+   * Whether this install can still take the free trial. Present wherever the
+   * answer is "you need a key", which is the only place it changes anything.
+   *
+   * It is the difference between a first run that ends in a reply and one that
+   * ends in a form. Absent means no: a card that offers a trial nobody can
+   * claim is worse than one that never mentioned it.
+   */
+  trialAvailable?: boolean;
   /** Text that arrived before the failure. Kept rather than thrown away. */
   partial?: string;
 }
@@ -78,9 +87,26 @@ export type FailureAction =
   /** Open a page on openrouter.ai. */
   | { kind: 'link'; label: string; url: string }
   /** Switch the stored model to the free preset, then retry. */
-  | { kind: 'free-model'; label: string };
+  | { kind: 'free-model'; label: string }
+  /**
+   * Claim the free trial here, without going anywhere.
+   *
+   * The point of the whole action: pressed under a YouTube comment, it fetches
+   * a key and runs the generation the person actually asked for. Sending them
+   * to a settings tab to press a second button is the form this replaces.
+   */
+  | { kind: 'trial'; label: string };
 
 export interface Failure {
+  /**
+   * How the card is drawn. Absent means a fault, in the error frame.
+   *
+   * `notice` is for the two cards on this path that are not faults at all: the
+   * trial being offered, and the trial finishing exactly as designed. Both used
+   * to arrive in a red box, which contradicted every word inside it — and the
+   * offer is the first thing a new install ever shows.
+   */
+  tone?: 'notice';
   /** One sentence naming what happened, in our words. */
   title: string;
   /** What it means, or when it lifts. */
@@ -223,14 +249,36 @@ const COPY: Record<FailureKind, Failure> = {
 export function describeFailure(facts: FailureFacts): Failure {
   const base = COPY[facts.kind];
 
-  // "Reconnect" is the base entry's word, and it is the wrong one here: nobody
-  // re-does something they have never done. The label also matches the button
-  // waiting on the page this opens, so the second step is the one expected.
+  const connect: FailureAction = {
+    kind: 'options',
+    label: 'Connect OpenRouter',
+    section: '/account',
+  };
+
   if (facts.kind === 'unauthorized' && facts.hadKey === false) {
+    // The first run, and the whole of #35: someone who has just installed this
+    // is one press from a reply, not one account away from one. The offer is
+    // made where the failure is — under the comment they were answering — and
+    // pressing it generates that reply, rather than opening a tab about it.
+    if (facts.trialAvailable) {
+      return {
+        tone: 'notice',
+        title: 'Start with about thirty replies, free',
+        detail:
+          "On a key of this install's own — no account, no card, nothing to cancel. " +
+          'When it runs out, connect your own OpenRouter account and carry on; ' +
+          'replies cost about a tenth of a cent each.',
+        actions: [{ kind: 'trial', label: 'Try it free' }, connect],
+      };
+    }
+
+    // No trial to offer, so this is the plain truth and the base entry's
+    // "Reconnect" is the wrong word for it: nobody re-does what they have
+    // never done.
     return {
       title: 'Not connected to OpenRouter',
       detail: 'Replies are generated through your own account. Connecting takes about a minute.',
-      actions: [{ kind: 'options', label: 'Connect OpenRouter', section: '/account' }],
+      actions: [connect],
     };
   }
 
@@ -240,6 +288,7 @@ export function describeFailure(facts: FailureFacts): Failure {
   // impression the trial gets to leave.
   if (facts.kind === 'key_exhausted' && facts.keyIsOurs) {
     return {
+      tone: 'notice',
       title: 'The free trial is used up',
       detail:
         'That was the trial in full — about thirty replies, on us. Your own OpenRouter ' +

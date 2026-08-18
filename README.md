@@ -10,6 +10,7 @@ viewer's own entry point, a button in the "Add a comment" box, is still phase 2 
 
 ```
 extension/          the Chrome extension (WXT + React + TypeScript + Tailwind)
+worker/             the trial Worker (Cloudflare) — issues the free trial key
 landing/            the website's source (Astro + Tailwind) — edit here
 site/               the website, built from landing/ and committed — do not edit
 docs/               design notes and decisions
@@ -43,7 +44,9 @@ the page's CORS rules, so a `fetch` from the YouTube page cannot reach OpenRoute
 putting an API key in a content script exposes it to the page. The content script only
 sends messages; the worker owns the key and the network.
 
-**`host_permissions` is scoped to `https://openrouter.ai/*`.** Never `<all_urls>`.
+**`host_permissions` is scoped to `https://openrouter.ai/*` and
+`https://api.mikidev.app/*`.** Never `<all_urls>`. The second is our trial Worker,
+touched once per install; every generation goes straight to OpenRouter.
 
 **Secrets live in `chrome.storage.local`, never `sync`.** `storage.sync` uploads to
 Google's servers and caps at 8 KB per item / 100 KB total — a soul profile alone can
@@ -104,10 +107,29 @@ the shared prefix is billed at 0.1–0.25× on repeat calls. Note the provider m
 Video metadata is scraped from the page, not fetched from the YouTube Data API: no extra
 key, no quota.
 
+## The first run
+
+A new install is one press from a reply, not one account away from one. Pressing
+**Try it free** — in the popover under a comment, in the toolbar popup, or on the
+settings page — asks `worker/` for a real OpenRouter key of this install's own,
+capped at $0.04, which is about thirty replies. What leaves the machine is one
+random UUID; see `worker/README.md`.
+
+When that key runs out OpenRouter answers 403 with `Key limit exceeded`, which is
+the same status a revoked key gets. `local:trial.keyIsOurs` is what tells the two
+apart, and it is written by the one call in the background worker that stores a
+key, so it cannot drift from the key it describes. Ours reads as the trial
+finishing as designed; anyone else's as a cap set on openrouter.ai.
+
+Neither card is a fault, and neither is drawn as one — `Failure.tone` in
+`extension/lib/failure.ts` puts the offer and the ending in the accent frame
+rather than the error one.
+
 ## Monetisation
 
 | Tier | What | Backend needed |
 |---|---|---|
+| Trial | our own capped key, ~30 replies, no account | the trial Worker |
 | Free | OpenRouter OAuth, `:free` models (OpenRouter's own 50/day) | none |
 | BYOK | same OAuth, paid models, user pays OpenRouter directly | none |
 | Pro | provisioned OpenRouter key with a spend limit, profile sync, bulk mode | minimal |
@@ -118,9 +140,12 @@ left is a counter (`extension/lib/replies.ts`) that gates nothing and, every
 twenty replies, offers a card saying thank you with a Buy Me a Coffee button and
 two feedback links. Donations and the Pro waitlist are the whole of the ask.
 
-v1 ships the first two tiers with **no server at all**. Pro uses OpenRouter's
-provisioning API (`POST /api/v1/keys` with `limit`) so quota enforcement happens
-upstream — our backend only turns a payment into a capped key.
+The only server is the trial Worker, and it exists so a first run can end in a
+reply. It is not a proxy and must not become one: no comment text passes through
+it, and an outage there cannot stop an install that already has a key. Pro uses
+the same OpenRouter provisioning API (`POST /api/v1/keys` with `limit`) so quota
+enforcement happens upstream — a backend that turns a payment into a capped key
+and nothing more.
 
 Chrome Web Store's built-in payments are discontinued; billing must be external.
 
@@ -133,6 +158,18 @@ npm run dev       # launches Chrome with the extension loaded
 npm run build
 npm run compile   # typecheck
 npm run smoke     # exercise the OpenRouter client against the live API
+npm run measure   # what one reply actually costs, per model and reasoning level
+```
+
+The Worker has its own workspace:
+
+```bash
+cd worker
+npx wrangler dev
+npx wrangler deploy
+node scripts/trial-key.mjs list      # the trial keys this account has issued
+node scripts/trial-key.mjs exhaust   # drop the newest below its spend, to see the end
+node scripts/trial-key.mjs restore   # put its limit back to $0.04
 ```
 
 `npm run smoke` reads `OPENROUTER_API_KEY` from the repo-root `.env`. It checks
@@ -149,7 +186,15 @@ OAuth redirect URL embeds it. Do not regenerate the key in `.keys/`.
 chrome://extensions → Developer mode → Load unpacked → extension/.output/chrome-mv3
 ```
 
-Then open the extension's settings, connect an OpenRouter account (or paste a
-key), and open a video with comments.
+Then open a video with comments and press **AI reply**. The card offers the free
+trial; the settings page also takes an OpenRouter account or a pasted key.
+
+To take the trial again on an install that has had one, clear its record in the
+service worker console — `trial.claimed` is what hides the button, and the
+options tab has to be reloaded because it reads that once, on mount:
+
+```js
+await chrome.storage.local.remove(['openrouter.apiKey','trial.installId','trial.claimed','trial.keyIsOurs','trial.spent']);
+```
 
 Test video: <https://www.youtube.com/watch?v=5ViTG9HrtFk>

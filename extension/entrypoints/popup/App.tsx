@@ -1,12 +1,13 @@
 import { useEffect, useState } from 'react';
 import { CoffeeButton } from '@/components/CoffeeButton';
 import { FailureNotice } from '@/components/FailureNotice';
-import { GHOST, MICRO, MICRO_TYPE, SOLID } from '@/components/ui';
+import { GHOST, MICRO, MICRO_TYPE, SECONDARY, SOLID } from '@/components/ui';
 import type { FailureFacts } from '@/lib/failure';
 import { failureOf, sendRequest } from '@/lib/messaging';
 import type { KeyInfo } from '@/lib/openrouter/types';
 import { waitlistUrl } from '@/lib/pro';
 import { enabled as enabledSetting, model as modelSetting, soul as soulSetting } from '@/lib/settings';
+import { claimed as trialClaimed, type TrialOutcome } from '@/lib/trial';
 import { useReplies } from '@/lib/use-replies';
 import { useSetting } from '@/lib/use-setting';
 
@@ -23,6 +24,12 @@ export function App() {
   const [usageFailure, setUsageFailure] = useState<FailureFacts | null>(null);
   const [model, setModel] = useState('');
   const [hasSoul, setHasSoul] = useState<boolean | null>(null);
+  /** Whether this install can still take the free trial (#35). */
+  const [trialAvailable, setTrialAvailable] = useState(false);
+  const [claiming, setClaiming] = useState(false);
+  /** What the trial answered when it answered something other than a key. */
+  const [claimNote, setClaimNote] = useState<string | null>(null);
+  const [claimFailure, setClaimFailure] = useState<FailureFacts | null>(null);
   const [on, setOn] = useSetting(enabledSetting);
   const replies = useReplies();
 
@@ -44,16 +51,55 @@ export function App() {
 
       setModel(await modelSetting.getValue());
       setHasSoul((await soulSetting.getValue()).trim().length > 0);
+      setTrialAvailable(!(await trialClaimed.getValue()));
 
       if (isConnected) await loadUsage();
     })();
   }, []);
+
+  /**
+   * Take the free trial here rather than send the reader somewhere to take it.
+   *
+   * Same request the settings page and the popover card send; this panel is
+   * simply another place a first run can begin. The answers that are not a key
+   * are sentences, not failures — only a genuine one gets the red card.
+   */
+  async function claimTrial() {
+    setClaiming(true);
+    setClaimNote(null);
+    setClaimFailure(null);
+
+    const result = await sendRequest<TrialOutcome>({ type: 'trial:claim' });
+    setClaiming(false);
+
+    if (!result.ok) {
+      setClaimFailure(failureOf(result));
+      return;
+    }
+
+    if (result.data.status === 'issued' || result.data.status === 'connected') {
+      setConnected(true);
+      setTrialAvailable(false);
+      await loadUsage();
+      return;
+    }
+
+    // "Not this minute" leaves the offer standing; "you have had yours" does not.
+    if (result.data.status === 'used') setTrialAvailable(false);
+    setClaimNote(
+      result.data.status === 'unavailable'
+        ? 'Trial keys have run out for today. Try again tomorrow, or connect your own account.'
+        : 'This install has already had its trial. Your own account is the way on.',
+    );
+  }
 
   const openSettings = (section: string) => {
     // `openOptionsPage` cannot target a section, so the URL is built by hand.
     void browser.tabs.create({ url: browser.runtime.getURL(`/options.html#${section}`) });
     window.close();
   };
+
+  const offerTrial = connected === false && trialAvailable;
 
   return (
     <div className="flex w-80 flex-col gap-4 bg-base-100 p-4 text-base-content">
@@ -89,7 +135,9 @@ export function App() {
 
       {connected === false && (
         <p className="text-sm text-base-content/70">
-          Connect an OpenRouter account to start generating replies.
+          {trialAvailable
+            ? 'About thirty free replies to start with — no account, no card, nothing to cancel. Your own OpenRouter account carries on from there.'
+            : 'Connect an OpenRouter account to start generating replies.'}
         </p>
       )}
 
@@ -148,9 +196,25 @@ export function App() {
         <FailureNotice facts={usageFailure} onRetry={() => void loadUsage()} />
       )}
 
+      {claimNote && <p className="text-sm text-base-content/70">{claimNote}</p>}
+      {claimFailure && <FailureNotice facts={claimFailure} onRetry={() => void claimTrial()} />}
+
+      {offerTrial && (
+        <button
+          type="button"
+          className={`${SOLID} justify-center`}
+          disabled={claiming}
+          onClick={() => void claimTrial()}
+        >
+          {claiming ? 'Getting your key…' : 'Try it free'}
+        </button>
+      )}
+
+      {/* Solid unless the trial is on offer above it: one filled button to a
+          surface, and when there is a free first run to be had, that is it. */}
       <button
         type="button"
-        className={`${SOLID} justify-center`}
+        className={`${offerTrial ? SECONDARY : SOLID} justify-center`}
         onClick={() => openSettings('/account')}
       >
         {connected ? 'Settings' : 'Connect OpenRouter'}
