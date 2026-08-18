@@ -80,15 +80,18 @@ export const enabled = storage.defineItem<boolean>('local:enabled', {
 });
 
 /**
- * Whether the support dialog may appear every twentieth reply.
+ * Whether the support card may appear every twentieth reply.
  *
- * On by default and off for good the moment the dialog's own checkbox is
- * ticked. A thank-you that cannot be switched off is an advert, and the switch
- * belongs on the thing being switched off rather than three clicks away on a
- * settings page — someone who wants it gone wants it gone now.
+ * On, and deliberately with no control anywhere in the interface that turns it
+ * off: the card is what the free version costs, and a tick box beside it would
+ * be a tick box for paying nothing. It exists as a stored flag rather than a
+ * constant because a paid plan is what flips it — the licence check writes here
+ * and everything else keeps working unchanged.
  *
- * `local`, like every other preference: it is about this browser, and a person
- * who dismissed it here has said nothing about the machine at work.
+ * Read in the background worker, which is where the milestone is claimed, so a
+ * user who has it off never burns one.
+ *
+ * `local`, like every other preference: an entitlement is about this install.
  */
 export const supportNudges = storage.defineItem<boolean>('local:support.nudges', {
   fallback: true,

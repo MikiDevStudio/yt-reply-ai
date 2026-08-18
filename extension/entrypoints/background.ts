@@ -13,7 +13,7 @@ import { connectWithOAuth } from '@/lib/openrouter/auth';
 import { fetchKeyInfo, fetchModel, fetchModels, streamCompletion } from '@/lib/openrouter/client';
 import { OpenRouterError } from '@/lib/openrouter/errors';
 import { angleFor, buildReplyPrompt, buildSoulPrompt, creativityPreset } from '@/lib/prompt';
-import { countReply } from '@/lib/replies';
+import { countReply, takeNudge } from '@/lib/replies';
 import * as settings from '@/lib/settings';
 import type { SoulProfile } from '@/lib/soul';
 import { recallDescription, rememberDescription } from '@/lib/video-cache';
@@ -209,6 +209,23 @@ async function generate(
       next = await stream.next();
     }
 
+    // Counted before `done` is posted rather than after it, which is where
+    // this used to sit. The order matters now that the milestone travels with
+    // that message: the card is shown by the popover the moment the reply
+    // lands, and it cannot be told about a count that has not been written yet.
+    // The cost is one storage write — single-digit milliseconds — between the
+    // last token and the message that says the text is final.
+    //
+    // Only for a reply that arrived. A request that failed, timed out or came
+    // back empty produced nothing to count, and every further attempt at this
+    // comment finds it already counted and is free.
+    await countReply(comment);
+
+    // Claimed here, in the one process that is a single writer for it. The
+    // preference is read first so that someone who has switched the card off
+    // never burns a milestone they will not be shown.
+    const nudge = (await settings.supportNudges.getValue()) ? await takeNudge() : null;
+
     post(port, {
       type: 'done',
       text: next.value.text,
@@ -216,11 +233,8 @@ async function generate(
       // A provider default can still cut a long answer short. Saying so beats
       // handing over a sentence that ends mid-word as if it were finished.
       truncated: next.value.finishReason === 'length',
+      ...(nudge !== null ? { nudge } : {}),
     });
-
-    // After the reply is on its way, and only for a reply that arrived. Every
-    // further attempt at this comment finds it already counted and is free.
-    await countReply(comment);
   } catch (error) {
     if (asOpenRouterError(error).kind === 'aborted') {
       // Our deadline and the user's cancel button arrive here identically.

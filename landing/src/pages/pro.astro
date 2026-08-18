@@ -73,6 +73,12 @@ const prices = [
       You came from the extension with boxes already ticked. They are below, kept exactly as you
       left them.
     </p>
+
+    <p id="from-nudge" class="mt-4 text-[14px] text-white/45" hidden>
+      You got here from the card that appeared over your comment section. That card is the one
+      thing the free version asks for, and any paid plan switches it off — so this click counts
+      for more than the others on this page.
+    </p>
   </section>
 
   <section class="mx-auto max-w-3xl px-5 pb-24">
@@ -104,6 +110,18 @@ const prices = [
         </div>
 
         <p id="tally-total" class="micro" hidden></p>
+
+        <!-- Not a ballot line. It is a property of any paid plan rather than a
+             feature to be prioritised against the others, and putting it up for
+             a vote would invite the answer "just remove it". -->
+        <div class="flex flex-col gap-2 border border-line bg-surface p-5">
+          <span class="micro">included in any plan</span>
+          <p class="text-[14px] leading-[1.65] text-white/70">
+            Every paid plan switches off the card that appears over your comment section every
+            twenty replies. It is the only thing the free version asks for, and paying is what
+            replaces it — so it is not on the ballot.
+          </p>
+        </div>
       </div>
 
       <div class="flex flex-col gap-5">
@@ -245,11 +263,14 @@ const prices = [
     const params = new URLSearchParams(location.search);
 
     /* Which entry point sent them. `settings` is the ballot in the extension,
-       `popup` the one-line link in the toolbar panel; anything else is someone
-       who found the page by itself. The old `limit` value went with the daily
-       cap and is treated as `direct` if an old build still sends it. */
+       `popup` the one-line link in the toolbar panel, and `nudge` a click from
+       the support card — the one place the product interrupts anybody, and so
+       the strongest of the three. Anything else is someone who found the page
+       by itself. The old `limit` value went with the daily cap and falls
+       through to `direct` if an old build still sends it. */
     const sent = params.get('from');
-    const from = sent === 'settings' || sent === 'popup' ? sent : 'direct';
+    const from =
+      sent === 'settings' || sent === 'popup' || sent === 'nudge' ? sent : 'direct';
 
     /* `want` is what the user already ticked in settings, so the boxes arrive
        pre-ticked and only the address is left to type — that is the entire
@@ -264,6 +285,9 @@ const prices = [
     }
     const fromNote = document.getElementById('from-note');
     if (fromNote && preticked > 0) fromNote.hidden = false;
+
+    const nudgeNote = document.getElementById('from-nudge');
+    if (nudgeNote && from === 'nudge') nudgeNote.hidden = false;
 
     const showError = (message: string) => {
       error.textContent = message;

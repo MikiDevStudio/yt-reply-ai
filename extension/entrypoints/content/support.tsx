@@ -1,21 +1,25 @@
 import ReactDOM from 'react-dom/client';
 import type { ContentScriptContext } from '#imports';
 import { SupportCard } from '@/components/SupportCard';
-import { takeNudge } from '@/lib/replies';
-import { supportNudges } from '@/lib/settings';
 import { syncTheme } from './theme';
 
 /**
- * The support dialog, and the one moment it is allowed to appear.
+ * The support card, and the one moment it appears.
  *
- * Offered after the popover has closed, never over it: the popover is open
- * while someone is reading a reply and deciding whether to use it, and a modal
- * that lands on that moment is an interruption however politely it is worded.
- * By the time this runs the reply is in the box and the work is done.
+ * It is raised over the popover the instant a milestone reply arrives —
+ * deliberately between the answer being written and the answer being used,
+ * with the page dimmed behind it. That placement is the whole design: the
+ * extension is free and has no cap, so the only thing it ever asks for is one
+ * interrupted moment every twentieth reply, and an interruption that waits
+ * politely until the work is finished is one nobody reads.
  *
- * Everything it needs to decide is on this machine — a count in
- * `storage.sync` and a preference in `storage.local`. Nothing is asked of the
- * network, here or in the card itself.
+ * It is dismissible in three ways — the close button, Escape, a click on the
+ * backdrop — and it never blocks the reply itself: the text is in the popover
+ * behind it and Insert is one dismissal away. Friction, not a hostage.
+ *
+ * Whether it is due at all is decided in the background worker, which is the
+ * only single writer for the counter (see `takeNudge`). By the time this runs
+ * the milestone has already been claimed, so nothing here can double-show it.
  */
 let host: DialogHost | null = null;
 
@@ -25,19 +29,14 @@ interface DialogHost {
 }
 
 /**
- * Show the dialog if this reply crossed a milestone and the user still wants to
- * see it. Silent otherwise, which is nearly always.
+ * Show the card for a milestone the counter has already crossed.
  *
- * `takeNudge` both asks and claims, so two tabs finishing at once cannot both
- * open one. It is called last, after the cheap preference read, so a user who
- * switched the dialog off never consumes their own milestones.
+ * Its own shadow root rather than a corner of the popover's: the popover is
+ * anchored to a comment and positioned by script, and a modal that inherits
+ * that container inherits its offsets and its z-index. This one sits above it
+ * at 9100 and covers the viewport.
  */
-export async function offerSupport(ctx: ContentScriptContext): Promise<void> {
-  if (!(await supportNudges.getValue())) return;
-
-  const count = await takeNudge();
-  if (count === null) return;
-
+export async function showSupport(ctx: ContentScriptContext, count: number): Promise<void> {
   const { container, root } = await ensureHost(ctx);
   container.style.display = 'block';
 
@@ -45,8 +44,9 @@ export async function offerSupport(ctx: ContentScriptContext): Promise<void> {
 
   root.render(
     <div
-      // The backdrop. Dimmed rather than blurred, and it closes on click:
-      // anywhere outside a thank-you note is a way out of it.
+      // The backdrop. Dimmed rather than blurred — a blur over a comment
+      // section reads as a modal from another product — and it closes on
+      // click: anywhere outside a thank-you note is a way out of it.
       className="fixed inset-0 grid place-items-center bg-black/55 p-4 motion-safe:animate-backdrop-in"
       role="presentation"
       onClick={close}
@@ -60,14 +60,7 @@ export async function offerSupport(ctx: ContentScriptContext): Promise<void> {
         className="motion-safe:animate-dialog-in"
         onClick={(event) => event.stopPropagation()}
       >
-        <SupportCard
-          count={count}
-          onSilence={() => {
-            void supportNudges.setValue(false);
-            close();
-          }}
-          onClose={close}
-        />
+        <SupportCard count={count} onClose={close} />
       </div>
     </div>,
   );
@@ -94,8 +87,8 @@ async function ensureHost(ctx: ContentScriptContext): Promise<DialogHost> {
     onMount: (container) => {
       ctx.onInvalidated(syncTheme(container));
 
-      // Above the popover's own 9000: the two are never up together, but the
-      // one that opens second is the one that must be reachable.
+      // Above the popover's own 9000: the two are up together by design, and
+      // the one that opened second is the one that has to be reachable.
       container.style.position = 'fixed';
       container.style.inset = '0';
       container.style.zIndex = '9100';

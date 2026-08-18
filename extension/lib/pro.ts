@@ -17,14 +17,17 @@ const WAITLIST_URL = 'https://reply-ai.mikidev.app/pro';
  * Which entry point sent the user, tagged so the two stay separate numbers.
  *
  * `settings` is someone reading the Pro section with the ballot in front of
- * them; `popup` is a one-line link clicked out of curiosity. They are different
- * claims and have to stay different numbers.
+ * them; `popup` is a one-line link clicked out of curiosity; `nudge` is a click
+ * from the support card, which is the one place the product interrupts anybody.
+ * Three different claims, and they have to stay three different numbers.
  *
- * There used to be a third, `limit`, for a person blocked by the daily cap.
- * That was the strongest signal we had and it is gone with the cap — demand is
- * measured by what people tick now, not by what they were stopped from doing.
+ * `nudge` matters more than the other two. There used to be a `limit` tag for a
+ * person blocked by the daily cap, and it was the strongest signal we had;
+ * removing the cap removed it. Someone who reaches for Pro while a card is in
+ * their way is the nearest thing left to it — they are not browsing a feature
+ * list, they are buying back a moment of their attention.
  */
-export type ProEntryPoint = 'settings' | 'popup';
+export type ProEntryPoint = 'settings' | 'popup' | 'nudge';
 
 /**
  * What Pro would contain, as a ballot.

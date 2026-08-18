@@ -321,18 +321,24 @@ a put-away control never reads as a missing one.
 
 ### The support dialog
 
-The one modal we draw, shown over YouTube every twentieth reply
-(`components/SupportCard.tsx`). Same materials as the popover — `--overlay`, `--line-hi`,
-`--shadow-elevated`, sharp — at `420px`, centred on a `black/55` backdrop, entering at
-200ms rather than the popover's 120ms: it arrives unbidden, and something that appears
-out of nowhere in 120ms reads as a glitch.
+The one modal we draw (`components/SupportCard.tsx`), and the only element in this system
+allowed to interrupt. It is raised **over the popover, as a milestone reply arrives and
+before it is used**, with the page dimmed to `black/55` behind it.
+
+Same materials as the popover — `--overlay`, `--line-hi`, `--shadow-elevated`, sharp — at
+`420px`, centred, entering at 200ms rather than the popover's 120ms: it arrives unbidden,
+and something that appears out of nowhere in 120ms reads as a glitch.
 
 Blocks top to bottom: the signature label carrying the count, a heading that states the
 number, one question with two outlined answers, the ask with their yellow button, the
-contact links, and a footer that says how often the card returns and offers the checkbox
-that stops it for good. No stars, no five-point scale, no second ask after an answer.
+contact links, and a footer with the cadence and the one line that turns it off. No stars,
+no five-point scale, no second ask after an answer, and no "don't show again" — the card
+is what the free version costs, so the only thing that removes it is a paid plan.
 
-Both answers are outbound links. Nothing about the rating is recorded, here or anywhere.
+The dimming is the whole of the pressure. Nothing is trapped behind it: the reply is
+finished in the popover underneath, and the close button, Escape and a click on the
+backdrop all dismiss it. Both answers are outbound links; nothing about the rating is
+recorded, here or anywhere.
 
 ### The popover
 

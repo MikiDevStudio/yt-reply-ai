@@ -3,24 +3,29 @@ import { useState } from 'react';
 import { CoffeeButton } from '@/components/CoffeeButton';
 import { GHOST, ICON, MICRO, MICRO_TYPE, SECONDARY } from '@/components/ui';
 import { CONTACT_URL, feedbackUrl, ISSUES_URL, type Rating } from '@/lib/feedback';
+import { waitlistUrl } from '@/lib/pro';
 import { NUDGE_EVERY } from '@/lib/replies';
 
 interface SupportCardProps {
   /** The milestone being marked — 20, 40, 60 … See `takeNudge`. */
   count: number;
-  /** Ticking "don't show this again". Absent where the card cannot be silenced. */
-  onSilence?: () => void;
   onClose: () => void;
 }
 
 /**
  * The thank-you shown every twentieth reply: one question, one ask, one exit.
  *
- * Deliberately not the dialog every extension ships at this point. Those rate
- * you on the way past — a modal that appears mid-task, wants five stars, and
- * offers no way to say the honest thing. This one only appears once a reply has
- * landed, states plainly how often it will be back, and can be switched off
- * from inside itself.
+ * It appears in the way, and that is the design rather than an oversight. The
+ * extension is free, uncapped, unmetered and asks for nothing anywhere else, so
+ * the price of it is one interrupted moment in twenty: the card lands over the
+ * popover as the reply arrives, before the reply is used, with the page dimmed
+ * behind it. A note that waited politely until the work was done would be a
+ * note nobody ever read.
+ *
+ * What it does not do is hold anything hostage. The reply is finished and
+ * sitting in the popover behind this card; the close button, Escape and a click
+ * on the backdrop all get out of the way, and the count of how often it returns
+ * is printed on it. It is friction, not a toll gate.
  *
  * Both answers to the question are outbound links the user presses. Nothing is
  * counted here and nothing is sent: see `lib/feedback.ts` for why a rating we
@@ -31,7 +36,7 @@ interface SupportCardProps {
  * same ones the About section uses. The card itself is only ever drawn over
  * YouTube: on a settings page nobody has to be thanked for arriving.
  */
-export function SupportCard({ count, onSilence, onClose }: SupportCardProps) {
+export function SupportCard({ count, onClose }: SupportCardProps) {
   // Which answer was given, so the card can acknowledge it instead of sitting
   // there unchanged after a click that opened a tab somewhere behind it.
   const [rated, setRated] = useState<Rating | null>(null);
@@ -103,16 +108,23 @@ export function SupportCard({ count, onSilence, onClose }: SupportCardProps) {
         </a>
       </div>
 
-      {/* What the user is entitled to know about the thing they are looking at:
-          how often it comes back, how to stop it, and that it reports nothing. */}
-      <div className="flex flex-wrap items-center justify-between gap-2">
-        <span className={MICRO}>shown every {NUDGE_EVERY} replies · nothing is sent from here</span>
-        {onSilence && (
-          <label className="flex cursor-pointer items-center gap-2 text-[13px] text-base-content/55 transition-colors duration-150 hover:text-base-content">
-            <input type="checkbox" className="checkbox checkbox-xs" onChange={onSilence} />
-            Don&rsquo;t show again
-          </label>
-        )}
+      {/* What the reader is entitled to know about the thing in their way: how
+          often it comes back, that it reports nothing, and the one thing that
+          switches it off. There is no "don't show again" tick — a card that can
+          be dismissed forever on its first appearance is a card that asks for
+          nothing, and this one is the whole of what the free version costs. */}
+      <div className="flex flex-col gap-2 border-t border-line pt-4">
+        <span className={MICRO}>
+          shown every {NUDGE_EVERY} replies · nothing is sent from here
+        </span>
+        <a
+          className="text-[13px] text-base-content/45 underline decoration-line-hi underline-offset-4 transition-colors duration-150 hover:text-base-content"
+          href={waitlistUrl('nudge')}
+          target="_blank"
+          rel="noreferrer"
+        >
+          A paid plan will turn this card off — here is what else it would add
+        </a>
       </div>
     </div>
   );

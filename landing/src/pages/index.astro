@@ -113,7 +113,7 @@ const context = [
 const faq = [
   {
     q: 'Is there a limit?',
-    a: 'No. There was one — 50 replies a day — and it was removed: the only thing it measured was how many people it stopped in the middle of a comment section. The extension counts what it writes so it can say thank you every twentieth reply, and that is the whole of it.',
+    a: 'No. There was one — 50 replies a day — and it was removed: the only thing it measured was how many people it stopped in the middle of a comment section. What is left is a card that appears over the comment section every twentieth reply, as the answer lands, asking one question and pointing at a tea. It closes with Escape and reports nothing, and a paid plan switches it off. That is the whole of what the free version costs.',
   },
   {
     q: 'What does it cost to run?',
@@ -592,6 +592,7 @@ const faq = [
         <ul class="flex flex-col gap-3 text-[14px] text-white/70">
           {
             [
+              'No card every twentieth reply — included in any plan',
               'A key we provision, so there is no OpenRouter account to set up',
               'A scanner that points at the comments worth answering',
               'Bulk drafting for a whole page of comments',
@@ -617,9 +618,9 @@ const faq = [
     <div class="mx-auto mt-10 flex max-w-4xl flex-col items-center gap-4 border border-line bg-surface p-8 text-center">
       <span class="micro">no upsell, one tea</span>
       <p class="max-w-xl text-[15px] leading-[1.7] text-white/70">
-        The cap is gone and nothing replaced it. If the extension saves you an evening of typing,
-        this is how it stays free — and every twentieth reply, it says so once and gets out of the
-        way.
+        The cap is gone. What replaced it is one card, every twentieth reply, over the comment you
+        are answering — it asks once, closes with Escape, and reports nothing. If the extension
+        saves you an evening of typing, this is the shorter way to answer it.
       </p>
       <CoffeeButton />
     </div>

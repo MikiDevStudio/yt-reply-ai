@@ -78,6 +78,15 @@ interface ReplyPopoverProps {
   autoStart: boolean;
   /** Writes the text into YouTube's reply box. */
   onInsert: (text: string) => void;
+  /**
+   * A milestone the reply counter just crossed, handed up so the surface that
+   * owns the shadow roots can draw the support card over this one.
+   *
+   * Fired from the arrival of the reply rather than from Insert: the card is
+   * meant to land between the answer appearing and the answer being used, and
+   * that is the only moment which is both.
+   */
+  onNudge?: (count: number) => void;
   onClose: () => void;
 }
 
@@ -86,6 +95,7 @@ export function ReplyPopover({
   context,
   autoStart,
   onInsert,
+  onNudge,
   onClose,
 }: ReplyPopoverProps) {
   const { state, generate, cancel } = useGeneration();
@@ -185,7 +195,11 @@ export function ReplyPopover({
     const history = pushAttempt(commentId, attempt);
     setAttempts(history.attempts);
     setCursor(history.cursor);
-  }, [state, commentId]);
+
+    // Inside the same guarded block as filing the attempt, so a re-render
+    // cannot raise the card twice for one reply.
+    if (state.nudge !== undefined) onNudge?.(state.nudge);
+  }, [state, commentId, onNudge]);
 
   useEffect(() => {
     const onKeyDown = (event: KeyboardEvent) => {

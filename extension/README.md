@@ -57,13 +57,25 @@ stored local date is what resets the daily figure — not a timer — so a servi
 worker that slept through midnight can only ignore a stale count, never
 resurrect one.
 
-`nudgedAt` is the whole of the counter's remaining job: every `NUDGE_EVERY`
-(20) replies, `takeNudge()` hands the content script a milestone exactly once,
-and `entrypoints/content/support.tsx` shows the thank-you card over YouTube
-after the popover has closed. Asking and claiming are one call, so two tabs
-finishing together cannot both open one. The card is switched off for good by
-its own checkbox (`settings.supportNudges`), and both of its feedback buttons
-are ordinary links the user presses — nothing is counted and nothing is sent.
+`nudgedAt` is the whole of the counter's remaining job. Every `NUDGE_EVERY`
+(20) replies the background worker claims a milestone with `takeNudge()` and
+sends it on the `done` message; `ReplyPopover` hands it up and
+`entrypoints/content/support.tsx` raises the card over the popover, dimming the
+page, **as the reply arrives and before it is inserted**.
+
+That placement is deliberate. The extension is free, uncapped and unmetered, so
+the card is the entire price of it, and a note that waited politely until the
+work was finished is a note nobody reads. It holds nothing hostage: the reply is
+finished and sitting behind the card, and the close button, Escape and the
+backdrop all get out of the way.
+
+Claiming happens in the worker because that is the only single writer —
+`takeNudge()` asks and claims in one call, so two tabs finishing together cannot
+both raise one, and counting now runs *before* `done` is posted so the message
+can carry the milestone. There is no user-facing switch: `settings.supportNudges`
+is the flag a paid plan flips, read by the worker so a user who has it off never
+burns a milestone. Both feedback buttons are ordinary links the user presses —
+nothing is counted and nothing is sent.
 
 ## Failure states
 
@@ -88,6 +100,7 @@ The URL is the whole contract with that page:
 |---|---|
 | `from=settings` | The ballot on the Pro section, cast after reading it |
 | `from=popup` | The one-line link in the toolbar popup, clicked in passing |
+| `from=nudge` | A click from the support card — the strongest of the three |
 | `want=managed,scanner,bulk,presets` | Features ticked in the Pro section, by `PRO_FEATURES` id |
 
 The ballot is filled in here and carried there, so the page arrives pre-ticked
