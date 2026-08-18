@@ -10,8 +10,14 @@ viewer's own entry point, a button in the "Add a comment" box, is still phase 2 
 
 ```
 extension/          the Chrome extension (WXT + React + TypeScript + Tailwind)
+landing/            the website's source (Astro + Tailwind) — edit here
+site/               the website, built from landing/ and committed — do not edit
 docs/               design notes and decisions
 ```
+
+`site/` is build output. `npm run build` in `landing/` empties and rewrites it,
+and it is committed so that deploying is a `git pull` with no Node on the host.
+See `landing/README.md`.
 
 Two earlier prototypes sit next to this repo on disk and are **git-ignored** — they are
 kept as reference only:
@@ -102,9 +108,15 @@ key, no quota.
 
 | Tier | What | Backend needed |
 |---|---|---|
-| Free | OpenRouter OAuth, `:free` models (50 req/day) | none |
+| Free | OpenRouter OAuth, `:free` models (OpenRouter's own 50/day) | none |
 | BYOK | same OAuth, paid models, user pays OpenRouter directly | none |
 | Pro | provisioned OpenRouter key with a spend limit, profile sync, bulk mode | minimal |
+
+**We impose no limit of our own.** A daily cap of 50 replies shipped and was
+removed: the only thing it measured was how many people it stopped. What is
+left is a counter (`extension/lib/replies.ts`) that gates nothing and, every
+twenty replies, offers a card saying thank you with a Buy Me a Coffee button and
+two feedback links. Donations and the Pro waitlist are the whole of the ask.
 
 v1 ships the first two tiers with **no server at all**. Pro uses OpenRouter's
 provisioning API (`POST /api/v1/keys` with `limit`) so quota enforcement happens

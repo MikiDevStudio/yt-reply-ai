@@ -1,338 +1,56 @@
-<!doctype html>
-<!--
-  The waitlist page. This is the whole demand measurement for Pro (#32).
-
-  The ids in the ballot below are the ids in `extension/lib/pro.ts`, and the
-  wording is the same wording the extension shows. Both have to stay in step: the
-  id is what a vote is counted under, and the sentence is what the person was
-  agreeing to when they ticked it.
-
-  The extension never posts anything — it links here with `?from=…&want=…`, so
-  what arrives is a page load the user pressed, not telemetry. The form is the
-  first moment any address exists.
--->
-<html lang="en">
-  <head>
-    <meta charset="utf-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <title>Pro waitlist — Reply AI</title>
-    <meta
-      name="description"
-      content="Pro is not built yet. Vote for the parts worth building and we will tell you when they exist."
-    />
-    <!-- Nothing here is worth ranking, and the votes are in the URL. -->
-    <meta name="robots" content="noindex" />
-    <link rel="stylesheet" href="/assets/site.css" />
-  </head>
-  <body>
-    <div class="page page--wide">
-      <header class="masthead">
-        <a class="wordmark" href="/">Reply AI <span>YouTube comment assistant</span></a>
-      </header>
-
-      <main>
-        <p class="label"><b>01</b><i></i><em>pro waitlist</em></p>
-        <h1>Pro does not exist yet. <span class="quiet">Tell us which parts should.</span></h1>
-
-        <p class="lede">
-          Everything in the extension today is free and runs on your own OpenRouter key. The list
-          below is what a paid tier would contain — all of it unbuilt. Tick what you would actually
-          pay for, and it gets built in that order.
-        </p>
-
-        <p id="from-limit" class="secondary" hidden>
-          You got here from the daily limit, which is the one signal that counts double: you ran out
-          of replies in the middle of the work.
-        </p>
-
-        <form id="waitlist" novalidate>
-          <h2>What would you pay for?</h2>
-
-          <div class="ballot">
-            <label>
-              <input type="checkbox" name="want" value="cap" />
-              <span>
-                <span class="title">No daily cap</span>
-                <span class="detail">
-                  The 50 free replies a day become unlimited. Everything still runs on your own key.
-                </span>
-                <span class="tally" data-tally="cap" hidden></span>
-                <span class="bar" data-bar="cap" hidden><i style="width: 0"></i></span>
-              </span>
-            </label>
-
-            <label>
-              <input type="checkbox" name="want" value="scanner" />
-              <span>
-                <span class="title">Relevance scanner</span>
-                <span class="detail">
-                  Reads a comment section and points at the comments actually worth answering.
-                </span>
-                <span class="tally" data-tally="scanner" hidden></span>
-                <span class="bar" data-bar="scanner" hidden><i style="width: 0"></i></span>
-              </span>
-            </label>
-
-            <label>
-              <input type="checkbox" name="want" value="bulk" />
-              <span>
-                <span class="title">Bulk mode</span>
-                <span class="detail">
-                  Draft replies to a whole page of comments at once, then go through them one by one.
-                </span>
-                <span class="tally" data-tally="bulk" hidden></span>
-                <span class="bar" data-bar="bulk" hidden><i style="width: 0"></i></span>
-              </span>
-            </label>
-
-            <label>
-              <input type="checkbox" name="want" value="presets" />
-              <span>
-                <span class="title">Style presets</span>
-                <span class="detail">
-                  Saved voices to switch between — a channel, a client, a second language.
-                </span>
-                <span class="tally" data-tally="presets" hidden></span>
-                <span class="bar" data-bar="presets" hidden><i style="width: 0"></i></span>
-              </span>
-            </label>
-          </div>
-
-          <p id="tally-total" class="secondary mono" hidden></p>
-
-          <h2>And what shape should the price be?</h2>
-
-          <p class="secondary">
-            You already pay OpenRouter directly for the models, at cost. This is only about what, if
-            anything, you would pay us on top.
-          </p>
-
-          <div class="segmented">
-            <label>
-              <input type="radio" name="price" value="monthly" />
-              <span class="name">~$5 a month</span>
-              <span class="sub">Subscription, cancel whenever</span>
-            </label>
-            <label>
-              <input type="radio" name="price" value="lifetime" />
-              <span class="name">~$30 once</span>
-              <span class="sub">Lifetime licence, no renewal</span>
-            </label>
-            <label>
-              <input type="radio" name="price" value="neither" />
-              <span class="name">Neither</span>
-              <span class="sub">The free version is enough</span>
-            </label>
-          </div>
-
-          <h2>Anything the list is missing?</h2>
-
-          <div class="field">
-            <label for="wish">In your own words — optional, and read by a person</label>
-            <textarea
-              id="wish"
-              name="wish"
-              maxlength="1000"
-              placeholder="The thing that would actually save you time…"
-            ></textarea>
-            <p class="hint">
-              Write-ins that come up more than once get added to the list above, credited to nobody.
-            </p>
-          </div>
-
-          <h2>Where do we tell you?</h2>
-
-          <div class="field">
-            <label for="email">Email</label>
-            <input
-              id="email"
-              name="email"
-              type="email"
-              autocomplete="email"
-              required
-              placeholder="you@example.com"
-            />
-            <p class="hint">
-              One confirmation email now — you are on the list only once you click the link in it —
-              and then nothing until Pro exists. Unsubscribe in one click from any email. Details in
-              the <a href="/privacy">privacy policy</a>.
-            </p>
-          </div>
-
-          <!--
-            Honeypot. A real person never sees it, so anything filled in here came
-            from a bot and n8n drops the submission without answering.
-          -->
-          <div class="field" aria-hidden="true" style="position: absolute; left: -9999px">
-            <label for="nickname">Nickname</label>
-            <input id="nickname" name="nickname" type="text" tabindex="-1" autocomplete="off" />
-          </div>
-
-          <div class="actions">
-            <button id="submit" class="btn-primary" type="submit">Join the waitlist</button>
-            <span class="secondary">No vote required — the address alone is a vote.</span>
-          </div>
-
-          <div id="error" class="status status--bad" role="alert" hidden></div>
-        </form>
-
-        <div id="done" class="status status--ok" role="status" hidden>
-          <p><strong>Check your inbox.</strong></p>
-          <p class="secondary">
-            There is a confirmation link waiting there, and clicking it is what puts you on the list.
-            If it has not arrived in a few minutes, look in spam — and if it is not there either,
-            write to <a href="mailto:privacy@mikidev.app">privacy@mikidev.app</a> and you will be
-            added by hand.
-          </p>
-          <p class="secondary" style="margin-bottom: 0">Your votes were recorded either way.</p>
-        </div>
-
-        <hr />
-
-        <h2>Why a waitlist and not a buy button</h2>
-
-        <p>
-          Because a paid tier that nobody asked for is months of work spent on a guess. The extension
-          is finished and free; Pro gets built when this page says which parts are worth building,
-          and the parts nobody ticks never get built at all.
-        </p>
-
-        <p class="secondary">
-          If you would rather support the free version now, there is a
-          <a href="https://buymeacoffee.com/mikipirson" rel="noreferrer">coffee link</a> — no
-          account, no subscription, and it changes nothing about what the extension does.
-        </p>
-      </main>
-
-      <footer class="foot">
-        <a href="/">Reply AI</a> · <a href="/privacy">Privacy policy</a> ·
-        <a href="https://github.com/MikiDevStudio/yt-reply-ai" rel="noreferrer">Source</a>
-      </footer>
-    </div>
-
-    <script>
+<!DOCTYPE html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>Pro waitlist — Reply AI</title><meta name="description" content="Pro is not built yet. Vote for the parts worth building and we will tell you when they exist."><link rel="canonical" href="https://reply-ai.mikidev.app/pro/"><meta name="robots" content="noindex"><meta property="og:type" content="website"><meta property="og:title" content="Pro waitlist — Reply AI"><meta property="og:description" content="Pro is not built yet. Vote for the parts worth building and we will tell you when they exist."><meta property="og:url" content="https://reply-ai.mikidev.app/pro/"><meta name="twitter:card" content="summary_large_image"><link rel="icon" href="/favicon.png" type="image/png"><meta name="theme-color" content="#050505"><!--
+      Set before anything paints, so the reveal animation can hide elements
+      that JavaScript is able to bring back. Without this class nothing is ever
+      hidden — see the note in global.css.
+    --><script>
+      document.documentElement.classList.add('js');
+    </script><link rel="stylesheet" href="/_astro/Base.DvIPsNQD.css"></head><body class="min-h-screen"><div aria-hidden="true" class="pointer-events-none fixed inset-0 -z-10 overflow-hidden"><!-- Accent, top left: the warmest point on the page, behind the heading. --><div class="absolute -left-[15%] -top-[25%] h-[75vh] w-[75vw] rounded-full blur-[110px] opacity-[0.22] motion-safe:animate-drift-a" style="background: radial-gradient(circle, var(--color-accent) 0%, transparent 68%);"></div><!-- Violet, right: the machine-side hue, kept opposite the accent so the two
+       never mix into a third colour in the middle of the page. --><div class="absolute -right-[20%] top-[8%] h-[65vh] w-[65vw] rounded-full blur-[120px] opacity-[0.17] motion-safe:animate-drift-b" style="background: radial-gradient(circle, var(--color-violet) 0%, transparent 70%);"></div><!-- A second, dimmer accent low down, so the page does not fade to flat black
+       the moment the hero scrolls away. --><div class="absolute bottom-[-20%] left-[25%] h-[60vh] w-[60vw] rounded-full blur-[130px] opacity-[0.13] motion-safe:animate-drift-c" style="background: radial-gradient(circle, var(--color-accent-bright) 0%, transparent 70%);"></div><!-- Grain. 3.5% white noise: enough to break the banding, never enough to
+       read as texture. The image itself is in `global.css` — see the note
+       there for why it cannot live in a `style` attribute. --><div class="grain absolute inset-0 opacity-[0.035]"></div></div><a href="#main" class="sr-only focus:not-sr-only focus:absolute focus:left-4 focus:top-4 focus:z-50 focus:border focus:border-line-hi focus:bg-overlay focus:px-4 focus:py-2 focus:text-[13px]">Skip to content</a><header id="masthead" data-stuck="false" class="sticky top-0 z-50 border-b border-transparent transition-colors duration-200 data-[stuck=true]:border-line data-[stuck=true]:bg-bg/80 data-[stuck=true]:backdrop-blur-md"><div class="mx-auto flex h-16 max-w-6xl items-center gap-6 px-5"><a href="/" class="group flex shrink-0 items-baseline gap-2"><span class="text-[15px] font-semibold tracking-[-0.01em]">Reply AI</span><span class="hidden text-[13px] text-white/45 transition-colors duration-150 group-hover:text-white/70 sm:inline">YouTube comment assistant</span></a><a href="https://github.com/MikiDevStudio/yt-reply-ai" rel="noreferrer" class="btn-primary ml-auto shrink-0 px-3 py-1.5 text-[13px] ">Get it on GitHub</a></div></header><main id="main"><section class="mx-auto max-w-3xl px-5 pb-16 pt-14"><p class="flex items-center gap-3  "><span class="micro !text-accent">01</span><span aria-hidden="true" class="h-px w-10 bg-accent"></span><span class="micro">pro waitlist</span></p><h1 class="mt-6 text-[38px] font-semibold leading-[1.1] tracking-[-0.03em] sm:text-[46px]">Pro does not exist yet. <span class="text-white/55">Tell me which parts should.</span></h1><p class="mt-6 max-w-2xl border-l-2 border-accent pl-4 text-[16px] leading-[1.7] text-white/70">Everything in the extension today is free, unlimited, and runs on your own OpenRouter key. The list below is what a paid tier would contain — all of it unbuilt. Tick what you would actually pay for, and it gets built in that order.</p><p id="from-note" class="mt-4 text-[14px] text-white/45" hidden>You came from the extension with boxes already ticked. They are below, kept exactly as you left them.</p><p id="from-nudge" class="mt-4 text-[14px] text-white/45" hidden>You got here from the card that appeared over your comment section. That card is the one thing the free version asks for, and any paid plan switches it off — so this click counts for more than the others on this page.</p></section><section class="mx-auto max-w-3xl px-5 pb-24"><form id="waitlist" novalidate class="flex flex-col gap-12"><div class="flex flex-col gap-5"><h2 class="text-[22px] font-semibold tracking-[-0.015em]">What would you pay for?</h2><div class="grid gap-px border border-line bg-line"><label class="group flex cursor-pointer gap-4 bg-surface p-5 transition-colors duration-150 hover:bg-surface-hi"><input type="checkbox" name="want" value="managed" class="mt-1 size-4 shrink-0 appearance-none border border-line-input bg-bg transition-colors duration-150 checked:border-accent-line checked:bg-accent-soft checked:shadow-[inset_0_0_0_3px_var(--color-accent)]"><span class="flex flex-col gap-1.5"><span class="text-[15px] font-medium">No key to set up</span><span class="text-[14px] leading-[1.6] text-white/70">Replies run on a key we provision, with a spend limit you set — no OpenRouter account, no top-ups. Everything free stays free and stays on your own key.</span><span class="micro mt-1" data-tally="managed" hidden></span><span class="mt-1 h-px w-full bg-line" data-bar="managed" hidden><span class="block h-px bg-accent" style="width: 0"></span></span></span></label><label class="group flex cursor-pointer gap-4 bg-surface p-5 transition-colors duration-150 hover:bg-surface-hi"><input type="checkbox" name="want" value="scanner" class="mt-1 size-4 shrink-0 appearance-none border border-line-input bg-bg transition-colors duration-150 checked:border-accent-line checked:bg-accent-soft checked:shadow-[inset_0_0_0_3px_var(--color-accent)]"><span class="flex flex-col gap-1.5"><span class="text-[15px] font-medium">Relevance scanner</span><span class="text-[14px] leading-[1.6] text-white/70">Reads a comment section and points at the comments actually worth answering.</span><span class="micro mt-1" data-tally="scanner" hidden></span><span class="mt-1 h-px w-full bg-line" data-bar="scanner" hidden><span class="block h-px bg-accent" style="width: 0"></span></span></span></label><label class="group flex cursor-pointer gap-4 bg-surface p-5 transition-colors duration-150 hover:bg-surface-hi"><input type="checkbox" name="want" value="bulk" class="mt-1 size-4 shrink-0 appearance-none border border-line-input bg-bg transition-colors duration-150 checked:border-accent-line checked:bg-accent-soft checked:shadow-[inset_0_0_0_3px_var(--color-accent)]"><span class="flex flex-col gap-1.5"><span class="text-[15px] font-medium">Bulk mode</span><span class="text-[14px] leading-[1.6] text-white/70">Draft replies to a whole page of comments at once, then go through them one by one.</span><span class="micro mt-1" data-tally="bulk" hidden></span><span class="mt-1 h-px w-full bg-line" data-bar="bulk" hidden><span class="block h-px bg-accent" style="width: 0"></span></span></span></label><label class="group flex cursor-pointer gap-4 bg-surface p-5 transition-colors duration-150 hover:bg-surface-hi"><input type="checkbox" name="want" value="presets" class="mt-1 size-4 shrink-0 appearance-none border border-line-input bg-bg transition-colors duration-150 checked:border-accent-line checked:bg-accent-soft checked:shadow-[inset_0_0_0_3px_var(--color-accent)]"><span class="flex flex-col gap-1.5"><span class="text-[15px] font-medium">Style presets</span><span class="text-[14px] leading-[1.6] text-white/70">Saved voices to switch between — a channel, a client, a second language.</span><span class="micro mt-1" data-tally="presets" hidden></span><span class="mt-1 h-px w-full bg-line" data-bar="presets" hidden><span class="block h-px bg-accent" style="width: 0"></span></span></span></label></div><p id="tally-total" class="micro" hidden></p><!-- Not a ballot line. It is a property of any paid plan rather than a
+             feature to be prioritised against the others, and putting it up for
+             a vote would invite the answer "just remove it". --><div class="flex flex-col gap-2 border border-line bg-surface p-5"><span class="micro">included in any plan</span><p class="text-[14px] leading-[1.65] text-white/70">Every paid plan switches off the card that appears over your comment section every twenty replies. It is the only thing the free version asks for, and paying is what replaces it — so it is not on the ballot.</p></div></div><div class="flex flex-col gap-5"><h2 class="text-[22px] font-semibold tracking-[-0.015em]">And what shape should the price be?</h2><p class="text-[14px] leading-[1.65] text-white/70">You already pay OpenRouter directly for the models, at cost. This is only about what, if anything, you would pay me on top.</p><div class="grid gap-px border border-line bg-line sm:grid-cols-3"><label class="flex cursor-pointer flex-col gap-1.5 bg-surface p-5 transition-colors duration-150 hover:bg-surface-hi has-[:checked]:bg-accent-soft"><input type="radio" name="price" value="monthly" class="sr-only peer"><span class="text-[15px] font-medium peer-checked:text-accent">~$5 a month</span><span class="text-[13px] leading-[1.5] text-white/45">Subscription, cancel whenever</span></label><label class="flex cursor-pointer flex-col gap-1.5 bg-surface p-5 transition-colors duration-150 hover:bg-surface-hi has-[:checked]:bg-accent-soft"><input type="radio" name="price" value="lifetime" class="sr-only peer"><span class="text-[15px] font-medium peer-checked:text-accent">~$30 once</span><span class="text-[13px] leading-[1.5] text-white/45">Lifetime licence, no renewal</span></label><label class="flex cursor-pointer flex-col gap-1.5 bg-surface p-5 transition-colors duration-150 hover:bg-surface-hi has-[:checked]:bg-accent-soft"><input type="radio" name="price" value="neither" class="sr-only peer"><span class="text-[15px] font-medium peer-checked:text-accent">Neither</span><span class="text-[13px] leading-[1.5] text-white/45">The free version is enough</span></label></div></div><div class="flex flex-col gap-4"><h2 class="text-[22px] font-semibold tracking-[-0.015em]">Anything the list is missing?</h2><label class="micro" for="wish">in your own words — optional, and read by a person</label><textarea id="wish" name="wish" rows="3" maxlength="1000" class="field resize-y" placeholder="The thing that would actually save you time…"></textarea><p class="text-[13px] text-white/45">Write-ins that come up more than once get added to the list above, credited to nobody.</p></div><div class="flex flex-col gap-4"><h2 class="text-[22px] font-semibold tracking-[-0.015em]">Where do I tell you?</h2><label class="micro" for="email">email</label><input id="email" name="email" type="email" autocomplete="email" required class="field" placeholder="you@example.com"><p class="text-[13px] leading-[1.6] text-white/45">One confirmation email now — you are on the list only once you click the link in it — and then nothing until Pro exists. Unsubscribe in one click from any email. Details in the <a class="text-white/70 underline decoration-line-hi underline-offset-4 hover:text-white" href="/privacy">privacy policy</a>.</p></div><!--
+        Honeypot. A real person never sees it, so anything filled in here came
+        from a bot and n8n drops the submission without answering.
+      --><div aria-hidden="true" style="position: absolute; left: -9999px"><label for="nickname">Nickname</label><input id="nickname" name="nickname" type="text" tabindex="-1" autocomplete="off"></div><div class="flex flex-wrap items-center gap-4"><button id="submit" class="btn-primary" type="submit">Join the waitlist</button><span class="text-[13px] text-white/45">No vote required — the address alone is a vote.</span></div><div id="error" role="alert" hidden class="border border-danger/25 bg-danger/10 p-4 text-[14px] text-white/80"></div></form><div id="done" role="status" hidden class="flex flex-col gap-3 border border-accent-line bg-accent-soft p-6"><p class="text-[15px] font-medium text-accent">Check your inbox.</p><p class="text-[14px] leading-[1.7] text-white/70">There is a confirmation link waiting there, and clicking it is what puts you on the list. If it has not arrived in a few minutes, look in spam — and if it is not there either, write to <a class="underline decoration-line-hi underline-offset-4" href="mailto:privacy@mikidev.app">privacy@mikidev.app</a> and you will be added by hand.</p><p class="text-[14px] text-white/45">Your votes were recorded either way.</p></div></section><section class="mx-auto max-w-3xl px-5 pb-24"><div class="border-t border-line pt-10"><h2 class="text-[22px] font-semibold tracking-[-0.015em]">Why a waitlist and not a buy button</h2><p class="mt-4 text-[15px] leading-[1.75] text-white/70">Because a paid tier nobody asked for is months of work spent on a guess. The extension is finished, free and unlimited; Pro gets built when this page says which parts are worth building, and the parts nobody ticks never get built at all.</p><p class="mt-4 text-[14px] leading-[1.7] text-white/45">If you would rather support the free version now, there is a tea button — no account, no subscription, and it changes nothing about what the extension does.</p><a href="https://buymeacoffee.com/mikipirson" rel="noreferrer" class="btn-coffee mt-6"><svg aria-hidden="true" class="h-[18px] w-auto" viewBox="0 0 34 48" fill="none" xmlns="http://www.w3.org/2000/svg"><!-- Cup body, saucer-less, as their mark draws it: a white fill inside a
+         2px near-black outline, with the lid line above it. --><path d="M5.5 15.5h23l-2.4 26.2a4 4 0 0 1-4 3.6H11.9a4 4 0 0 1-4-3.6L5.5 15.5Z" fill="#fff" stroke="#0B0B0B" stroke-width="3" stroke-linejoin="round"></path><path d="M3.4 8.6c0-1.6 1.2-2.6 3-3C9 5 12.7 4.7 17 4.7s8 .3 10.6.9c1.8.4 3 1.4 3 3s-1.2 2.7-3 3.1c-2.6.6-6.3.9-10.6.9s-8-.3-10.6-.9c-1.8-.4-3-1.5-3-3.1Z" fill="#fff" stroke="#0B0B0B" stroke-width="3" stroke-linejoin="round"></path></svg>Buy me a tea</a></div></section></main><footer class="mt-32 border-t border-line"><div class="mx-auto flex max-w-6xl flex-col gap-8 px-5 py-12 sm:flex-row sm:items-start sm:justify-between"><div class="flex flex-col gap-2"><a href="/" class="text-[15px] font-semibold tracking-[-0.01em]">Reply AI</a><p class="max-w-xs text-[13px] leading-[1.55] text-white/45">A Chrome extension that answers YouTube comments in your own voice, on your own key. No account, no server, no limit.</p><p class="mt-2 flex items-center gap-2"><span aria-hidden="true" class="size-1.5 rounded-full bg-connected"></span><span class="micro">© 2026 · built by one person</span></p></div><div class="flex flex-wrap gap-x-12 gap-y-8"><div class="flex flex-col gap-3"><span class="micro">product</span><a class="text-[13px] text-white/55 transition-colors duration-150 hover:text-white" href="/#workflow">How it works</a><a class="text-[13px] text-white/55 transition-colors duration-150 hover:text-white" href="/#panel">The panel</a><a class="text-[13px] text-white/55 transition-colors duration-150 hover:text-white" href="/#pricing">Pricing</a><a class="text-[13px] text-white/55 transition-colors duration-150 hover:text-white" href="/pro">Pro waitlist</a></div><div class="flex flex-col gap-3"><span class="micro">honest bits</span><a class="text-[13px] text-white/55 transition-colors duration-150 hover:text-white" href="/privacy">Privacy policy</a><a class="text-[13px] text-white/55 transition-colors duration-150 hover:text-white" href="https://github.com/MikiDevStudio/yt-reply-ai" rel="noreferrer">Source code</a><a class="text-[13px] text-white/55 transition-colors duration-150 hover:text-white" href="/feedback">Feedback</a></div><div class="flex flex-col gap-3"><span class="micro">get in touch</span><a class="text-[13px] text-white/55 transition-colors duration-150 hover:text-white" href="mailto:privacy@mikidev.app">privacy@mikidev.app</a><a class="text-[13px] text-white/55 transition-colors duration-150 hover:text-white" href="https://buymeacoffee.com/mikipirson" rel="noreferrer">Buy me a tea</a></div></div></div></footer><script>
       /*
-       * Two n8n webhooks, and no other network dependency on this page.
+       * Two behaviours, one listener each, and nothing else on the page.
        *
-       * n8n rather than Listmonk's own public endpoint because that endpoint
-       * accepts email, name and list uuids only — the votes cannot ride along
-       * with it, and something holding an admin token has to write them.
+       * The masthead gets its line and its blur once the page has moved under
+       * it; over the hero there is nothing to separate it from. `passive`
+       * because it never calls `preventDefault`, and the scroll handler does
+       * one attribute write on a boolean that mostly does not change.
        */
-      const SUBMIT_URL = 'https://n8n-coolify-personal.mikidev.app/webhook/waitlist';
-      const TALLY_URL = 'https://n8n-coolify-personal.mikidev.app/webhook/waitlist-tally';
+      const masthead = document.getElementById('masthead');
+      const setStuck = () => {
+        if (masthead) masthead.dataset.stuck = String(window.scrollY > 8);
+      };
+      setStuck();
+      window.addEventListener('scroll', setStuck, { passive: true });
 
-      /* Below this many confirmed addresses the tally is hidden rather than
-         shown honestly: "1 person wants this" argues against the product more
-         effectively than silence, and early visitors are the ones we can least
-         afford to talk out of it. */
-      const TALLY_FLOOR = 5;
-
-      const form = document.getElementById('waitlist');
-      const button = document.getElementById('submit');
-      const error = document.getElementById('error');
-      const done = document.getElementById('done');
-
-      const params = new URLSearchParams(location.search);
-
-      /* The extension's `from` and `want`. `want` is what the user already ticked
-         in settings, so the boxes arrive pre-ticked and only the address is left
-         to type — that is the entire reason the ballot exists in two places. */
-      const from = params.get('from') === 'limit' ? 'limit' : params.get('from') === 'settings' ? 'settings' : 'direct';
-      if (from === 'limit') document.getElementById('from-limit').hidden = false;
-
-      const wanted = new Set((params.get('want') || '').split(',').filter(Boolean));
-      for (const box of form.querySelectorAll('input[name="want"]')) {
-        if (wanted.has(box.value)) box.checked = true;
+      /*
+       * Sections fade up as they arrive, once each. The observer disconnects
+       * from an element the moment it has been shown, so scrolling back up
+       * does not replay anything — a page that re-animates on every pass is a
+       * page that is hard to read twice.
+       *
+       * `rootMargin` fires it slightly before the element is on screen, so the
+       * animation is finishing rather than starting as it comes into view.
+       */
+      const revealed = document.querySelectorAll('[data-reveal]');
+      if (revealed.length > 0 && 'IntersectionObserver' in window) {
+        const observer = new IntersectionObserver(
+          (entries) => {
+            for (const entry of entries) {
+              if (!entry.isIntersecting) continue;
+              entry.target.dataset.reveal = 'shown';
+              observer.unobserve(entry.target);
+            }
+          },
+          { rootMargin: '0px 0px -10% 0px', threshold: 0.05 },
+        );
+        for (const element of revealed) observer.observe(element);
       }
-
-      function showError(message) {
-        error.textContent = message;
-        error.hidden = false;
-      }
-
-      form.addEventListener('submit', async (event) => {
-        event.preventDefault();
-        error.hidden = true;
-
-        const email = form.email.value.trim();
-        /* Deliberately loose: the confirmation email is the real validation, and
-           a regex that rejects a valid address is worse than one that lets a
-           typo through. */
-        if (!/^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(email)) {
-          showError('That address does not look complete. Check it and try again.');
-          form.email.focus();
-          return;
-        }
-
-        button.disabled = true;
-        button.textContent = 'Sending…';
-
-        const payload = {
-          email,
-          from,
-          want: [...form.querySelectorAll('input[name="want"]:checked')].map((box) => box.value),
-          price: form.price.value || null,
-          wish: form.wish.value.trim() || null,
-          nickname: form.nickname.value,
-          /* The page's own language, which is the only hint we get about what
-             language to write the announcement in. Not an identifier. */
-          locale: navigator.language || null,
-        };
-
-        try {
-          const response = await fetch(SUBMIT_URL, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify(payload),
-          });
-          if (!response.ok) throw new Error(`HTTP ${response.status}`);
-
-          form.hidden = true;
-          done.hidden = false;
-          done.scrollIntoView({ behavior: 'smooth', block: 'center' });
-        } catch {
-          /* Never swallow this. A silent failure here loses the one thing the
-             page exists to collect, and the person has no way to tell. */
-          button.disabled = false;
-          button.textContent = 'Join the waitlist';
-          showError(
-            'That did not go through. Try once more — and if it still fails, send the address to privacy@mikidev.app and it will be added by hand.',
-          );
-        }
-      });
-
-      /* The public tally, best effort. It is social proof, not content: if the
-         endpoint is down the page stays exactly as useful, so a failure is
-         swallowed on purpose here — the one place on this page where that is
-         the right call. */
-      (async () => {
-        try {
-          const response = await fetch(TALLY_URL, { headers: { Accept: 'application/json' } });
-          if (!response.ok) return;
-
-          const tally = await response.json();
-          const total = Number(tally.total) || 0;
-          if (total < TALLY_FLOOR) return;
-
-          document.getElementById('tally-total').textContent =
-            `${total} people on the list so far · votes below`;
-          document.getElementById('tally-total').hidden = false;
-
-          for (const [id, count] of Object.entries(tally.votes || {})) {
-            const label = document.querySelector(`[data-tally="${id}"]`);
-            const bar = document.querySelector(`[data-bar="${id}"]`);
-            if (!label || !bar) continue;
-
-            const share = Math.round((Number(count) / total) * 100);
-            label.textContent = `${count} of ${total} · ${share}%`;
-            label.hidden = false;
-            bar.hidden = false;
-            bar.firstElementChild.style.width = `${Math.min(share, 100)}%`;
-          }
-        } catch {
-          /* Intentionally silent — see above. */
-        }
-      })();
-    </script>
-  </body>
-</html>
+    </script></body></html><script type="module">var e=document.getElementById(`waitlist`),t=document.getElementById(`submit`),n=document.getElementById(`error`),r=document.getElementById(`done`);if(e&&t&&n&&r){let i=new URLSearchParams(location.search),a=i.get(`from`),o=a===`settings`||a===`popup`||a===`nudge`?a:`direct`,s=new Set((i.get(`want`)||``).split(`,`).filter(Boolean)),c=0;for(let t of e.querySelectorAll(`input[name="want"]`))s.has(t.value)&&(t.checked=!0,c+=1);let l=document.getElementById(`from-note`);l&&c>0&&(l.hidden=!1);let u=document.getElementById(`from-nudge`);u&&o===`nudge`&&(u.hidden=!1);let d=e=>{n.textContent=e,n.hidden=!1};e.addEventListener(`submit`,async i=>{i.preventDefault(),n.hidden=!0;let a=e.elements,s=a.email.value.trim();if(!/^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(s)){d(`That address does not look complete. Check it and try again.`),a.email.focus();return}t.disabled=!0,t.textContent=`Sending…`;let c={email:s,from:o,want:[...e.querySelectorAll(`input[name="want"]:checked`)].map(e=>e.value),price:a.price.value||null,wish:a.wish.value.trim()||null,nickname:a.nickname.value,locale:navigator.language||null};try{let t=await fetch(`https://n8n-coolify-personal.mikidev.app/webhook/waitlist`,{method:`POST`,headers:{"Content-Type":`application/json`},body:JSON.stringify(c)});if(!t.ok)throw Error(`HTTP ${t.status}`);e.hidden=!0,r.hidden=!1,r.scrollIntoView({behavior:`smooth`,block:`center`})}catch{t.disabled=!1,t.textContent=`Join the waitlist`,d(`That did not go through. Try once more — and if it still fails, send the address to privacy@mikidev.app and it will be added by hand.`)}}),(async()=>{try{let e=await fetch(`https://n8n-coolify-personal.mikidev.app/webhook/waitlist-tally`,{headers:{Accept:`application/json`}});if(!e.ok)return;let t=await e.json(),n=Number(t.total)||0;if(n<5)return;let r=document.getElementById(`tally-total`);r&&(r.textContent=`${n} people on the list so far · votes below`,r.hidden=!1);for(let[e,r]of Object.entries(t.votes||{})){let t=document.querySelector(`[data-tally="${e}"]`),i=document.querySelector(`[data-bar="${e}"]`);if(!t||!i)continue;let a=Math.round(Number(r)/n*100);t.textContent=`${r} of ${n} · ${a}%`,t.hidden=!1,i.hidden=!1;let o=i.firstElementChild;o&&(o.style.width=`${Math.min(a,100)}%`)}}catch{}})()}</script>

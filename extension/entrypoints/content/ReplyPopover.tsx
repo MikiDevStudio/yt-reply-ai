@@ -23,7 +23,6 @@ import {
 } from '@/lib/settings';
 import { SUPPORT_URL } from '@/lib/support';
 import { useGeneration } from '@/lib/use-generation';
-import { useQuota } from '@/lib/use-quota';
 import {
   type Attempt,
   moveCursor,
@@ -40,17 +39,6 @@ const STYLE_ORDER = ['auto', 'friendly', 'humorous', 'engaging', 'brief'] as con
 
 /** A language name is a word or two. Anything longer is someone writing instructions. */
 const MAX_LANGUAGE_LENGTH = 40;
-
-/**
- * How many replies must be left before the popover mentions the daily cap.
- *
- * Silent above it, deliberately. The cap is generous enough that an ordinary
- * channel owner never approaches it, and a counter on screen every day would
- * advertise a limit to people who will never meet one. Someone with five left
- * is working through a backlog and deserves the warning before the wall rather
- * than at it.
- */
-const QUOTA_WARNING_AT = 5;
 
 interface Status {
   dot: string;
@@ -90,6 +78,15 @@ interface ReplyPopoverProps {
   autoStart: boolean;
   /** Writes the text into YouTube's reply box. */
   onInsert: (text: string) => void;
+  /**
+   * A milestone the reply counter just crossed, handed up so the surface that
+   * owns the shadow roots can draw the support card over this one.
+   *
+   * Fired from the arrival of the reply rather than from Insert: the card is
+   * meant to land between the answer appearing and the answer being used, and
+   * that is the only moment which is both.
+   */
+  onNudge?: (count: number) => void;
   onClose: () => void;
 }
 
@@ -98,10 +95,10 @@ export function ReplyPopover({
   context,
   autoStart,
   onInsert,
+  onNudge,
   onClose,
 }: ReplyPopoverProps) {
   const { state, generate, cancel } = useGeneration();
-  const quota = useQuota();
   const [style, setStyle] = useState<string>('auto');
   const [copied, setCopied] = useState(false);
   const streamRef = useRef<HTMLDivElement>(null);
@@ -198,7 +195,11 @@ export function ReplyPopover({
     const history = pushAttempt(commentId, attempt);
     setAttempts(history.attempts);
     setCursor(history.cursor);
-  }, [state, commentId]);
+
+    // Inside the same guarded block as filing the attempt, so a re-render
+    // cannot raise the card twice for one reply.
+    if (state.nudge !== undefined) onNudge?.(state.nudge);
+  }, [state, commentId, onNudge]);
 
   useEffect(() => {
     const onKeyDown = (event: KeyboardEvent) => {
@@ -293,8 +294,6 @@ export function ReplyPopover({
         shown.creativity > level ? ` · creativity ${shown.creativity}` : ''
       }`
     : null;
-
-  const lowOnQuota = quota && quota.remaining <= QUOTA_WARNING_AT ? quota : null;
 
   const status = busy
     ? STATUS.writing
@@ -531,14 +530,6 @@ export function ReplyPopover({
               </div>
             )}
 
-            {lowOnQuota && (
-              <span
-                className={`${MICRO} truncate`}
-                title="Free replies reset at midnight. Answering the same comment again is free."
-              >
-                {lowOnQuota.remaining} {lowOnQuota.remaining === 1 ? 'reply' : 'replies'} left today
-              </span>
-            )}
           </div>
 
           <div className="flex shrink-0 items-center gap-2">

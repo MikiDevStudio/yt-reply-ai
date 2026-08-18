@@ -62,11 +62,6 @@ export function FailureNotice({ facts, onRetry, at, className = '' }: FailureNot
     void sendRequest({ type: 'ui:openOptions', section });
   }
 
-  // A cap that has been reached is not a fault, and red would say it was. See
-  // the `tone` note in `lib/failure.ts`.
-  const notice = failure.tone === 'notice';
-  const frame = notice ? 'border-warning/25 bg-warning/10' : 'border-error/25 bg-error/10';
-
   return (
     // Built from utilities rather than daisyUI's `.alert`, which is a grid with
     // `grid-auto-flow: column` and an auto-sized track: it laid the title and
@@ -75,11 +70,9 @@ export function FailureNotice({ facts, onRetry, at, className = '' }: FailureNot
     // this shape is three utilities; fighting the component was more.
     <div
       role="alert"
-      className={`flex w-full min-w-0 flex-col items-start gap-2 border p-3 text-left text-[13px] ${frame} ${className}`}
+      className={`flex w-full min-w-0 flex-col items-start gap-2 border border-error/25 bg-error/10 p-3 text-left text-[13px] ${className}`}
     >
-      <span className={`font-medium ${notice ? 'text-warning' : 'text-error'}`}>
-        {failure.title}
-      </span>
+      <span className="font-medium text-error">{failure.title}</span>
 
       {failure.detail && (
         <span className="text-base-content/80">{failure.detail}</span>

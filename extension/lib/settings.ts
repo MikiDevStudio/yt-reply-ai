@@ -11,9 +11,9 @@ import type { SoulProfile } from './soul';
  * has no business going there, and a soul profile would blow the quota on its
  * own. Small UI preferences may move to `sync` later; secrets never will.
  *
- * The one thing that does live in `sync` is the daily reply counter in
- * `lib/quota.ts`: a few hundred bytes that are worth carrying between machines,
- * and nothing sensitive in them.
+ * The one thing that does live in `sync` is the reply counter in
+ * `lib/replies.ts`: a couple of kilobytes that are worth carrying between
+ * machines, and nothing sensitive in them.
  */
 
 /**
@@ -76,6 +76,24 @@ export const modelCatalogue = storage.defineItem<ModelCatalogue | null>(
  * back, not a button that does nothing.
  */
 export const enabled = storage.defineItem<boolean>('local:enabled', {
+  fallback: true,
+});
+
+/**
+ * Whether the support card may appear every twentieth reply.
+ *
+ * On, and deliberately with no control anywhere in the interface that turns it
+ * off: the card is what the free version costs, and a tick box beside it would
+ * be a tick box for paying nothing. It exists as a stored flag rather than a
+ * constant because a paid plan is what flips it — the licence check writes here
+ * and everything else keeps working unchanged.
+ *
+ * Read in the background worker, which is where the milestone is claimed, so a
+ * user who has it off never burns one.
+ *
+ * `local`, like every other preference: an entitlement is about this install.
+ */
+export const supportNudges = storage.defineItem<boolean>('local:support.nudges', {
   fallback: true,
 });
 

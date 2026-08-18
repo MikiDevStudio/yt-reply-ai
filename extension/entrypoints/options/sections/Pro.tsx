@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { SOLID } from '@/components/ui';
 import { PRO_FEATURES, type ProFeatureId, waitlistUrl } from '@/lib/pro';
-import { useQuota } from '@/lib/use-quota';
+import { useReplies } from '@/lib/use-replies';
 import { Section } from '../Section';
 
 /**
@@ -16,7 +16,7 @@ import { Section } from '../Section';
  * worth giving in the first place.
  */
 export function Pro() {
-  const quota = useQuota();
+  const replies = useReplies();
 
   // Held for this visit only, and deliberately not stored. A saved vote would
   // be an opinion we remember but never sent anywhere, and the person would
@@ -32,29 +32,28 @@ export function Pro() {
     <>
       <Section
         n={1}
-        title="Today's replies"
-        description="The free tier covers 50 replies a day. A comment costs one the first time it is answered; regenerating that same comment costs nothing, however many attempts it takes."
+        title="Replies written"
+        description="There is no daily cap. There used to be one — 50 a day — and it is gone: a tool that stops working in the middle of a comment section teaches you to stop opening it. A comment counts once, however many attempts it takes to get the reply right."
       >
         <div className="flex items-baseline gap-3">
           {/* The count is the fact of this card, so it is mono and large — the
               one place on the page where a number is the headline. */}
-          <span className="font-mono text-2xl">
-            {quota ? quota.used : '…'}
-            <span className="text-base text-base-content/50"> of {quota?.limit ?? 50}</span>
+          <span className="font-mono text-2xl">{replies ? replies.total : '…'}</span>
+          <span className="text-sm text-base-content/60">
+            in all{replies && replies.today > 0 ? `, ${replies.today} since midnight` : ''}
           </span>
-          <span className="text-sm text-base-content/60">used since midnight</span>
         </div>
 
         <p className="text-sm text-base-content/70">
           The count is stored in your Chrome profile, so it follows you to another machine and
-          survives a reinstall. It is never sent anywhere.
+          survives a reinstall. It is never sent anywhere, and nothing is gated behind it.
         </p>
       </Section>
 
       <Section
         n={2}
         title="Pro"
-        description="Pro does not exist yet. Tick what you would actually pay for — nothing here is for sale today, and what you tick decides what gets built first."
+        description="Pro does not exist yet. Tick what you would actually pay for — nothing here is for sale today, and what you tick decides what gets built first. Nothing on this list is something the free version stopped doing."
       >
         <div className="flex flex-col gap-3">
           {PRO_FEATURES.map(({ id, title, detail }) => (

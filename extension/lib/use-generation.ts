@@ -18,7 +18,8 @@ export type GenerateOptions = Omit<
 export type GenerationState =
   | { status: 'idle' }
   | { status: 'streaming'; text: string }
-  | { status: 'done'; text: string; usage?: TokenUsage; truncated?: boolean }
+  /** `nudge` is a milestone the reply counter crossed. See `messaging.ts`. */
+  | { status: 'done'; text: string; usage?: TokenUsage; truncated?: boolean; nudge?: number }
   /** `facts.partial` carries whatever streamed in before the failure. */
   | { status: 'error'; facts: FailureFacts };
 
@@ -71,6 +72,7 @@ export function useGeneration() {
               text: message.text,
               usage: message.usage,
               truncated: message.truncated,
+              nudge: message.nudge,
             });
             disconnect();
             break;

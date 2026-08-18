@@ -11,6 +11,7 @@
 # reasoning about what a shipped client cannot protect. Removed from the history
 # as well, so publishing the repo does not publish it retroactively.
 docs/plans/
+docs/stitch_smart_youtube_ai_replies/
 
 # Extension signing key — losing it is survivable, leaking it is not
 .keys/
@@ -31,22 +32,33 @@ yt-reply-extension/
 # Dependencies
 node_modules/
 
-# Build output
+# Build output. `site/` is the exception and is committed on purpose: it is the
+# website, built from `landing/`, and the host deploys it by pulling.
 .output/
 .wxt/
+.astro/
 dist/
 *.zip
+
+# Playwright MCP's scratch output, written wherever it happens to be invoked
+.playwright-mcp/
 
 # Editor / OS
 .DS_Store
 Thumbs.db
 *.log
 
-# Screenshots, mockups and stray images. The extension's own icons are shipped
-# code, so they are exempt — without the exception a new icon size would be
+# Screenshots, mockups and stray images. Anything that ships is exempt — the
+# extension's icons, the marks bundled into its UI, and the landing page's own
+# assets. Without the exceptions a new icon size or a new site image would be
 # skipped by `git add` in silence.
 *.png
 *.jpeg
 *.jpg
 !extension/public/icon/*.png
+!extension/assets/*.png
+!landing/public/**/*.png
+!landing/public/**/*.jpg
+!site/**/*.png
+!site/**/*.jpg
 

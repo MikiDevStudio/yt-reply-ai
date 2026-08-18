@@ -1,0 +1,116 @@
+---
+import '../styles/global.css';
+import Backdrop from '../components/Backdrop.astro';
+import Footer from '../components/Footer.astro';
+import Masthead from '../components/Masthead.astro';
+
+/**
+ * Every page on the site: head, the moving background, the masthead, a footer.
+ *
+ * The two scripts at the bottom are the whole of this site's JavaScript, and
+ * both are progressive: without either, every word on the page is still there
+ * and every link still works. Nothing hydrates, nothing is fetched, and no
+ * framework runtime is shipped.
+ */
+interface Props {
+  title: string;
+  description: string;
+  /** Anchor links for the masthead. Only the landing page has them. */
+  links?: { href: string; label: string }[];
+  /** Keeps a page out of search results — the waitlist, the feedback page. */
+  noindex?: boolean;
+}
+
+const { title, description, links = [], noindex = false } = Astro.props;
+const canonical = new URL(Astro.url.pathname, Astro.site);
+---
+
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>{title}</title>
+    <meta name="description" content={description} />
+    <link rel="canonical" href={canonical} />
+    {noindex && <meta name="robots" content="noindex" />}
+
+    <meta property="og:type" content="website" />
+    <meta property="og:title" content={title} />
+    <meta property="og:description" content={description} />
+    <meta property="og:url" content={canonical} />
+    <meta name="twitter:card" content="summary_large_image" />
+
+    <link rel="icon" href="/favicon.png" type="image/png" />
+    <meta name="theme-color" content="#050505" />
+
+    <!--
+      Set before anything paints, so the reveal animation can hide elements
+      that JavaScript is able to bring back. Without this class nothing is ever
+      hidden — see the note in global.css.
+    -->
+    <script is:inline>
+      document.documentElement.classList.add('js');
+    </script>
+  </head>
+
+  <body class="min-h-screen">
+    <Backdrop />
+
+    <a
+      href="#main"
+      class="sr-only focus:not-sr-only focus:absolute focus:left-4 focus:top-4 focus:z-50 focus:border focus:border-line-hi focus:bg-overlay focus:px-4 focus:py-2 focus:text-[13px]"
+    >
+      Skip to content
+    </a>
+
+    <Masthead links={links} />
+
+    <main id="main">
+      <slot />
+    </main>
+
+    <Footer />
+
+    <script is:inline>
+      /*
+       * Two behaviours, one listener each, and nothing else on the page.
+       *
+       * The masthead gets its line and its blur once the page has moved under
+       * it; over the hero there is nothing to separate it from. `passive`
+       * because it never calls `preventDefault`, and the scroll handler does
+       * one attribute write on a boolean that mostly does not change.
+       */
+      const masthead = document.getElementById('masthead');
+      const setStuck = () => {
+        if (masthead) masthead.dataset.stuck = String(window.scrollY > 8);
+      };
+      setStuck();
+      window.addEventListener('scroll', setStuck, { passive: true });
+
+      /*
+       * Sections fade up as they arrive, once each. The observer disconnects
+       * from an element the moment it has been shown, so scrolling back up
+       * does not replay anything — a page that re-animates on every pass is a
+       * page that is hard to read twice.
+       *
+       * `rootMargin` fires it slightly before the element is on screen, so the
+       * animation is finishing rather than starting as it comes into view.
+       */
+      const revealed = document.querySelectorAll('[data-reveal]');
+      if (revealed.length > 0 && 'IntersectionObserver' in window) {
+        const observer = new IntersectionObserver(
+          (entries) => {
+            for (const entry of entries) {
+              if (!entry.isIntersecting) continue;
+              entry.target.dataset.reveal = 'shown';
+              observer.unobserve(entry.target);
+            }
+          },
+          { rootMargin: '0px 0px -10% 0px', threshold: 0.05 },
+        );
+        for (const element of revealed) observer.observe(element);
+      }
+    </script>
+  </body>
+</html>

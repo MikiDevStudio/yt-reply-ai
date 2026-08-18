@@ -1,0 +1,50 @@
+---
+import { SUPPORT_URL } from '../lib/links';
+
+/**
+ * Buy Me a Coffee's own button, drawn locally.
+ *
+ * Their published embed is a script from `cdnjs.buymeacoffee.com` that writes
+ * the button in and loads a display face from a font host. This site makes no
+ * third-party request of any kind — the privacy policy served from the same
+ * directory says so — and the extension cannot run remote code at all under
+ * MV3. So it is rebuilt from their own parameters: `#FFDD00`, black outline,
+ * black label, the cup in white, and the words they were configured with.
+ *
+ * The cup is the same file the extension bundles, recoloured to their
+ * `coffee-color=#ffffff` and inlined here as an SVG so the page ships no image
+ * request either. Their colours, untouched: a third party's mark keeps that
+ * party's colours (brand.md §1).
+ */
+interface Props {
+  class?: string;
+}
+
+const { class: extra = '' } = Astro.props;
+---
+
+<a href={SUPPORT_URL} rel="noreferrer" class={`btn-coffee ${extra}`}>
+  <svg
+    aria-hidden="true"
+    class="h-[18px] w-auto"
+    viewBox="0 0 34 48"
+    fill="none"
+    xmlns="http://www.w3.org/2000/svg"
+  >
+    <!-- Cup body, saucer-less, as their mark draws it: a white fill inside a
+         2px near-black outline, with the lid line above it. -->
+    <path
+      d="M5.5 15.5h23l-2.4 26.2a4 4 0 0 1-4 3.6H11.9a4 4 0 0 1-4-3.6L5.5 15.5Z"
+      fill="#fff"
+      stroke="#0B0B0B"
+      stroke-width="3"
+      stroke-linejoin="round"></path>
+    <path
+      d="M3.4 8.6c0-1.6 1.2-2.6 3-3C9 5 12.7 4.7 17 4.7s8 .3 10.6.9c1.8.4 3 1.4 3 3s-1.2 2.7-3 3.1c-2.6.6-6.3.9-10.6.9s-8-.3-10.6-.9c-1.8-.4-3-1.5-3-3.1Z"
+      fill="#fff"
+      stroke="#0B0B0B"
+      stroke-width="3"
+      stroke-linejoin="round"></path>
+  </svg>
+  Buy me a tea
+</a>

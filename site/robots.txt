@@ -1,0 +1,6 @@
+# Everything here is meant to be found, except the two pages that carry a
+# `noindex` of their own: the waitlist and the feedback page.
+User-agent: *
+Allow: /
+
+Sitemap: https://reply-ai.mikidev.app/sitemap.txt

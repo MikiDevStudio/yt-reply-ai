@@ -94,8 +94,6 @@ export interface FailurePayload {
   rateLimit?: RateLimitFacts;
   /** Present on `unauthorized`: false means no key was ever stored. */
   hadKey?: boolean;
-  /** Present on `quota`: our own daily cap, as it stood when it refused. */
-  quota?: { used: number; limit: number };
 }
 
 /** Background → content script, over the generate port. */
@@ -109,8 +107,17 @@ export type GenerateServerMessage =
    * worker mid-answer. See `KEEPALIVE_MS` in the background.
    */
   | { type: 'thinking' }
-  /** `truncated` when the model stopped because it ran out of room, not because it finished. */
-  | { type: 'done'; text: string; usage?: TokenUsage; truncated?: boolean }
+  /**
+   * `truncated` when the model stopped because it ran out of room, not because
+   * it finished.
+   *
+   * `nudge` carries a milestone the counter just crossed — 20, 40, 60 — and is
+   * absent on every other reply, which is nineteen out of twenty. The worker
+   * decides it rather than the content script because it is the only single
+   * writer: two tabs finishing at the same instant would otherwise both claim
+   * the same milestone and open two cards. See `takeNudge` in lib/replies.ts.
+   */
+  | { type: 'done'; text: string; usage?: TokenUsage; truncated?: boolean; nudge?: number }
   | ({ type: 'error' } & FailurePayload);
 
 /** One-shot request/response pairs, sent with `chrome.runtime.sendMessage`. */

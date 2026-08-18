@@ -16,11 +16,18 @@ const WAITLIST_URL = 'https://reply-ai.mikidev.app/pro';
 /**
  * Which entry point sent the user, tagged so the two stay separate numbers.
  *
- * `settings` is curiosity — someone reading about a tier that does not exist.
- * `limit` is a person blocked in the middle of their work, which is the far
- * stronger signal and the one that decides whether Pro gets built.
+ * `settings` is someone reading the Pro section with the ballot in front of
+ * them; `popup` is a one-line link clicked out of curiosity; `nudge` is a click
+ * from the support card, which is the one place the product interrupts anybody.
+ * Three different claims, and they have to stay three different numbers.
+ *
+ * `nudge` matters more than the other two. There used to be a `limit` tag for a
+ * person blocked by the daily cap, and it was the strongest signal we had;
+ * removing the cap removed it. Someone who reaches for Pro while a card is in
+ * their way is the nearest thing left to it — they are not browsing a feature
+ * list, they are buying back a moment of their attention.
  */
-export type ProEntryPoint = 'settings' | 'limit';
+export type ProEntryPoint = 'settings' | 'popup' | 'nudge';
 
 /**
  * What Pro would contain, as a ballot.
@@ -32,9 +39,11 @@ export type ProEntryPoint = 'settings' | 'limit';
  */
 export const PRO_FEATURES = [
   {
-    id: 'cap',
-    title: 'No daily cap',
-    detail: 'The 50 free replies a day become unlimited. Everything still runs on your own key.',
+    id: 'managed',
+    title: 'No key to set up',
+    detail:
+      'Replies run on a key we provision, with a spend limit you set — no OpenRouter account, ' +
+      'no top-ups. Everything free stays free and stays on your own key.',
   },
   {
     id: 'scanner',
