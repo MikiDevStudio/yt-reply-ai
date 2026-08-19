@@ -28,25 +28,27 @@ export const SOURCE_URL = 'https://github.com/MikiDevStudio/yt-reply-ai';
 export const ISSUES_URL = `${SOURCE_URL}/issues/new`;
 
 /**
- * The extension's id, pinned because the OpenRouter OAuth redirect embeds it.
+ * The extension's id, as assigned by the Chrome Web Store on 2026-08-19.
  *
  * Written out rather than read from `browser.runtime.id`, which answers with
  * whatever id an unpacked build was given and would point the review link at
  * somebody else's listing. The site pins the same string; see
  * `landing/src/lib/links.ts`.
+ *
+ * The development id is a different string — production builds ship without a
+ * manifest `key` so that the store could assign this one. Never swap them.
  */
-const EXTENSION_ID = 'lbldodejinpgfnoaficdhaglkbhnkmlb';
+const EXTENSION_ID = 'hekgfpaladkladgdiijepdiegkhnbhie';
 
 /**
  * Whether the Chrome Web Store listing exists yet.
  *
- * `false` until the day it is published, and then this line and the matching
- * one on the site are the whole change. Until then the review block asks for a
- * star on the repository instead and says so — asking for a review where none
- * can be left is worse than not asking, and a button that promises a store page
- * and delivers a 404 costs more trust than an honest "not there yet".
+ * True since 2026-08-19. It was `false` while a review could not be left
+ * anywhere, because asking for one where none can be left is worse than not
+ * asking; the review block sent people to the repository and said so. The
+ * matching flag on the site flipped in the same change.
  */
-export const IN_STORE = false;
+export const IN_STORE = true;
 
 /** The listing's reviews tab. Correct the day it goes live, a 404 before that. */
 const STORE_REVIEW_URL = `https://chromewebstore.google.com/detail/${EXTENSION_ID}/reviews`;
