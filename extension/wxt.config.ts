@@ -30,7 +30,7 @@ export default defineConfig({
     name: 'Reply AI — AI replies for YouTube comments',
     description:
       'Draft replies to YouTube comments in your own voice. Free trial included, then your own OpenRouter key.',
-    version: '1.0.0',
+    version: '1.0.1',
 
     // Pins the extension ID to lbldodejinpgfnoaficdhaglkbhnkmlb during
     // development. Without this an unpacked extension's ID is derived from its

@@ -221,8 +221,12 @@ the client against the API rather than against the documentation — streaming,
 usage accounting, error mapping and cancellation — and prints the free models
 that currently exist, which is how default model ids get chosen.
 
-The extension ID is pinned to `lbldodejinpgfnoaficdhaglkbhnkmlb`, because the
-OAuth redirect URL embeds it. Do not regenerate the key in `.keys/`.
+The extension has two ids. Development builds are pinned to
+`lbldodejinpgfnoaficdhaglkbhnkmlb` by the `key` in the manifest, because the
+OAuth redirect URL embeds the id and it would otherwise follow the folder path —
+do not regenerate the key in `.keys/`. Production builds ship without that key
+so the Chrome Web Store can assign its own, which it did:
+`hekgfpaladkladgdiijepdiegkhnbhie`, the published listing.
 
 ### Loading a build by hand
 
