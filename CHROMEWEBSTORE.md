@@ -152,6 +152,43 @@ Pasted one per field in the dashboard. Each one names the user-facing feature �
 | `https://api.mikidev.app/*` | host_permissions | Our own service, contacted at most twice in the life of an install and only when the user presses something. Once to issue the free trial key, if the user takes the trial: a random identifier the extension generated for itself is sent, and an OpenRouter key with a few cents on it comes back. Once to turn a supporter code into a licence, if the user has one. No comment text and no personal data are ever sent there, and generation never passes through it. |
 | `*://www.youtube.com/*`, `*://studio.youtube.com/*` | content scripts | The two pages the interface is drawn on. The extension adds a button to a comment's toolbar and opens a panel under it, reads the comment being replied to (and the video's title, channel and description) so the model has something to answer, and writes the finished draft into YouTube's reply box. Nothing is read until the user opens a comment's panel, and nothing is ever submitted — pressing Reply stays with the user. |
 
+## Test Instructions
+
+Credentials: **both fields empty**. The extension has no accounts of its own,
+and an OpenRouter key of ours has no business in a form.
+
+Additional instructions — 474 chars of 500:
+
+```
+No login or test account is needed — the extension has none of its own.
+1. Open any YouTube video and scroll to its comments (YouTube Studio works too).
+2. Press "AI reply" under a comment; a panel opens.
+3. On a first run the panel offers a free trial key — press "Try it free". No OpenRouter sign-up is required.
+4. Pick a tone, press Generate, then Insert. The draft goes into YouTube's reply box. Pressing Reply is left to you: the extension never posts anything itself.
+```
+
+The trial matters here more than anywhere: a reviewer who cannot generate
+anything without signing up to a third-party service is a reviewer who reports
+that the extension does not work. Step 3 is `lib/failure.ts`'s notice card, and
+its button is in the panel rather than on a settings page for that reason.
+
+## Account Page
+
+Not part of an item, and it is where a first submission stalls.
+
+- **Address** — leave empty. The field publishes what it is given at the foot of
+  the listing, publication of contact details follows Trader status, and a
+  physical address is only required of items that sell something. Nothing here
+  is sold. If a submission ever demands one, it is a decision about which
+  address goes public, never the home one.
+- **Trusted testers** — optional; other Google accounts that may see unpublished
+  versions.
+- **Service account** — for uploading versions through the API. Releases here are
+  done by hand.
+- **Notifications** — turn on email for *Item review completed*, *Item published*
+  and *Item support issue received*. A rejection arrives by mail and nowhere
+  else, and *Item published* is the signal to flip `IN_STORE`.
+
 ## Privacy & Data Use
 
 ### Data Collection
